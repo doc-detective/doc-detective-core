@@ -1,1 +1,0 @@
-# Doc Detective docs placeholder
