@@ -1,4 +1,4 @@
-# Doc Detective: The Documentation Testing Framework
+# Doc Detective Core
 
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
 [![NPM Shield](https://img.shields.io/npm/v/doc-detective)](https://www.npmjs.com/package/doc-detective)
