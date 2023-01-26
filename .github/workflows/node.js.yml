@@ -11,14 +11,11 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x, 18.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
@@ -29,3 +26,32 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+      - name: Compare a npm package version with your package.json
+        uses: rbatty19/compare-npm-versions-ci@master
+        id: package_version
+        with:
+          path: "."
+          npm_package_name: doc-detective
+      - name: Get version
+        run: |
+          echo "Version is  ${{ steps.package_version.outputs.version }} "    
+          echo "Version NPM is  ${{ steps.package_version.outputs.pkg_npm_version }} "
+      - name: Version Issue
+        if: steps.package_version.outputs.npm_is_greater == 'true'
+        run: |
+          echo "Package will not be deployed due to version number must increase"
+      - run: npm ci
+      - run: npm publish
+        if: steps.package_version.outputs.npm_is_greater == 'false' 
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
