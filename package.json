@@ -1,16 +1,11 @@
 {
   "name": "doc-detective",
   "version": "1.2.4",
-  "description": "Unit test documentation (and record videos of those tests).",
+  "description": "The documentation testing framework.",
   "main": "src/index.js",
-  "scripts": {
-    "test": "node ./cli/index.js",
-    "coverage": "node ./cli/coverage.js",
-    "suggest": "node ./cli/suggest.js"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hawkeyexl/doc-detective.git"
+    "url": "git+https://github.com/doc-detective/doc-detective-core.git"
   },
   "keywords": [
     "documentation",
@@ -22,9 +17,9 @@
   "author": "Manny Silva",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/doc-detective/doc-detective/issues"
+    "url": "https://github.com/doc-detective/doc-detective-core/issues"
   },
-  "homepage": "https://github.com/doc-detective/doc-detective#readme",
+  "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^0.27.2",
