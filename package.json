@@ -2,7 +2,7 @@
   "name": "doc-detective",
   "version": "1.3.0",
   "description": "The documentation testing framework.",
-  "main": "src/index.js",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/doc-detective/doc-detective-core.git"

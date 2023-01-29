@@ -1,13 +1,13 @@
 {
   "env": "",
-  "input": "./sample/",
-  "output": "./sample/results.json",
+  "input": ".",
+  "output": "./results.json",
   "setup": "",
   "cleanup": "",
   "recursive": true,
-  "coverageOutput": "./sample/coverage.json",
+  "coverageOutput": "./coverage.json",
   "testSuggestions": {
-    "reportOutput": "./sample/suggestions.json"
+    "reportOutput": "./suggestions.json"
   },
   "testExtensions": [
     ".md",
@@ -17,10 +17,10 @@
     ".xml",
     ".json"
   ],
-  "mediaDirectory": "./sample/",
-  "downloadDirectory": "./sample/",
+  "mediaDirectory": ".",
+  "downloadDirectory": ".",
   "saveFailedTestRecordings": true,
-  "failedTestDirectory": "./sample/failedTests",
+  "failedTestDirectory": "./failedTests",
   "fileTypes": [
     {
       "extensions": [
