@@ -33,3 +33,13 @@ const { test, coverage, suggest } = require("doc-detective");
 ### `suggest(config)`
 
 
+
+## Objects
+
+### `config`
+
+Settings for your documentation source files and Doc Detective tests. Uses the following schema and default values:
+
+```json
+
+```
