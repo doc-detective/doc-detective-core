@@ -22,24 +22,21 @@ const { test, coverage, suggest } = require("doc-detective");
 
 ## Methods
 
-### `test(config)`
+### `test(config, argv)`
 
+Run tests. Recursively parses files in the `config.input` path for tests to perform. Returns a test report object.
 
+### `coverage(config, argv)`
 
-### `coverage(config)`
+Run test coverage analysis on the specified source documents. Identifies uncovered markup based on regular expressions in `config.fileTypes.markup`. Returns a coverage report object.
 
+### `suggest(config, argv)`
 
-
-### `suggest(config)`
-
+Interactively build tests for uncovered markup in the specified source documents. Identifies uncovered markup based on regular expressions in `config.fileTypes.markup`. Writes tests to file and returns a suggestions object.
 
 
 ## Objects
 
 ### `config`
 
-Settings for your documentation source files and Doc Detective tests. Uses the following schema and default values:
-
-```json
-
-```
+Settings for your documentation source files and Doc Detective tests. See a sample config object in the [Doc Detective](https://github.com/doc-detective/doc-detective/blob/main/sample/config.json) repo.
