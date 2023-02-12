@@ -35,30 +35,78 @@ async function appiumIsReady() {
 }
 
 // Perform tests through Appium drivers.
+// Driver reference: https://appium.github.io/appium/docs/en/2.0/quickstart/test-js/
 async function runTests() {
     // Define driver capabilities.
-    const caps = { "platformName": "windows", "appium:automationName": "Gecko", "browserName": "MozillaFirefox", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
+    // TODO: Build out variety of supported caps
+    // Firefox
+    const caps_firefox = { "platformName": "windows", "appium:automationName": "Gecko", "browserName": "MozillaFirefox", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
+    // Chrome
+    const caps_chrome = { "platformName": "windows", "appium:automationName": "Chromium", "browserName": "Chrome", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
     const driver = await wdio.remote({
         protocol: "http",
         hostname: "localhost",
         port: 4723,
         path: "/",
-        capabilities: caps
+        capabilities: caps_chrome
     });
 
-    // Run through all browser-based actions.
-    // TODO: Go to URL
-    // TODO: Find element
-    // TODO: Match element text
-    // TODO: Click element
-    // TODO: Type keys
-    // TODO: Move mouse
-    // TODO: Scroll viewport
-    // TODO: Screenshot
-    // TODO: Start recording
-    // TODO: Stop recording
-    // TODO: Evaluate other Appium-supported actions
+    try {
+        // Run through all browser-based actions.
+        // Go to URL
+        await driver.url('https://www.duckduckgo.com')
 
-    // End driver session.
-    await driver.deleteSession();
+        // Find element
+        // Selector reference: https://webdriver.io/docs/selectors/
+        const searchInput = await driver.$('#search_form_input_homepage');
+
+        // Type keys
+        await searchInput.setValue('WebdriverIO')
+
+        // TODO: Match element text
+
+        // Click element
+        const searchButton = await driver.$('#search_button_homepage');
+        await searchButton.click()
+
+        // TODO: Move mouse
+
+
+        // Scroll viewport
+        await driver.scroll();
+
+        // Save screenshot
+        await driver.saveScreenshot('./screenshot.png')
+
+        // Compare screenshots
+
+        
+        // Find template image in screenshot
+
+
+        // Start recording
+        // ! Appium: iOS/Android
+        // await driver.startRecordingScreen({
+        //     timeLimit: 360
+        // });
+        // ? RecordRTC.js: Chrome/Firefox/Safari/Opera
+        // TODO: https://www.npmjs.com/package/recordrtc
+        // ? Native Windows/macOS/Linux
+
+
+        // Stop recording
+        // ! Appium: iOS/Android
+        // const recording = await driver.stopRecordingScreen();
+        // ? RecordRTC.js: Chrome/Firefox/Safari/Opera
+        // ? Native Windows/macOS/Linux
+
+        // Wait
+        await driver.pause(10000);
+
+        // TODO: Evaluate other Appium-supported actions
+
+    } finally {
+        // End driver session.
+        await driver.deleteSession();
+    }
 }
