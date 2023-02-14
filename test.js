@@ -2,20 +2,43 @@ const axios = require("axios");
 const appium = require("appium");
 const { exit } = require('node:process');
 const wdio = require('webdriverio');
+const OBSWebSocket = require('obs-websocket-js').default;
 
 main();
 
 // Primary execution function.
 async function main() {
     appiumStart();
+    const obs = await obsConnect();
     await appiumIsReady();
     await runTests();
+    await obsDisconnect(obs);
     exit();
 }
 
 // Start the Appium server asynchronously.
 async function appiumStart() {
     appium.main();
+}
+
+// Connect to OBS
+async function obsConnect() {
+    const obs = new OBSWebSocket();
+    try {
+        const {
+            obsWebSocketVersion,
+            negotiatedRpcVersion
+        } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
+        console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
+        return obs;
+    } catch (error) {
+        console.error('Failed to connect', error.code, error.message);
+    }
+}
+
+// Disconnect from OBS
+async function obsDisconnect(obs) {
+    await obs.disconnect();
 }
 
 // Delay execution until Appium server is available.
@@ -62,6 +85,7 @@ async function runTests() {
 
         // Type keys
         await searchInput.setValue('WebdriverIO')
+        // TODO: https://webdriver.io/docs/api/browser/action#key-input-source
 
         // TODO: Match element text
 
@@ -69,20 +93,21 @@ async function runTests() {
         const searchButton = await driver.$('#search_button_homepage');
         await searchButton.click()
 
-        // TODO: Move mouse
-
+        // Move mouse
+        // TODO: https://webdriver.io/docs/api/browser/action#pointer-input-source
 
         // Scroll viewport
         await driver.scroll();
+        // TODO: https://webdriver.io/docs/api/browser/action#wheel-input-source
 
         // Save screenshot
         await driver.saveScreenshot('./screenshot.png')
 
         // Compare screenshots
+        // TODO: https://appium.io/docs/en/writing-running-appium/image-comparison/
 
-        
         // Find template image in screenshot
-
+        // TODO: https://appium.io/docs/en/writing-running-appium/image-comparison/
 
         // Start recording
         // ! Appium: iOS/Android
