@@ -9,10 +9,10 @@ main();
 // Primary execution function.
 async function main() {
     appiumStart();
-    const obs = await obsConnect();
+    // const obs = await obsConnect();
     await appiumIsReady();
     await runTests();
-    await obsDisconnect(obs);
+    // await obsDisconnect(obs);
     exit();
 }
 
@@ -22,6 +22,7 @@ async function appiumStart() {
 }
 
 // Connect to OBS
+// Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
 async function obsConnect() {
     const obs = new OBSWebSocket();
     try {
@@ -30,6 +31,14 @@ async function obsConnect() {
             negotiatedRpcVersion
         } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
         console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
+        // If doesn't already exist, create scene
+        // Set active scene
+        // Create input
+        // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
+        // Configure input
+        // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
+        console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
+        // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
         return obs;
     } catch (error) {
         console.error('Failed to connect', error.code, error.message);
@@ -63,21 +72,53 @@ async function runTests() {
     // Define driver capabilities.
     // TODO: Build out variety of supported caps
     // Firefox
-    const caps_firefox = { "platformName": "windows", "appium:automationName": "Gecko", "browserName": "MozillaFirefox", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
+    const caps_firefox = {
+        "platformName": "windows",
+        "appium:automationName": "Gecko",
+        "browserName": "MozillaFirefox",
+        "moz:firefoxOptions": {
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
+            "args": [
+                // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
+                // "-height=800",
+                // "-width=1200",
+                // "-headless"
+            ],
+            // "binary": ""
+        }
+    };
     // Chrome
-    const caps_chrome = { "platformName": "windows", "appium:automationName": "Chromium", "browserName": "Chrome", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
+    const caps_chrome = {
+        "platformName": "windows",
+        "appium:automationName": "Chromium",
+        "browserName": "chrome",
+        "goog:chromeOptions": {
+            // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
+            "args": [
+                // Reference: https://peter.sh/experiments/chromium-command-line-switches/
+                // "window-size=1200,800",
+                // "headless"
+            ],
+            // "binary": ""
+        }
+    }
+    // const caps_chrome = { "platformName": "windows", "appium:automationName": "Chromium", "browserName": "Chrome", "appium:newCommandTimeout": 3600, "appium:connectHardwareKeyboard": true }
     const driver = await wdio.remote({
         protocol: "http",
         hostname: "localhost",
         port: 4723,
         path: "/",
-        capabilities: caps_chrome
+        capabilities: caps_firefox
     });
 
     try {
         // Run through all browser-based actions.
         // Go to URL
         await driver.url('https://www.duckduckgo.com')
+
+        await driver.pause(1000);
+        await driver.deleteSession();
+        exit()
 
         // Find element
         // Selector reference: https://webdriver.io/docs/selectors/
