@@ -33,6 +33,7 @@
     "gnumake": "^0.3.5",
     "n-readlines": "^1.0.1",
     "node-jq": "^2.3.4",
+    "obs-websocket-js": "^5.0.2",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",
     "prompt-sync": "^4.2.0",
