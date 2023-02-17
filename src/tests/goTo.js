@@ -3,7 +3,7 @@ const { setEnvs, loadEnvs } = require("../utils");
 exports.goTo = goTo;
 
 // Open a URI in the browser
-async function goTo(action, page) {
+async function goTo(action, driver) {
   let uri;
   if (!action.uri) {
     // FAIL: No URI
@@ -23,7 +23,7 @@ async function goTo(action, page) {
   if (!uri.includes("://")) uri = "https://" + uri;
   // Run action
   try {
-    await page.goto(uri);
+    await driver.url(uri);
   } catch {
     // FAIL: Error opening URI
     let status = "FAIL";
