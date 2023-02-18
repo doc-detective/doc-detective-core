@@ -1,37 +1,22 @@
-const puppeteer = require("puppeteer");
+const appium = require("appium");
+const wdio = require('webdriverio');
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
-const { installMouseHelper } = require("./install-mouse-helper");
 const { setEnvs, log, timestamp, loadEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
 const { goTo } = require("./tests/goTo");
+const { clickElement } = require("./tests/click");
 const { moveMouse } = require("./tests/moveMouse");
 const { scroll } = require("./tests/scroll");
 const { screenshot } = require("./tests/screenshot");
 const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
 
-exports.runTests = runTests;
+exports.runSpecs = runSpecs;
 
-const defaultBrowserPaths = {
-  linux: [
-    "/usr/bin/chromium-browser",
-    "/usr/bin/google-chrome",
-    "/usr/bin/firefox",
-  ],
-  darwin: [
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
-  ],
-  win32: [
-    "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    "C:/Program Files/Mozilla Firefox/firefox.exe",
-  ],
-};
-const browserActions = [
+const driverActions = [
   "goTo",
   "find",
   "matchText",
@@ -44,114 +29,166 @@ const browserActions = [
   "stopRecording",
 ];
 
-async function runTests(config, tests) {
-  // Instantiate browser
-  let browserConfig = {
-    headless: config.browserOptions.headless,
-    slowMo: 50,
-    executablePath: config.browserOptions.path,
-    args: ["--no-sandbox"],
-    defaultViewport: {
-      height: config.browserOptions.height,
-      width: config.browserOptions.width,
-    },
-  };
-  try {
-    log(config, "debug", "Launching browser.");
-    browser = await puppeteer.launch(browserConfig);
-  } catch {
-    if (
-      process.platform === "linux" ||
-      process.platform === "darwin" ||
-      process.platform === "win32"
-    ) {
-      for (i = 0; i < defaultBrowserPaths[process.platform].length; i++) {
-        if (fs.existsSync(defaultBrowserPaths[process.platform][i])) {
-          log(
-            config,
-            "debug",
-            `Attempting browser fallback: ${
-              defaultBrowserPaths[process.platform][i]
-            }`
-          );
-          browserConfig.executablePath =
-            defaultBrowserPaths[process.platform][i];
-          try {
-            browser = await puppeteer.launch(browserConfig);
-            break;
-          } catch {}
-        }
-        if (i === defaultBrowserPaths[process.platform].length) {
-          log(
-            config,
-            "error",
-            "Couldn't open browser. Failed browser fallback."
-          );
-          exit(1);
-        }
-      }
-    } else {
-      log(config, "error", "Couldn't open browser.");
-      exit(1);
+// Driver capabilities.
+// TODO: Update for non-Windows platforms
+const capabilities = {
+  firefox: {
+    "platformName": "windows",
+    "appium:automationName": "Gecko",
+    "browserName": "MozillaFirefox",
+    "moz:firefoxOptions": {
+      // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
+      "args": [
+        // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
+        // "-height=800",
+        // "-width=1200",
+        // "-headless"
+      ],
+      // "binary": ""
+    }
+  },
+  chrome: {
+    "platformName": "windows",
+    "appium:automationName": "Chromium",
+    "browserName": "chrome",
+    "goog:chromeOptions": {
+      // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
+      "args": [
+        // Reference: https://peter.sh/experiments/chromium-command-line-switches/
+        // "window-size=1200,800",
+        // "headless"
+      ],
+      // "binary": ""
     }
   }
-  context = await browser.createIncognitoBrowserContext();
+}
+
+const specs = [
+  {
+    id: "dev-spec",
+    description: "",
+    contexts: ["chrome", "firefox"],
+    "tests": [
+      {
+        "id": "dev-test",
+        description: "",
+        "saveFailedTestRecordings": true,
+        "failedTestDirectory": "sample",
+        "steps": [
+          {
+            "id": "dev-step",
+            description: "",
+            "action": "goTo",
+            "uri": "www.google.com"
+          },
+          {
+            "action": "moveMouse",
+            "css": "#gbqfbb",
+            "alignH": "center",
+            "alignV": "center"
+          },
+          {
+            "action": "moveMouse",
+            "css": "[title=Search]",
+            "alignV": "center"
+          },
+          {
+            "action": "type",
+            "css": "[title=Search]",
+            "keys": "kittens",
+            "trailingSpecialKey": "Enter"
+          },
+          {
+            "action": "scroll",
+            "y": 300
+          },
+          {
+            "action": "screenshot",
+            "filename": "results.png",
+            "matchPrevious": true,
+            "matchThreshold": 0.1
+          }
+        ]
+      }
+    ]
+  }
+]
+
+const contexts = [
+  "chrome",
+  "chrome_mobile",
+  "firefox",
+  "firefox_mobile",
+  "safari",
+  "safari_mobile",
+  "ios",
+  "android",
+  "windows",
+  "mac",
+  "linux"
+]
+
+// Check if any specs/tests/steps require drivers.
+function isAppiumRequired(specs) {
+  let appiumRequired = false;
+  specs.forEach(spec => {
+    // Check if contexts are defined at the spec level.
+    if (spec.contexts && spec.contexts.length > 0) appiumRequired = true;
+    spec.tests.forEach(test => {
+      // Check if contexts are defined at the test level.
+      if (test.contexts && test.contexts.length > 0) appiumRequired = true;
+      test.steps.forEach(step => {
+        // Check if test includes actions that require a driver.
+        if (driverActions.includes(step.action)) appiumRequired = true;
+      })
+    })
+  })
+  return appiumRequired;
+}
+
+// main();
+// async function main(){
+//   console.log(isAppiumRequired(specs));
+// }
+
+// Iterate through and execute test specifications and contained tests.
+async function runSpecs(config, specs) {
+
+  const appiumRequired = isAppiumRequired(specs);
+
+  if (appiumRequired) {
+    // Start Appium server
+    appiumStart();
+    await appiumIsReady();
+  }
+
+  // Instantiate driver
+  // TODO: Only instantiate drivre if required by actions
+  // TODO: Iterate drivers based on test context values
+  const driver = await driverStart(caps_chrome);
 
   // Iterate tests
   log(config, "info", "Running tests.");
-  for (const test of tests.tests) {
+  for (const test of specs.tests) {
     log(config, "debug", `TEST: ${test.id}`);
     let pass = 0;
     let warning = 0;
     let fail = 0;
-    config.videoDetails = {};
-    config.debugRecording = {};
-    let page = {};
-    const browserRequired = test.actions.some((action) =>
-      browserActions.includes(action.action)
-    );
-    if (browserRequired) {
-      // Instantiate page
-      log(config, "debug", "Instantiating page.");
-      page = await context.newPage();
-      await page._client.send("Page.setDownloadBehavior", {
-        behavior: "allow",
-        downloadPath: config.downloadDirectory,
-      });
-      if (
-        test.saveFailedTestRecordings ||
-        (config.saveFailedTestRecordings &&
-          test.saveFailedTestRecordings != false)
-      ) {
-        failedTestDirectory =
-          test.failedTestDirectory || config.failedTestDirectory;
-        debugRecordingOptions = {
-          action: "startRecording",
-          mediaDirectory: failedTestDirectory,
-          filename: `${test.id}-${timestamp()}.mp4`,
-          overwrite: true,
-        };
-        config.debugRecording = await startRecording(
-          debugRecordingOptions,
-          page,
-          config
-        );
-      }
-      // Instantiate mouse cursor
-      await installMouseHelper(page);
-    }
+
+    // TODO: If browser
+    // if (driverRequired) {
+    // Instantiate window
+    log(config, "debug", "Instantiating window.");
+    page = await driver.newWindow();
+    // }
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
       action.result = await runAction(
         config,
         action,
-        page,
-        config.videoDetails
+        driver
       );
-      if (action.result.videoDetails) {
-        config.videoDetails = action.result.videoDetails;
-      }
       action.result = action.result.result;
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
@@ -171,38 +208,15 @@ async function runTests(config, tests) {
     } else if (pass) {
       test.status = "PASS";
     } else {
-      console.log("Error: Couldn't read test action results.");
+      log(config, "debug", "Error: Couldn't read test action results.");
       exit(1);
     }
 
-    // Close open recorders/pages
-    if (config.debugRecording.videoDetails) {
-      await stopRecording(config.debugRecording.videoDetails, config);
-      if (!fail) {
-        fs.unlink(config.debugRecording.videoDetails.filepath, function (err) {
-          if (err) {
-            log(
-              config,
-              "warning",
-              `Couldn't delete debug recording: ${config.debugRecording.videoDetails.filepath}`
-            );
-          } else {
-            log(
-              config,
-              "debug",
-              `Deleted debug recording: ${config.debugRecording.videoDetails.filepath}`
-            );
-          }
-        });
-      }
-    }
-
-    // Close page
+    // Close driver
     try {
-      await page.close();
-    } catch {}
+      await driver.deleteSession();
+    } catch { }
   }
-  await browser.close();
   return tests;
 }
 
@@ -504,27 +518,6 @@ async function typeElement(action, elementHandle) {
   return { result };
 }
 
-// Click an element.  Assumes findElement() only found one matching element.
-async function clickElement(action, elementHandle) {
-  let status;
-  let description;
-  let result;
-  try {
-    await elementHandle.click();
-  } catch {
-    // FAIL: Text didn't match
-    status = "FAIL";
-    description = `Couldn't click element.`;
-    result = { status, description };
-    return { result };
-  }
-  // PASS
-  status = "PASS";
-  description = `Clicked element.`;
-  result = { status, description };
-  return { result };
-}
-
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.
 async function matchText(action, page) {
   let status;
@@ -601,4 +594,37 @@ async function findElement(action, page) {
     let result = { status, description };
     return { result, elementHandle };
   }
+}
+
+// Start the Appium server asynchronously.
+async function appiumStart() {
+  appium.main();
+}
+
+// Delay execution until Appium server is available.
+async function appiumIsReady() {
+  let isReady = false;
+  while (!isReady) {
+    // Retry delay
+    // TODO: Add configurable retry delay
+    // TODO: Add configurable timeout duration
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    try {
+      let resp = await axios.get("http://localhost:4723/sessions");
+      if (resp.status === 200) isReady = true;
+    } catch { }
+  }
+  return isReady;
+}
+
+// Start the Appium driver specified in `capabilities`.
+async function driverStart(capabilities) {
+  const driver = await wdio.remote({
+    protocol: "http",
+    hostname: "localhost",
+    port: 4723,
+    path: "/",
+    capabilities
+  });
+  return driver;
 }
