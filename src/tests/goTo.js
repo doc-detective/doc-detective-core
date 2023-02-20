@@ -1,26 +1,30 @@
 const { setEnvs, loadEnvs } = require("../utils");
+const { schemas, validate } = require("../../../doc-detective-common");
 
 exports.goTo = goTo;
 
+action = { action: "goTo" } ;
+validate("goTo_v1", action)
+console.log(action);
+return
 // Open a URI in the browser
 async function goTo(action, driver) {
-  let uri;
-  if (!action.uri) {
-    // FAIL: No URI
-    let status = "FAIL";
-    let description = "'uri' is a required field.";
-    let result = { status, description };
+  let result = { status: "", description: "" };
+
+  // Validate action payload
+  isValidAction = validate("goTo_v1", action);
+  if (!isValidAction.valid) {
+    result.status = "Invalid action.";
+    result.description = errors[0].message;
     return { result };
   }
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  uri = loadEnvs(action.uri);
+
+  // Load values from environment variables
+  action = loadEnvs(action);
 
   // Catch common formatting errors
   if (!uri.includes("://")) uri = "https://" + uri;
+  
   // Run action
   try {
     await driver.url(uri);
@@ -34,6 +38,6 @@ async function goTo(action, driver) {
   // PASS
   let status = "PASS";
   let description = "Opened URI.";
-  let result = { status, description };
+  result = { status, description };
   return { result };
 }
