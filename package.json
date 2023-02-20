@@ -4,7 +4,8 @@
   "description": "The documentation testing framework.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0",
+    "test": "mocha */*.test.js",
+    "watch": "chokidar \"**/*.js\" -c \"npm run test\"",
     "appium": "appium"
   },
   "repository": {
@@ -28,9 +29,11 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "appium": "^2.0.0-beta.55",
     "axios": "^0.27.2",
+    "doc-detective-common": "^1.1.0",
     "dotenv": "^16.0.2",
     "git": "^0.1.5",
     "gnumake": "^0.3.5",
+    "mocha": "^10.2.0",
     "n-readlines": "^1.0.1",
     "node-jq": "^2.3.4",
     "obs-websocket-js": "^5.0.2",
@@ -47,6 +50,7 @@
     "@appium/images-plugin": "^2.0.6",
     "appium-chromium-driver": "^1.0.29",
     "appium-geckodriver": "^1.1.8",
+    "chokidar-cli": "^3.0.0",
     "make": "^0.8.1"
   }
 }
