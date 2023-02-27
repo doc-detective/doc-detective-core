@@ -1,20 +1,24 @@
 const appium = require("appium");
 const wdio = require('webdriverio');
-const fs = require("fs");
-const { exit, stdout, exitCode } = require("process");
+const { exit } = require("process");
 const { setEnvs, log, timestamp, loadEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
-const { goTo } = require("./tests/goTo");
-const { clickElement } = require("./tests/click");
-const { moveMouse } = require("./tests/moveMouse");
-const { scroll } = require("./tests/scroll");
-const { screenshot } = require("./tests/screenshot");
-const { startRecording, stopRecording } = require("./tests/record");
-const { httpRequest } = require("./tests/httpRequest");
+require("geckodriver")
+// const { goTo } = require("./tests/goTo");
+// const { clickElement } = require("./tests/click");
+// const { moveMouse } = require("./tests/moveMouse");
+// const { scroll } = require("./tests/scroll");
+// const { screenshot } = require("./tests/screenshot");
+// const { startRecording, stopRecording } = require("./tests/record");
+// const { httpRequest } = require("./tests/httpRequest");
 
 exports.runSpecs = runSpecs;
+// exports.appiumStart = appiumStart;
+// exports.appiumIsReady = appiumIsReady;
+// exports.driverStart = driverStart;
+
 
 const driverActions = [
   "goTo",
@@ -30,10 +34,10 @@ const driverActions = [
 ];
 
 // Driver capabilities.
-// TODO: Update for non-Windows platforms
+// TODO: Update for non-Linux platforms
 const capabilities = {
   firefox: {
-    "platformName": "windows",
+    "platformName": "linux",
     "appium:automationName": "Gecko",
     "browserName": "MozillaFirefox",
     "moz:firefoxOptions": {
@@ -42,13 +46,13 @@ const capabilities = {
         // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
         // "-height=800",
         // "-width=1200",
-        // "-headless"
+        "-headless"
       ],
       // "binary": ""
     }
   },
   chrome: {
-    "platformName": "windows",
+    "platformName": "linux",
     "appium:automationName": "Chromium",
     "browserName": "chrome",
     "goog:chromeOptions": {
@@ -56,7 +60,7 @@ const capabilities = {
       "args": [
         // Reference: https://peter.sh/experiments/chromium-command-line-switches/
         // "window-size=1200,800",
-        // "headless"
+        "headless"
       ],
       // "binary": ""
     }
@@ -146,11 +150,6 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
-// main();
-// async function main(){
-//   console.log(isAppiumRequired(specs));
-// }
-
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
 
@@ -165,7 +164,7 @@ async function runSpecs(config, specs) {
   // Instantiate driver
   // TODO: Only instantiate drivre if required by actions
   // TODO: Iterate drivers based on test context values
-  const driver = await driverStart(caps_chrome);
+  const driver = await driverStart(capabilities.firefox);
 
   // Iterate tests
   log(config, "info", "Running tests.");
@@ -610,7 +609,7 @@ async function appiumIsReady() {
     // TODO: Add configurable timeout duration
     await new Promise(resolve => setTimeout(resolve, 1000))
     try {
-      let resp = await axios.get("http://localhost:4723/sessions");
+      let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
     } catch { }
   }
@@ -621,10 +620,15 @@ async function appiumIsReady() {
 async function driverStart(capabilities) {
   const driver = await wdio.remote({
     protocol: "http",
-    hostname: "localhost",
+    hostname: "0.0.0.0",
     port: 4723,
     path: "/",
     capabilities
   });
   return driver;
 }
+
+async function main() {
+  await runSpecs(null, specs);
+}
+main();
