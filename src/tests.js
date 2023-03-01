@@ -172,6 +172,12 @@ function isAppiumRequired(specs) {
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   const configContexts = config.contexts;
+  // TODO: Move to config definition
+  // TODO: Detect instlaled applications
+  const availableApps = {
+    app: "firefox",
+    //path: ""
+  }
   // TODO: Load `arch` package
   // TODO: Move to config definition
   const architecture = arch();
@@ -193,17 +199,30 @@ async function runSpecs(config, specs) {
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
 
-
     // Iterates tests
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.id}`);
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
-      // Check if context supported on platform
-      isSupportedContext = testContexts.find(context => context.platforms.includes(platform))
+      // Check if context supported by platform and available apps
+      const isSupportedContext = testContexts.find((context) => {
+        // Check apps
+        const isSupportedApp = availableApps.includes(context.app);
+        // Check platform
+        const isSupportedPlatform = context.platforms.includes(platform);
+        if (isSupportedApp && isSupportedPlatform) {
+          return true;
+        } else {
+          return false;
+        }
+      });
       if (!isSupportedContext) {
-        log(config,"warning",`The current platform (${platform}) doesn't support the contexts specified for this test (${testContexts}).`)
+        log(
+          config,
+          "warning",
+          `The current platform (${platform}) and available apps (${availableApps}) don't support any contexts specified for this test (${testContexts}).`
+        );
         continue;
       }
 
