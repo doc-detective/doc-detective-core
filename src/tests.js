@@ -119,17 +119,22 @@ const specs = [
 ]
 
 const contexts = [
-  "chrome",
-  "chrome_mobile",
-  "firefox",
-  "firefox_mobile",
-  "safari",
-  "safari_mobile",
-  "ios",
-  "android",
-  "windows",
-  "mac",
-  "linux"
+  {
+    application: "chrome",
+    platforms: ["windows", "linux", "mac", "ios", "android"]
+  },
+  {
+    application: "firefox",
+    platforms: ["windows", "linux", "mac", "android"]
+  },
+  {
+    application: "safari",
+    platforms: ["mac", "ios"]
+  },
+  {
+    application: "edge",
+    platforms: ["windows", "linux", "mac"]
+  }
 ]
 
 // Check if any specs/tests/steps require drivers.
