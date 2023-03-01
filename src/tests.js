@@ -125,12 +125,24 @@ const contexts = [
     platforms: ["windows", "linux", "mac", "ios", "android"]
   },
   {
+    application: "chrome_mobile",
+    platforms: ["ios", "android"]
+  },
+  {
     application: "firefox",
     platforms: ["windows", "linux", "mac", "android"]
   },
   {
+    application: "firefox_mobile",
+    platforms: ["android"]
+  },
+  {
     application: "safari",
-    platforms: ["mac", "ios"]
+    platforms: ["mac"]
+  },
+  {
+    application: "safari_mobile",
+    platforms: ["ios"]
   },
   {
     application: "edge",
