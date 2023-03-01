@@ -1,12 +1,12 @@
 const appium = require("appium");
-const wdio = require('webdriverio');
+const wdio = require("webdriverio");
 const { exit } = require("process");
 const { setEnvs, log, timestamp, loadEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
 const arch = require("arch");
-require("geckodriver")
+require("geckodriver");
 // const { goTo } = require("./tests/goTo");
 // const { clickElement } = require("./tests/click");
 // const { moveMouse } = require("./tests/moveMouse");
@@ -19,7 +19,6 @@ exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
-
 
 const driverActions = [
   "goTo",
@@ -38,134 +37,138 @@ const driverActions = [
 // TODO: Update for non-Linux platforms
 const capabilities = {
   firefox: {
-    "platformName": "linux",
+    platformName: "linux",
     "appium:automationName": "Gecko",
-    "browserName": "MozillaFirefox",
+    browserName: "MozillaFirefox",
     "moz:firefoxOptions": {
       // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
-      "args": [
+      args: [
         // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
         // "-height=800",
         // "-width=1200",
-        "-headless"
+        "-headless",
       ],
       // "binary": ""
-    }
+    },
   },
   chrome: {
-    "platformName": "linux",
+    platformName: "linux",
     "appium:automationName": "Chromium",
-    "browserName": "chrome",
+    browserName: "chrome",
     "goog:chromeOptions": {
       // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
-      "args": [
+      args: [
         // Reference: https://peter.sh/experiments/chromium-command-line-switches/
         // "window-size=1200,800",
         "headless",
-        "disable-gpu"
+        "disable-gpu",
       ],
       // "binary": ""
-    }
-  }
-}
+    },
+  },
+};
 
 const specs = [
   {
     id: "dev-spec",
     description: "",
     contexts: [{ application: "firefox" }],
-    "tests": [
+    tests: [
       {
-        "id": "dev-test",
+        id: "dev-test",
         description: "",
-        "saveFailedTestRecordings": true,
-        "failedTestDirectory": "sample",
-        "steps": [
+        saveFailedTestRecordings: true,
+        failedTestDirectory: "sample",
+        steps: [
           {
-            "id": "dev-step",
+            id: "dev-step",
             description: "",
-            "action": "goTo",
-            "uri": "www.google.com"
+            action: "goTo",
+            uri: "www.google.com",
           },
           {
-            "action": "moveMouse",
-            "css": "#gbqfbb",
-            "alignH": "center",
-            "alignV": "center"
+            action: "moveMouse",
+            css: "#gbqfbb",
+            alignH: "center",
+            alignV: "center",
           },
           {
-            "action": "moveMouse",
-            "css": "[title=Search]",
-            "alignV": "center"
+            action: "moveMouse",
+            css: "[title=Search]",
+            alignV: "center",
           },
           {
-            "action": "type",
-            "css": "[title=Search]",
-            "keys": "kittens",
-            "trailingSpecialKey": "Enter"
+            action: "type",
+            css: "[title=Search]",
+            keys: "kittens",
+            trailingSpecialKey: "Enter",
           },
           {
-            "action": "scroll",
-            "y": 300
+            action: "scroll",
+            y: 300,
           },
           {
-            "action": "screenshot",
-            "filename": "results.png",
-            "matchPrevious": true,
-            "matchThreshold": 0.1
-          }
-        ]
-      }
-    ]
-  }
-]
+            action: "screenshot",
+            filename: "results.png",
+            matchPrevious: true,
+            matchThreshold: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+];
 
 const contexts = [
   {
-    application: "chrome",
-    platforms: ["windows", "linux", "mac", "ios", "android"]
+    app: "chrome",
+    platforms: ["windows", "linux", "mac"],
   },
   {
-    application: "chrome_mobile",
-    platforms: ["ios", "android"]
+    app: "chrome_mobile",
+    platforms: ["ios", "android"],
   },
   {
-    application: "firefox",
-    platforms: ["windows", "linux", "mac", "android"]
+    app: "firefox",
+    platforms: ["windows", "linux", "mac"],
   },
   {
-    application: "firefox_mobile",
-    platforms: ["android"]
+    app: "firefox_mobile",
+    platforms: ["android"],
   },
   {
-    application: "safari",
-    platforms: ["mac"]
+    app: "safari",
+    platforms: ["mac"],
   },
   {
-    application: "safari_mobile",
-    platforms: ["ios"]
+    app: "safari_mobile",
+    platforms: ["ios"],
   },
   {
-    application: "edge",
-    platforms: ["windows", "linux", "mac"]
-  }
-]
+    app: "edge",
+    platforms: ["windows", "linux", "mac"],
+  },
+  {
+    app: "edge_mobile",
+    platforms: ["ios", "android"],
+  },
+];
 
 // Check if any specs/tests/steps require drivers.
 function isAppiumRequired(specs) {
   let appiumRequired = false;
-  specs.forEach(spec => {
+  specs.forEach((spec) => {
     // Check if contexts are defined at the spec level.
     if (spec.contexts && spec.contexts.length > 0) appiumRequired = true;
-    spec.tests.forEach(test => {
+    spec.tests.forEach((test) => {
       // Check if contexts are defined at the test level.
       if (test.contexts && test.contexts.length > 0) appiumRequired = true;
-      test.steps.forEach(step => {
+      test.steps.forEach((step) => {
         // Check if test includes actions that require a driver.
         if (driverActions.includes(step.action)) appiumRequired = true;
-      })
-    })
-  })
+      });
+    });
+  });
   return appiumRequired;
 }
 
@@ -229,10 +232,8 @@ async function runSpecs(config, specs) {
       // Iterates steps
       for (const step of test.steps) {
         log(config, "debug", `STEP: ${step.id}`);
-
       }
     }
-
   }
 
   exit();
@@ -258,11 +259,7 @@ async function runSpecs(config, specs) {
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
-      action.result = await runAction(
-        config,
-        action,
-        driver
-      );
+      action.result = await runAction(config, action, driver);
       action.result = action.result.result;
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
@@ -289,7 +286,7 @@ async function runSpecs(config, specs) {
     // Close driver
     try {
       await driver.deleteSession();
-    } catch { }
+    } catch {}
   }
   return tests;
 }
@@ -682,11 +679,11 @@ async function appiumIsReady() {
     // Retry delay
     // TODO: Add configurable retry delay
     // TODO: Add configurable timeout duration
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
       let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
-    } catch { }
+    } catch {}
   }
   return isReady;
 }
@@ -698,7 +695,7 @@ async function driverStart(capabilities) {
     hostname: "0.0.0.0",
     port: 4723,
     path: "/",
-    capabilities
+    capabilities,
   });
   return driver;
 }
@@ -706,8 +703,8 @@ async function driverStart(capabilities) {
 const platformMap = {
   darwin: "mac",
   linux: "linux",
-  win32: "windows"
-}
+  win32: "windows",
+};
 
 async function main() {
   let config = {
@@ -715,10 +712,10 @@ async function main() {
     contexts: [
       {
         application: "firefox",
-        platforms: ["linux"]
-      }
-    ]
-  }
+        platforms: ["linux"],
+      },
+    ],
+  };
   await runSpecs(config, specs);
 }
 main();
