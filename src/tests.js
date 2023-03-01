@@ -61,7 +61,8 @@ const capabilities = {
       "args": [
         // Reference: https://peter.sh/experiments/chromium-command-line-switches/
         // "window-size=1200,800",
-        "headless"
+        "headless",
+        "disable-gpu"
       ],
       // "binary": ""
     }
