@@ -72,7 +72,7 @@ const specs = [
   {
     id: "dev-spec",
     description: "",
-    contexts: [{ application: "firefox" }],
+    contexts: [{ app: "firefox", platforms: ["windows", "linux", "mac"] }],
     tests: [
       {
         id: "dev-test",
@@ -172,16 +172,38 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
+// Check if more or more contexts supported by platform and available apps
+function isSupportedContext(contexts, apps, platform) {
+  const supportedContext = contexts.find((context) => {
+    // Check apps
+    const isSupportedApp = apps.find((app) => app.name === context.app);
+    // Check platform
+    const isSupportedPlatform = context.platforms.includes(platform);
+    // Return boolean
+    if (isSupportedApp && isSupportedPlatform) {
+      return true;
+    } else {
+      return false;
+    }
+  });
+  if (supportedContext) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   const configContexts = config.contexts;
   // TODO: Move to config definition
   // TODO: Detect instlaled applications
-  const availableApps = {
-    app: "firefox",
-    //path: ""
-  }
-  // TODO: Load `arch` package
+  const availableApps = [
+    {
+      name: "chrome",
+      //path: ""
+    },
+  ];
   // TODO: Move to config definition
   const architecture = arch();
   // TODO: Move to config definition
@@ -208,23 +230,19 @@ async function runSpecs(config, specs) {
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
-      // Check if context supported by platform and available apps
-      const isSupportedContext = testContexts.find((context) => {
-        // Check apps
-        const isSupportedApp = availableApps.includes(context.app);
-        // Check platform
-        const isSupportedPlatform = context.platforms.includes(platform);
-        if (isSupportedApp && isSupportedPlatform) {
-          return true;
-        } else {
-          return false;
-        }
-      });
-      if (!isSupportedContext) {
+      const supportedContext = isSupportedContext(
+        testContexts,
+        availableApps,
+        platform
+      );
+      console.log({ testContexts, availableApps, platform, supportedContext });
+      if (!supportedContext) {
+        let appList = [];
+        availableApps.forEach((app) => appList.push(app.name));
         log(
           config,
           "warning",
-          `The current platform (${platform}) and available apps (${availableApps}) don't support any contexts specified for this test (${testContexts}).`
+          `Skipping test. The current platform (${platform}) and available apps (${appList.join('')}) don't support any contexts specified for this test (${JSON.stringify(testContexts)}).`
         );
         continue;
       }
