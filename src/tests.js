@@ -230,12 +230,14 @@ async function runSpecs(config, specs) {
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
+      // Check if current environment supports given contexts
       const supportedContext = isSupportedContext(
         testContexts,
         availableApps,
         platform
       );
-      console.log({ testContexts, availableApps, platform, supportedContext });
+      
+      // If no supported contexts, skip test
       if (!supportedContext) {
         let appList = [];
         availableApps.forEach((app) => appList.push(app.name));
