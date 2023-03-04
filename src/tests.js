@@ -238,12 +238,13 @@ async function runSpecs(config, specs) {
 
       // Iterate contexts
       // TODO: Support both serial and parallel execution
-      for (const context in testContexts) {
+      for (const i in testContexts) {
+        const context = testContexts[i];
         log(config, "debug", `CONTEXT: ${context.app.name}`);
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext(
-          testContexts,
+          context,
           availableApps,
           platform
         );
@@ -282,7 +283,7 @@ async function runSpecs(config, specs) {
         // Iterates steps
         for (const step of test.steps) {
           log(config, "debug", `STEP: ${step.id}`);
-          const stepResult = await runAction(config, step, driver);
+          // const stepResult = await runAction(config, step, driver);
           if (stepResult.status === "FAIL") fail++;
           if (stepResult.status === "WARNING") warning++;
           if (stepResult.status === "PASS") pass++;
@@ -293,7 +294,8 @@ async function runSpecs(config, specs) {
           );
         }
 
-        // Calc overall context result
+        // Calc context result
+        // TODO: Handle `SKIPPED` result
         if (fail) {
           context.status = "FAIL";
         } else if (warning) {
@@ -310,7 +312,9 @@ async function runSpecs(config, specs) {
           await driver.deleteSession();
         } catch {}
       }
+      // TODO: Calc test result
     }
+    // TODO: Calc spec result
   }
 }
 
