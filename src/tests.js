@@ -188,6 +188,7 @@ function getSupportedContexts(contexts, apps, platform) {
   contexts.forEach((context) => {
     // Check apps
     const isSupportedApp = apps.find(
+      // TODO: If `app.path` exists, check that path value is valid. If not, return false.
       (app) => app.name === context.app.name && app.path === context.app.path
     );
     // Check platform
@@ -262,18 +263,18 @@ async function runSpecs(config, specs) {
       }
 
       // Iterate supported contexts
-      // TODO: Support both serial and sequential execution
-      supportedContexts.forEach(async (context) => {
+      // TODO: Support both serial and parallel execution
+      for (const context in supportedContexts) {
+        log(config, "debug", `CONTEXT: ${context.app.name}`);
+
+        // Define driver capabilities
+        // TODO: Support custom apps
+        let caps = capabilities[context.app.name];
+        // TODO: Support paths for reserved and custom apps
+        // if (context.app.path) {
+        // }
+
         // Instantiate driver
-        switch (context.app.name) {
-          case "firefox":
-            const caps = capabilities.firefox;
-            break;
-          default:
-            break;
-        }
-        // TODO: Only instaentiate drivre if required by actions
-        // TODO: Iterate drivers based on test context values
         const driver = await driverStart(caps);
 
         // Set up test
@@ -284,61 +285,38 @@ async function runSpecs(config, specs) {
         // Iterates steps
         for (const step of test.steps) {
           log(config, "debug", `STEP: ${step.id}`);
+          const stepResult = await runAction(config, step, driver);
+          if (stepResult.status === "FAIL") fail++;
+          if (stepResult.status === "WARNING") warning++;
+          if (stepResult.status === "PASS") pass++;
+          log(
+            config,
+            "debug",
+            `RESULT: ${step.result.status}, ${step.result.description}`
+          );
         }
-      });
+
+        // Calc overall context result
+        if (fail) {
+          context.status = "FAIL";
+        } else if (warning) {
+          context.status = "WARNING";
+        } else if (pass) {
+          context.status = "PASS";
+        } else {
+          log(config, "debug", "Error: Couldn't read step results.");
+          exit(1);
+        }
+
+        // Close driver
+        try {
+          await driver.deleteSession();
+        } catch {}
+      }
     }
   }
-
-  exit();
-
-  // Iterate tests
-  log(config, "info", "Running tests.");
-  for (const test of specs.tests) {
-    log(config, "debug", `TEST: ${test.id}`);
-    let pass = 0;
-    let warning = 0;
-    let fail = 0;
-
-    // TODO: If browser
-    // if (driverRequired) {
-    // Instantiate window
-    log(config, "debug", "Instantiating window.");
-    page = await driver.newWindow();
-    // }
-    // Iterate through actions
-    for (const action of test.actions) {
-      log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
-      action.result = await runAction(config, action, driver);
-      action.result = action.result.result;
-      if (action.result.status === "FAIL") fail++;
-      if (action.result.status === "WARNING") warning++;
-      if (action.result.status === "PASS") pass++;
-      log(
-        config,
-        "debug",
-        `RESULT: ${action.result.status}. ${action.result.description}`
-      );
-    }
-
-    // Calc overall test result
-    if (fail) {
-      test.status = "FAIL";
-    } else if (warning) {
-      test.status = "WARNING";
-    } else if (pass) {
-      test.status = "PASS";
-    } else {
-      log(config, "debug", "Error: Couldn't read test action results.");
-      exit(1);
-    }
-
-    // Close driver
-    try {
-      await driver.deleteSession();
-    } catch {}
-  }
-  return tests;
 }
+
 
 async function runAction(config, action, page, videoDetails) {
   let result = {};
