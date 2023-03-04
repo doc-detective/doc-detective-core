@@ -181,24 +181,21 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
-// Return contexts supported by current platform and available apps
-function getSupportedContexts(contexts, apps, platform) {
-  console.log({ contexts, apps, platform });
-  let contextList = [];
-  contexts.forEach((context) => {
-    // Check apps
-    const isSupportedApp = apps.find(
-      // TODO: If `app.path` exists, check that path value is valid. If not, return false.
-      (app) => app.name === context.app.name && app.path === context.app.path
-    );
-    // Check platform
-    const isSupportedPlatform = context.platforms.includes(platform);
-    // Return boolean
-    if (isSupportedApp && isSupportedPlatform) {
-      contextList.push(context);
-    }
-  });
-  return contextList;
+// Check if context is supported by current platform and available apps
+function isSupportedContext(context, apps, platform) {
+  // Check apps
+  const isSupportedApp = apps.find(
+    // TODO: If `app.path` exists, check that path value is valid. If not, return false.
+    (app) => app.name === context.app.name && app.path === context.app.path
+  );
+  // Check platform
+  const isSupportedPlatform = context.platforms.includes(platform);
+  // Return boolean
+  if (isSupportedApp && isSupportedPlatform) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 // Iterate through and execute test specifications and contained tests.
@@ -239,33 +236,33 @@ async function runSpecs(config, specs) {
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
-      // Check if current environment supports given contexts
-      const supportedContexts = getSupportedContexts(
-        testContexts,
-        availableApps,
-        platform
-      );
-
-      // If no supported contexts, skip test
-      if (supportedContexts.length === 0) {
-        let appList = [];
-        availableApps.forEach((app) => appList.push(app.name));
-        log(
-          config,
-          "warning",
-          `Skipping test. The current platform (${platform}) and available apps (${appList.join(
-            ""
-          )}) don't support any contexts specified for this test (${JSON.stringify(
-            testContexts
-          )}).`
-        );
-        continue;
-      }
-
-      // Iterate supported contexts
+      // Iterate contexts
       // TODO: Support both serial and parallel execution
-      for (const context in supportedContexts) {
+      for (const context in testContexts) {
         log(config, "debug", `CONTEXT: ${context.app.name}`);
+
+        // Check if current environment supports given contexts
+        const supportedContext = isSupportedContext(
+          testContexts,
+          availableApps,
+          platform
+        );
+
+        // If context isn't supported, skip it
+        if (!supportedContext) {
+          let appList = [];
+          availableApps.forEach((app) => appList.push(app.name));
+          log(
+            config,
+            "warning",
+            `Skipping context. The current platform (${platform}) and available apps (${appList.join(
+              ""
+            )}) don't support don't support this context (${JSON.stringify(
+              context
+            )}).`
+          );
+          continue;
+        }
 
         // Define driver capabilities
         // TODO: Support custom apps
@@ -316,7 +313,6 @@ async function runSpecs(config, specs) {
     }
   }
 }
-
 
 async function runAction(config, action, page, videoDetails) {
   let result = {};
