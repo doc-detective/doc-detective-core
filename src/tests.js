@@ -72,7 +72,16 @@ const specs = [
   {
     id: "dev-spec",
     description: "",
-    contexts: [{ app: "firefox", platforms: ["windows", "linux", "mac"] }],
+    contexts: [
+      {
+        app: { name: "firefox", path: "" },
+        platforms: ["windows", "linux", "mac"],
+      },
+      {
+        app: { name: "chrome", path: "" },
+        platforms: ["windows", "linux", "mac"],
+      },
+    ],
     tests: [
       {
         id: "dev-test",
@@ -172,25 +181,23 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
-// Check if more or more contexts supported by platform and available apps
-function isSupportedContext(contexts, apps, platform) {
-  const supportedContext = contexts.find((context) => {
+// Return contexts supported by current platform and available apps
+function getSupportedContexts(contexts, apps, platform) {
+  console.log({ contexts, apps, platform });
+  let contextList = [];
+  contexts.forEach((context) => {
     // Check apps
-    const isSupportedApp = apps.find((app) => app.name === context.app);
+    const isSupportedApp = apps.find(
+      (app) => app.name === context.app.name && app.path === context.app.path
+    );
     // Check platform
     const isSupportedPlatform = context.platforms.includes(platform);
     // Return boolean
     if (isSupportedApp && isSupportedPlatform) {
-      return true;
-    } else {
-      return false;
+      contextList.push(context);
     }
   });
-  if (supportedContext) {
-    return true;
-  } else {
-    return false;
-  }
+  return contextList;
 }
 
 // Iterate through and execute test specifications and contained tests.
@@ -200,8 +207,8 @@ async function runSpecs(config, specs) {
   // TODO: Detect instlaled applications
   const availableApps = [
     {
-      name: "chrome",
-      //path: ""
+      name: "firefox",
+      path: "", // Optional
     },
   ];
   // TODO: Move to config definition
@@ -227,40 +234,62 @@ async function runSpecs(config, specs) {
     // Iterates tests
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.id}`);
+
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
       // Check if current environment supports given contexts
-      const supportedContext = isSupportedContext(
+      const supportedContexts = getSupportedContexts(
         testContexts,
         availableApps,
         platform
       );
-      
+
       // If no supported contexts, skip test
-      if (!supportedContext) {
+      if (supportedContexts.length === 0) {
         let appList = [];
         availableApps.forEach((app) => appList.push(app.name));
         log(
           config,
           "warning",
-          `Skipping test. The current platform (${platform}) and available apps (${appList.join('')}) don't support any contexts specified for this test (${JSON.stringify(testContexts)}).`
+          `Skipping test. The current platform (${platform}) and available apps (${appList.join(
+            ""
+          )}) don't support any contexts specified for this test (${JSON.stringify(
+            testContexts
+          )}).`
         );
         continue;
       }
 
-      // Iterates steps
-      for (const step of test.steps) {
-        log(config, "debug", `STEP: ${step.id}`);
-      }
+      // Iterate supported contexts
+      // TODO: Support both serial and sequential execution
+      supportedContexts.forEach(async (context) => {
+        // Instantiate driver
+        switch (context.app.name) {
+          case "firefox":
+            const caps = capabilities.firefox;
+            break;
+          default:
+            break;
+        }
+        // TODO: Only instaentiate drivre if required by actions
+        // TODO: Iterate drivers based on test context values
+        const driver = await driverStart(caps);
+
+        // Set up test
+        let pass = 0;
+        let warning = 0;
+        let fail = 0;
+
+        // Iterates steps
+        for (const step of test.steps) {
+          log(config, "debug", `STEP: ${step.id}`);
+        }
+      });
     }
   }
 
   exit();
-  // Instantiate driver
-  // TODO: Only instaentiate drivre if required by actions
-  // TODO: Iterate drivers based on test context values
-  const driver = await driverStart(capabilities.firefox);
 
   // Iterate tests
   log(config, "info", "Running tests.");
@@ -729,9 +758,13 @@ const platformMap = {
 async function main() {
   let config = {
     logLevel: "debug",
+    sequence: "serial",
     contexts: [
       {
-        application: "firefox",
+        app: {
+          name: "firefox",
+          path: "", // Optional
+        },
         platforms: ["linux"],
       },
     ],
