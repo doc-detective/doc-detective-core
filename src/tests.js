@@ -216,11 +216,11 @@ async function runSpecs(config, specs) {
   const appiumRequired = isAppiumRequired(specs);
 
   // Warm up Appium
-  // if (appiumRequired) {
-  //   // Start Appium server
-  //   appiumStart();
-  //   await appiumIsReady();
-  // }
+  if (appiumRequired) {
+    // Start Appium server
+    appiumStart();
+    await appiumIsReady();
+  }
 
   // Iterate specs
   log(config, "info", "Running test specs.");
