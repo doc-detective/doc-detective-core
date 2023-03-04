@@ -303,7 +303,7 @@ async function runSpecs(config, specs) {
         } else if (pass) {
           context.status = "PASS";
         } else {
-          log(config, "debug", "Error: Couldn't read step results.");
+          log(config, "debug", "ERROR: Couldn't read step results.");
           exit(1);
         }
 
@@ -312,9 +312,31 @@ async function runSpecs(config, specs) {
           await driver.deleteSession();
         } catch {}
       }
-      // TODO: Calc test result
+
+      // Calc test result
+      if (testContexts.find((context) => context.status === "FAIL")) {
+        test.status = "FAIL";
+      } else if (testContexts.find((context) => context.status === "WARNING")) {
+        test.status = "WARNING";
+      } else if (testContexts.find((context) => context.status === "PASS")) {
+        test.status = "PASS";
+      } else {
+        log(config, "debug", "ERROR: Couldn't read context results.");
+        exit(1);
+      }
     }
-    // TODO: Calc spec result
+
+    // Calc spec result
+    if (spec.tests.find((test) => test.status === "FAIL")) {
+      spec.status = "FAIL";
+    } else if (spec.tests.find((test) => test.status === "WARNING")) {
+      spec.status = "WARNING";
+    } else if (spec.tests.find((test) => test.status === "PASS")) {
+      spec.status = "PASS";
+    } else {
+      log(config, "debug", "ERROR: Couldn't read test results.");
+      exit(1);
+    }
   }
 }
 
