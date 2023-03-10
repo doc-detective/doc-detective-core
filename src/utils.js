@@ -5,7 +5,7 @@ const { exit } = require("process");
 const path = require("path");
 const uuid = require("uuid");
 const nReadlines = require("n-readlines");
-const { exec } = require("child_process");
+const { spawn } = require("child_process");
 const defaultConfig = require("../config.json");
 
 exports.setArgs = setArgs;
@@ -18,6 +18,7 @@ exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
+exports.spawnCommand = spawnCommand;
 
 const analyticsRequest =
   "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
@@ -1081,4 +1082,32 @@ function timestamp() {
   ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
     "0" + timestamp.getSeconds()
   ).slice(-2)}`;
+}
+
+// Perform a command
+async function spawnCommand(cmd, args) {
+  const runCommand = spawn(cmd, args);
+
+  // Capture stdout
+  let stdout = "";
+  for await (const chunk of runCommand.stdout) {
+    stdout += chunk;
+  }
+  // Remove trailing newline
+  stdout = stdout.replace(/\n$/,"");
+
+  // Capture stderr
+  let stderr = "";
+  for await (const chunk of runCommand.stderr) {
+    stderr += chunk;
+  }
+  // Remove trailing newline
+  stderr = stderr.replace(/\n$/,"");
+
+  // Capture exit code
+  const exitCode = await new Promise((resolve, reject) => {
+    runCommand.on("close", resolve);
+  });
+
+  return { stdout, stderr, exitCode };
 }

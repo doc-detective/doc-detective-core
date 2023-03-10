@@ -7,7 +7,7 @@ const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
 const arch = require("arch");
 require("geckodriver");
-// const { goTo } = require("./tests/goTo");
+const { runShell } = require("./tests/runShell");
 // const { clickElement } = require("./tests/click");
 // const { moveMouse } = require("./tests/moveMouse");
 // const { scroll } = require("./tests/scroll");
@@ -447,9 +447,9 @@ async function runStep(config, step, driver) {
     // case "stopRecording":
     //   result = await stopRecording(videoDetails, config);
     //   break;
-    // case "runShell":
-    //   result = await runShell(action);
-    //   break;
+    case "runShell":
+      actionResult = await runShell(config, step);
+      break;
     // case "checkLink":
     //   result = await checkLink(action);
     //   break;
