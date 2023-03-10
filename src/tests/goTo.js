@@ -1,4 +1,3 @@
-const { loadEnvs } = require("../utils");
 const { validate } = require("doc-detective-common");
 
 exports.goTo = goTo;
@@ -6,9 +5,6 @@ exports.goTo = goTo;
 // Open a URI in the browser
 async function goTo(config, step, driver) {
   let result = { status: "", description: "" };
-
-  // Load values from environment variables
-  step = loadEnvs(step);
 
   // Validate step payload
   isValidStep = validate("goTo_v2", step);
@@ -21,12 +17,9 @@ async function goTo(config, step, driver) {
   // Make sure there's a protocol
   if (!step.url.includes("://")) step.url = "https://" + step.url;
 
-  // Set params
-  let url = step.url;
-
   // Run action
   try {
-    await driver.url(url);
+    await driver.url(step.url);
   } catch {
     // FAIL: Error opening URL
     let status = "FAIL";
