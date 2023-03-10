@@ -7,6 +7,7 @@ const arch = require("arch");
 require("geckodriver");
 const { goTo } = require("./tests/goTo");
 const { runShell } = require("./tests/runShell");
+const { checkLink } = require("./tests/checkLink");
 // const { clickElement } = require("./tests/click");
 // const { moveMouse } = require("./tests/moveMouse");
 // const { scroll } = require("./tests/scroll");
@@ -457,9 +458,9 @@ async function runStep(config, step, driver) {
     case "runShell":
       actionResult = await runShell(config, step);
       break;
-    // case "checkLink":
-    //   result = await checkLink(action);
-    //   break;
+    case "checkLink":
+      actionResult = await checkLink(config, step);
+      break;
     // case "httpRequest":
     //   result = await httpRequest(action, config);
     //   break;
@@ -468,61 +469,6 @@ async function runStep(config, step, driver) {
       break;
   }
   return actionResult;
-}
-
-async function checkLink(action) {
-  let status;
-  let description;
-  let result;
-  let uri;
-
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  uri = loadEnvs(action.uri);
-
-  // Validate protocol
-  if (uri.indexOf("://") < 0) {
-    // Insert https if no protocol present
-    uri = `https://${uri}`;
-  }
-
-  // Default to 200 status code
-  if (!action.statusCodes) {
-    action.statusCodes = [200];
-  }
-  let req = await axios
-    .get(uri)
-    .then((res) => {
-      return { statusCode: res.status };
-    })
-    .catch((error) => {
-      return { error };
-    });
-
-  // If request returned an error
-  if (req.error) {
-    status = "FAIL";
-    description = `Invalid or unresolvable URI: ${action.uri}`;
-    result = { status, description };
-    return { result };
-  }
-
-  // Compare status codes
-  if (action.statusCodes.indexOf(req.statusCode) >= 0) {
-    status = "PASS";
-    description = `Returned ${req.statusCode}`;
-  } else {
-    status = "FAIL";
-    description = `Returned ${req.statusCode}. Expected one of ${JSON.stringify(
-      action.statusCodes
-    )}`;
-  }
-
-  result = { status, description };
-  return { result };
 }
 
 async function wait(action, page) {
