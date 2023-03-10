@@ -348,6 +348,8 @@ async function runSpecs(config, specs) {
 // Run a specific step
 async function runStep(config, step, driver) {
   let actionResult;
+  // Load values from environment variables
+  step = loadEnvs(step);
   switch (step.action) {
     case "goTo":
       actionResult = await goTo(config, step, driver);
