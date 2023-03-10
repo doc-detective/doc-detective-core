@@ -525,46 +525,6 @@ async function checkLink(action) {
   return { result };
 }
 
-async function runShell(action) {
-  let status;
-  let description;
-  let result;
-  let exitCode;
-  let command;
-
-  // Set environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-
-  // Command
-  //// Load envs
-  command = loadEnvs(action.command);
-
-  // Promisify and execute command
-  const promise = exec(command);
-  const child = promise.child;
-  child.on("close", function (code) {
-    exitCode = code;
-  });
-
-  // Await for promisified command to complete
-  let { stdout, stderr } = await promise;
-  stdout = stdout.trim();
-  stderr = stderr.trim();
-
-  if (exitCode || stderr) {
-    status = "FAIL";
-    description = `Error during execution.`;
-  } else {
-    status = "PASS";
-    description = `Executed command.`;
-  }
-  result = { status, description, stdout, stderr, exitCode };
-  return { result };
-}
-
 async function wait(action, page) {
   let status;
   let description;
