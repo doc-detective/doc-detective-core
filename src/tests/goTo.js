@@ -7,7 +7,7 @@ async function goTo(config, step, driver) {
   let result = { status: "", description: "" };
 
   // Make sure there's a protocol
-  if (!step.url.includes("://")) step.url = "https://" + step.url;
+  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
 
   // Validate step payload
   isValidStep = validate("goTo_v2", step);
