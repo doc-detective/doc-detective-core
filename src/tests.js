@@ -280,7 +280,7 @@ async function runSpecs(config, specs) {
         let fail = 0;
 
         // Iterates steps
-        for (const step of test.steps) {
+        for (let step of test.steps) {
           log(config, "debug", `STEP: ${step.id}`);
           const stepResult = await runStep(config, step, driver);
           if (stepResult.status === "FAIL") fail++;
@@ -289,8 +289,14 @@ async function runSpecs(config, specs) {
           log(
             config,
             "debug",
-            `RESULT: ${step.result.status}, ${step.result.description}`
+            `RESULT: ${stepResult.status}, ${stepResult.description}`
           );
+          if (stepResult.status === "FAIL") {
+            fail++;
+            continue;
+          }
+          if (stepResult.status === "WARNING") warning++;
+          if (stepResult.status === "PASS") pass++;
         }
 
         // Calc context result
