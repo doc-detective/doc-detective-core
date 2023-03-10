@@ -1030,7 +1030,7 @@ function loadEnvs(stringOrObject) {
   if (typeof stringOrObject === "object") {
     // Load for object
     stringOrObject = loadEnvsForObject(stringOrObject);
-  } else {
+  } else if (typeof stringOrObject === "string") {
     // Load for string
     stringOrObject = loadEnvsForString(stringOrObject);
   }
@@ -1046,6 +1046,7 @@ function loadEnvs(stringOrObject) {
 function loadEnvsForString(string) {
   // Find all variables
   variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+  console.log(string);
   matches = string.match(variableRegex);
   // If no matches, return
   if (!matches) return string;
