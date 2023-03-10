@@ -463,6 +463,9 @@ async function runStep(config, step, driver) {
     // case "httpRequest":
     //   result = await httpRequest(action, config);
     //   break;
+    default:
+      actionResult = { status: "FAIL", description: "Unsupported action." };
+      break;
   }
   return actionResult;
 }
