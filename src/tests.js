@@ -13,7 +13,7 @@ const { checkLink } = require("./tests/checkLink");
 // const { scroll } = require("./tests/scroll");
 // const { screenshot } = require("./tests/screenshot");
 // const { startRecording, stopRecording } = require("./tests/record");
-// const { httpRequest } = require("./tests/httpRequest");
+const { httpRequest } = require("./tests/httpRequest");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -461,9 +461,9 @@ async function runStep(config, step, driver) {
     case "checkLink":
       actionResult = await checkLink(config, step);
       break;
-    // case "httpRequest":
-    //   result = await httpRequest(action, config);
-    //   break;
+    case "httpRequest":
+      actionResult = await httpRequest(config, step);
+      break;
     default:
       actionResult = { status: "FAIL", description: "Unsupported action." };
       break;
