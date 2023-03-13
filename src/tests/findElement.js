@@ -41,6 +41,10 @@ async function findElement(config, step, driver) {
 
 
   // Move mouse
+  if (step.moveTo) {
+    await element.moveTo();
+    result.description = result.description + " Moved to element.";
+  }
 
   // Click element
   if (step.click) {
