@@ -6,6 +6,7 @@ const axios = require("axios");
 const arch = require("arch");
 require("geckodriver");
 const { goTo } = require("./tests/goTo");
+const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
 const { checkLink } = require("./tests/checkLink");
 // const { clickElement } = require("./tests/click");
@@ -90,38 +91,57 @@ const specs = [
         failedTestDirectory: "sample",
         steps: [
           {
-            id: "dev-step",
-            description: "",
             action: "goTo",
-            uri: "www.google.com",
+            url: "www.duckduckgo.com",
           },
           {
-            action: "moveMouse",
-            css: "#gbqfbb",
-            alignH: "center",
-            alignV: "center",
+            action: "find",
+            selector: "//input"
           },
-          {
-            action: "moveMouse",
-            css: "[title=Search]",
-            alignV: "center",
-          },
-          {
-            action: "type",
-            css: "[title=Search]",
-            keys: "kittens",
-            trailingSpecialKey: "Enter",
-          },
-          {
-            action: "scroll",
-            y: 300,
-          },
-          {
-            action: "screenshot",
-            filename: "results.png",
-            matchPrevious: true,
-            matchThreshold: 0.1,
-          },
+          // {
+          //   action: "httpRequest",
+          //   url: "https://reqres.in/api/users",
+          //   method: "post",
+          //   requestData: {
+          //     name: "morpheus",
+          //     job: "leader",
+          //   },
+          //   responseData: {
+          //     name: "morpheus",
+          //     job: "leader",
+          //   },
+          //   statusCodes: [
+          //     200,
+          //     201
+          //   ]
+          // },
+          // {
+          //   action: "moveMouse",
+          //   css: "#gbqfbb",
+          //   alignH: "center",
+          //   alignV: "center",
+          // },
+          // {
+          //   action: "moveMouse",
+          //   css: "[title=Search]",
+          //   alignV: "center",
+          // },
+          // {
+          //   action: "type",
+          //   css: "[title=Search]",
+          //   keys: "kittens",
+          //   trailingSpecialKey: "Enter",
+          // },
+          // {
+          //   action: "scroll",
+          //   y: 300,
+          // },
+          // {
+          //   action: "screenshot",
+          //   filename: "results.png",
+          //   matchPrevious: true,
+          //   matchThreshold: 0.1,
+          // },
         ],
       },
     ],
@@ -355,7 +375,9 @@ async function runStep(config, step, driver) {
     case "goTo":
       actionResult = await goTo(config, step, driver);
       break;
-    // case "find":
+    case "find":
+      actionResult = await findElement(config, step, driver);
+      break;
     //   // Perform sub-action: wait
     //   if (typeof action.wait === "undefined") action.wait = {};
     //   action.wait.css = action.css;
@@ -595,40 +617,6 @@ async function matchText(action, page) {
     description = `Element text didn't match expected text. Element text: ${elementText}`;
     result = { status, description };
     return { result };
-  }
-}
-
-// Find a single element
-async function findElement(action, page) {
-  if (!action.css) {
-    // FAIL: No CSS
-    let status = "FAIL";
-    let description = "'css' is a required field.";
-    let result = { status, description };
-    return { result };
-  }
-  let elements = await page.$$eval(action.css, (elements) =>
-    elements.map((element) => element.outerHTML)
-  );
-  if (elements.length === 0) {
-    // FAIL: No CSS
-    let status = "FAIL";
-    let description = " No elements matched CSS selectors.";
-    let result = { status, description };
-    return { result };
-  } else if (elements.length > 1) {
-    // FAIL: No CSS
-    let status = "FAIL";
-    let description = "More than one element matched CSS selectors.";
-    let result = { status, description };
-    return { result };
-  } else {
-    // PASS
-    let elementHandle = await page.$(action.css);
-    let status = "PASS";
-    let description = "Found one element matching CSS selectors.";
-    let result = { status, description };
-    return { result, elementHandle };
   }
 }
 
