@@ -39,9 +39,9 @@ async function findElement(config, step, driver) {
     result.description = result.description + " Matched text.";
   }
 
-
-  // Move mouse
+  // Move to element
   if (step.moveTo) {
+    // TODO: Add offset options. https://webdriver.io/docs/api/element/moveTo
     await element.moveTo();
     result.description = result.description + " Moved to element.";
   }
@@ -49,6 +49,7 @@ async function findElement(config, step, driver) {
   // Click element
   if (step.click) {
     try {
+      // TODO: Add button option. https://webdriver.io/docs/api/element/click
       await element.click();
       result.description = result.description + " Clicked element.";
     } catch {
