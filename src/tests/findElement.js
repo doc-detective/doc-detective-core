@@ -4,7 +4,7 @@ exports.findElement = findElement;
 
 // Find a single element
 async function findElement(config, step, driver) {
-  let result = { status: "", description: "" };
+  let result = { status: "PASS", description: "Found an element matching selector." };
 
   // Validate step payload
   isValidStep = validate("find_v2", step);
@@ -29,14 +29,32 @@ async function findElement(config, step, driver) {
   }
 
   // Match text
+  if (step.matchText) {
   const text = await element.getText();
   if (text !== step.matchText) {
     result.status = "FAIL";
     result.description = `Element text ("${text}") didn't equal match text ("${step.matchText}").`;
     return result;
   }
+    result.description = result.description + " Matched text.";
+  }
+
+
+  // Move mouse
+
+  // Click element
+  if (step.click) {
+    try {
+      await element.click();
+      result.description = result.description + " Clicked element.";
+    } catch {
+      // Couldn't click
+      result.status = "FAIL";
+      result.description = "Couldn't click element.";
+      return result;
+    }
+  }
+
   // PASS
-  result.status = "PASS";
-  result.description = "Found an element matching selector.";
   return result;
 }
