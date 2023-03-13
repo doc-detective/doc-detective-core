@@ -576,50 +576,6 @@ async function typeElement(action, elementHandle) {
   return { result };
 }
 
-// Identify if text in element matches expected text. Assumes findElement() only found one matching element.
-async function matchText(action, page) {
-  let status;
-  let description;
-  let result;
-  let elementText;
-  let text;
-
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  // Set text
-  text = loadEnvs(action.text);
-
-  let elementTag = await page.$eval(action.css, (element) =>
-    element.tagName.toLowerCase()
-  );
-  if (elementTag === "button" || elementTag === "input") {
-    // Displayed text is defined by 'value' for button and input elements.
-    elementText = await page.$eval(action.css, (element) => element.value);
-  } else {
-    // Displayed text defined by 'textContent' for all other elements.
-    elementText = await page.$eval(
-      action.css,
-      (element) => element.textContent
-    );
-  }
-  if (elementText.trim() === text) {
-    // PASS
-    status = "PASS";
-    description = "Element text matched expected text.";
-    result = { status, description };
-    return { result };
-  } else {
-    // FAIL: Text didn't match
-    status = "FAIL";
-    description = `Element text didn't match expected text. Element text: ${elementText}`;
-    result = { status, description };
-    return { result };
-  }
-}
-
 // Start the Appium server asynchronously.
 async function appiumStart() {
   appium.main();
