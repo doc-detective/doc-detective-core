@@ -1,4 +1,4 @@
-const { validate } = require("doc-detective-common");
+const { validate } = require("../../../doc-detective-common");
 
 exports.goTo = goTo;
 
@@ -29,7 +29,7 @@ async function goTo(config, step, driver) {
   }
   // PASS
   let status = "PASS";
-  let description = "Opened URIL.";
+  let description = "Opened URL.";
   result = { status, description };
   return result;
 }
