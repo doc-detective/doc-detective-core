@@ -96,7 +96,9 @@ const specs = [
           },
           {
             action: "find",
-            selector: "//input"
+            selector: ".faq__title",
+            timeout: 1000,
+            matchText: "Frequently Asked Questions"
           },
           // {
           //   action: "httpRequest",

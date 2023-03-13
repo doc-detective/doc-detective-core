@@ -16,18 +16,22 @@ async function findElement(config, step, driver) {
 
   // Find element
   const element = await driver.$(step.selector);
-
+  try {
+    // Wait for timeout
+    await element.waitForExist({ timeout: step.timeout });
+  } catch {
   // No matching elements
-  if (!result.elementHandle.elementId) {
-    result.status = "FAIL",
+    if (!element.elementId) {
+      result.status = "FAIL";
     result.description = "No elements matched selector.";
     return result;
+    }
   }
 
   // Match text
   const text = await element.getText();
   if (text !== step.matchText) {
-    result.status = "FAIL",
+    result.status = "FAIL";
     result.description = `Element text ("${text}") didn't equal match text ("${step.matchText}").`;
     return result;
   }
