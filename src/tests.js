@@ -96,9 +96,14 @@ const specs = [
           },
           {
             action: "find",
-            selector: ".faq__title",
+            selector: "#search_form_input_homepage",
             timeout: 1000,
-            matchText: "Frequently Asked Questions"
+            // matchText: "Frequently Asked Questions",
+            moveTo: true,
+            click: true,
+            typeKeys: {
+              keys: ["shorthair cats","$ENTER$"],
+            },
           },
           // {
           //   action: "httpRequest",
@@ -380,93 +385,9 @@ async function runStep(config, step, driver) {
     case "find":
       actionResult = await findElement(config, step, driver);
       break;
-    //   // Perform sub-action: wait
-    //   if (typeof action.wait === "undefined") action.wait = {};
-    //   action.wait.css = action.css;
-    //   waitResult = await wait(action.wait, page);
-    //   delete action.wait.css;
-    //   if (waitResult.result.status === "FAIL") {
-    //     return waitResult;
-    //   }
-    //   // Perform find
-    //   result = await findElement(action, page);
-    //   if (result.result.status === "FAIL") return result;
-    //   // Perform sub-action: matchText
-    //   if (action.matchText) {
-    //     action.matchText.css = action.css;
-    //     matchResult = await matchText(action.matchText, page);
-    //     delete action.matchText.css;
-    //     result.result.description =
-    //       result.result.description + " " + matchResult.result.description;
-    //     if (matchResult.result.status === "FAIL") {
-    //       result.result.status = "FAIL";
-    //       return result;
-    //     }
-    //   }
-    //   // Perform sub-action: moveMouse
-    //   if (action.moveMouse) {
-    //     action.moveMouse.css = action.css;
-    //     move = await moveMouse(
-    //       action.moveMouse,
-    //       page,
-    //       result.elementHandle,
-    //       config
-    //     );
-    //     delete action.moveMouse.css;
-    //     result.result.description =
-    //       result.result.description + " " + move.result.description;
-    //     if (move.result.status === "FAIL") {
-    //       result.result.status = "FAIL";
-    //       return result;
-    //     }
-    //   }
-    //   // Perform sub-action: click
-    //   if (action.click) {
-    //     action.click.css = action.css;
-    //     click = await clickElement(action.click, result.elementHandle);
-    //     delete action.click.css;
-    //     result.result.description =
-    //       result.result.description + " " + click.result.description;
-    //     if (click.result.status === "FAIL") {
-    //       result.result.status = "FAIL";
-    //       return result;
-    //     }
-    //   }
-    //   // Perform sub-action: type
-    //   if (action.type) {
-    //     action.type.css = action.css;
-    //     type = await typeElement(action.type, result.elementHandle);
-    //     delete action.type.css;
-    //     result.result.description =
-    //       result.result.description + " " + type.result.description;
-    //     if (type.result.status === "FAIL") {
-    //       result.result.status = "FAIL";
-    //     }
-    //   }
-    //   break;
-    // case "matchText":
-    //   find = await findElement(action, page);
-    //   if (find.result.status === "FAIL") return find;
-    //   result = await matchText(action, page);
-    //   break;
-    // case "click":
-    //   find = await findElement(action, page);
-    //   if (find.result.status === "FAIL") return find;
-    //   result = await clickElement(action, find.elementHandle);
-    //   break;
-    // case "type":
-    //   find = await findElement(action, page);
-    //   if (find.result.status === "FAIL") return find;
-    //   result = await typeElement(action, find.elementHandle);
-    //   break;
-    // case "moveMouse":
-    //   find = await findElement(action, page);
-    //   if (find.result.status === "FAIL") return find;
-    //   result = await moveMouse(action, page, find.elementHandle, config);
-    //   break;
-    // case "scroll":
-    //   result = await scroll(action, page, config);
-    //   break;
+    case "typeKeys":
+      actionResult = await typeKeys(config, step, driver);
+      break;
     // case "wait":
     //   result = await wait(action, page);
     //   break;

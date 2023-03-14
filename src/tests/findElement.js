@@ -1,10 +1,14 @@
 const { validate } = require("../../../doc-detective-common");
+const { typeKeys } = require("./typeKeys");
 
 exports.findElement = findElement;
 
 // Find a single element
 async function findElement(config, step, driver) {
-  let result = { status: "PASS", description: "Found an element matching selector." };
+  let result = {
+    status: "PASS",
+    description: "Found an element matching selector.",
+  };
 
   // Validate step payload
   isValidStep = validate("find_v2", step);
@@ -20,22 +24,22 @@ async function findElement(config, step, driver) {
     // Wait for timeout
     await element.waitForExist({ timeout: step.timeout });
   } catch {
-  // No matching elements
+    // No matching elements
     if (!element.elementId) {
       result.status = "FAIL";
-    result.description = "No elements matched selector.";
-    return result;
+      result.description = "No elements matched selector.";
+      return result;
     }
   }
 
   // Match text
   if (step.matchText) {
-  const text = await element.getText();
-  if (text !== step.matchText) {
-    result.status = "FAIL";
-    result.description = `Element text ("${text}") didn't equal match text ("${step.matchText}").`;
-    return result;
-  }
+    const text = await element.getText();
+    if (text !== step.matchText) {
+      result.status = "FAIL";
+      result.description = `Element text ("${text}") didn't equal match text ("${step.matchText}").`;
+      return result;
+    }
     result.description = result.description + " Matched text.";
   }
 
@@ -49,7 +53,7 @@ async function findElement(config, step, driver) {
   // Click element
   if (step.click) {
     try {
-      // TODO: Add button option. https://webdriver.io/docs/api/element/click
+      // TODO: Split into separate action with button and coordinates options. https://webdriver.io/docs/api/element/click
       await element.click();
       result.description = result.description + " Clicked element.";
     } catch {
@@ -57,6 +61,21 @@ async function findElement(config, step, driver) {
       result.status = "FAIL";
       result.description = "Couldn't click element.";
       return result;
+    }
+  }
+
+  // Type keys
+  if (step.typeKeys) {
+    typeStep = {
+      action: "typeKeys",
+      keys: step.typeKeys.keys,
+    };
+    typeResult = await typeKeys(config, typeStep, driver);
+    if (typeResult.status === "FAIL") {
+      result.status = "FAIL";
+      result.description = `${result.description} ${typeResult.description}`;
+    } else {
+      result.description = result.description + " Typed keys.";
     }
   }
 
