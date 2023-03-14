@@ -9,9 +9,8 @@ const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
 const { checkLink } = require("./tests/checkLink");
-// const { clickElement } = require("./tests/click");
-// const { moveMouse } = require("./tests/moveMouse");
-// const { scroll } = require("./tests/scroll");
+const { typeKeys } = require("./tests/typeKeys");
+const { wait } = require("./tests/wait");
 // const { screenshot } = require("./tests/screenshot");
 // const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
@@ -104,6 +103,10 @@ const specs = [
             typeKeys: {
               keys: ["shorthair cats","$ENTER$"],
             },
+          },
+          {
+            action: "wait",
+            duration: 2000
           },
           // {
           //   action: "httpRequest",
@@ -388,9 +391,9 @@ async function runStep(config, step, driver) {
     case "typeKeys":
       actionResult = await typeKeys(config, step, driver);
       break;
-    // case "wait":
-    //   result = await wait(action, page);
-    //   break;
+    case "wait":
+      actionResult = await wait(config, step, driver);
+      break;
     // case "screenshot":
     //   result = await screenshot(action, page, config);
     //   break;
@@ -416,88 +419,6 @@ async function runStep(config, step, driver) {
   return actionResult;
 }
 
-async function wait(action, page) {
-  let status;
-  let description;
-  let result;
-
-  if (action.duration === "") {
-    duration = 10000;
-  } else {
-    duration = action.duration;
-  }
-
-  if (action.css) {
-    try {
-      await page.mainFrame().waitForSelector(action.css, { timeout: duration });
-    } catch {
-      status = "FAIL";
-      description = `Couldn't find an element matching 'css' within the duration.`;
-      result = { status, description };
-      return { result };
-    }
-  } else {
-    await new Promise((r) => setTimeout(r, duration));
-  }
-
-  // PASS
-  status = "PASS";
-  description = `Wait complete.`;
-  result = { status, description };
-  return { result };
-}
-
-// Click an element.  Assumes findElement() only found one matching element.
-async function typeElement(action, elementHandle) {
-  let status;
-  let description;
-  let result;
-  let keys;
-  if (!action.keys && !action.trailingSpecialKey) {
-    // Fail: No keys specified
-    status = "FAIL";
-    description = `Specified values for 'keys and/ot 'trailingSpecialKey'."`;
-    result = { status, description };
-    return { result };
-  }
-  // Load environment variables
-  if (action.env) {
-    result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  // Type keys
-  if (action.keys) {
-    // Resolve environment variables in keys
-    keys = loadEnvs(action.keys);
-
-    try {
-      await elementHandle.type(keys);
-    } catch {
-      // FAIL
-      status = "FAIL";
-      description = `Couldn't type keys.`;
-      result = { status, description };
-      return { result };
-    }
-  }
-  // Type training special key
-  if (action.trailingSpecialKey) {
-    try {
-      await elementHandle.press(action.trailingSpecialKey);
-    } catch {
-      // FAIL: Text didn't match
-      status = "FAIL";
-      description = `Couldn't type special key.`;
-      result = { status, description };
-      return { result };
-    }
-  }
-  // PASS
-  status = "PASS";
-  description = `Typed keys.`;
-  result = { status, description };
-  return { result };
-}
 
 // Start the Appium server asynchronously.
 async function appiumStart() {
