@@ -106,7 +106,7 @@ const specs = [
           },
           {
             action: "saveScreenshot",
-            filePath: "shorthair-cats.png"
+            filePath: "shorthair-cats.png",
           },
           // {
           //   action: "httpRequest",
@@ -314,9 +314,8 @@ async function runSpecs(config, specs) {
         for (let step of test.steps) {
           log(config, "debug", `STEP: ${step.id}`);
           const stepResult = await runStep(config, step, driver);
-          if (stepResult.status === "FAIL") fail++;
-          if (stepResult.status === "WARNING") warning++;
-          if (stepResult.status === "PASS") pass++;
+          // TODO: Remove
+          console.log(stepResult);
           log(
             config,
             "debug",
@@ -374,6 +373,8 @@ async function runSpecs(config, specs) {
       exit(1);
     }
   }
+  // TODO: Remove
+  exit();
 }
 
 // Run a specific step
@@ -393,6 +394,12 @@ async function runStep(config, step, driver) {
       break;
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
+      break;
+    case "startRecording":
+      actionResult = await startRecording(config, step, driver);
+      break;
+    case "stopRecording":
+      actionResult = await stopRecording(config, step, driver);
       break;
     case "wait":
       actionResult = await wait(config, step);
