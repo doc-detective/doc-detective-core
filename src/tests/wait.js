@@ -3,7 +3,7 @@ const { validate } = require("../../../doc-detective-common");
 exports.wait = wait;
 
 // Open a URI in the browser
-async function wait(config, step, driver) {
+async function wait(config, step) {
   let result = { status: "PASS", description: "Waited." };
 
   // Validate step payload

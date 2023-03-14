@@ -24,7 +24,7 @@ const driverActions = [
   "goTo",
   "find",
   "typeKeys",
-  "screenshot",
+  "saveScreenshot",
   "startRecording",
   "stopRecording",
 ];
@@ -391,18 +391,12 @@ async function runStep(config, step, driver) {
     case "typeKeys":
       actionResult = await typeKeys(config, step, driver);
       break;
-    case "wait":
-      actionResult = await wait(config, step, driver);
-      break;
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
       break;
-    // case "startRecording":
-    //   result = await startRecording(action, page, config);
-    //   break;
-    // case "stopRecording":
-    //   result = await stopRecording(videoDetails, config);
-    //   break;
+    case "wait":
+      actionResult = await wait(config, step);
+      break;
     case "runShell":
       actionResult = await runShell(config, step);
       break;
