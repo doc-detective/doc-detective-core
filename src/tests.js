@@ -11,7 +11,7 @@ const { runShell } = require("./tests/runShell");
 const { checkLink } = require("./tests/checkLink");
 const { typeKeys } = require("./tests/typeKeys");
 const { wait } = require("./tests/wait");
-// const { screenshot } = require("./tests/screenshot");
+const { saveScreenshot } = require("./tests/saveScreenshot");
 // const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
 
@@ -23,11 +23,7 @@ exports.runSpecs = runSpecs;
 const driverActions = [
   "goTo",
   "find",
-  "matchText",
-  "click",
-  "type",
-  "moveMouse",
-  "scroll",
+  "typeKeys",
   "screenshot",
   "startRecording",
   "stopRecording",
@@ -101,12 +97,16 @@ const specs = [
             moveTo: true,
             click: true,
             typeKeys: {
-              keys: ["shorthair cats","$ENTER$"],
+              keys: ["shorthair cats", "$ENTER$"],
             },
           },
           {
             action: "wait",
-            duration: 2000
+            duration: 2000,
+          },
+          {
+            action: "saveScreenshot",
+            filePath: "shorthair-cats.png"
           },
           // {
           //   action: "httpRequest",
@@ -394,9 +394,9 @@ async function runStep(config, step, driver) {
     case "wait":
       actionResult = await wait(config, step, driver);
       break;
-    // case "screenshot":
-    //   result = await screenshot(action, page, config);
-    //   break;
+    case "saveScreenshot":
+      actionResult = await saveScreenshot(config, step, driver);
+      break;
     // case "startRecording":
     //   result = await startRecording(action, page, config);
     //   break;
@@ -418,7 +418,6 @@ async function runStep(config, step, driver) {
   }
   return actionResult;
 }
-
 
 // Start the Appium server asynchronously.
 async function appiumStart() {
@@ -463,6 +462,7 @@ async function main() {
   let config = {
     logLevel: "debug",
     sequence: "serial",
+    mediaDirectory: ".",
     contexts: [
       {
         app: {
