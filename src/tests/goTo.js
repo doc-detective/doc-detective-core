@@ -4,7 +4,7 @@ exports.goTo = goTo;
 
 // Open a URI in the browser
 async function goTo(config, step, driver) {
-  let result = { status: "", description: "" };
+  let result = { status: "PASS", description: "Opened URL." };
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
@@ -22,14 +22,11 @@ async function goTo(config, step, driver) {
     await driver.url(step.url);
   } catch {
     // FAIL: Error opening URL
-    let status = "FAIL";
-    let description = "Couldn't open URL.";
-    let result = { status, description };
+    result.status = "FAIL";
+    result.description = "Couldn't open URL.";
     return result;
   }
+  
   // PASS
-  let status = "PASS";
-  let description = "Opened URL.";
-  result = { status, description };
   return result;
 }
