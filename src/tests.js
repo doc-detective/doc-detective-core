@@ -1,7 +1,7 @@
 const appium = require("appium");
 const wdio = require("webdriverio");
 const { exit } = require("process");
-const { setEnvs, log, timestamp, loadEnvs } = require("./utils");
+const { log, timestamp, loadEnvs } = require("./utils");
 const axios = require("axios");
 const arch = require("arch");
 require("geckodriver");
@@ -12,6 +12,7 @@ const { checkLink } = require("./tests/checkLink");
 const { typeKeys } = require("./tests/typeKeys");
 const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
+const { setVariables } = require("./tests/setVariables");
 // const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
 
@@ -86,18 +87,13 @@ const specs = [
         failedTestDirectory: "sample",
         steps: [
           {
-            action: "goTo",
-            url: "www.duckduckgo.com",
+            action: "setVariables",
+            path: ".env",
           },
           {
-            action: "find",
-            selector: "#search_form_input_homepage",
-            timeout: 1000,
-            // matchText: "Frequently Asked Questions",
-            moveTo: true,
-            click: true,
-            typeKeys: {
-              keys: ["shorthair cats", "$ENTER$"],
+            action: "runShell",
+            command: "echo",
+            args: ["$FOO"]
             },
           },
           {
@@ -403,6 +399,9 @@ async function runStep(config, step, driver) {
       break;
     case "wait":
       actionResult = await wait(config, step);
+      break;
+    case "setVariables":
+      actionResult = await setVariables(config, step);
       break;
     case "runShell":
       actionResult = await runShell(config, step);
