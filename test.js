@@ -3,16 +3,29 @@ const appium = require("appium");
 const { exit } = require('node:process');
 const wdio = require('webdriverio');
 const OBSWebSocket = require('obs-websocket-js').default;
+const { spawnCommand } = require("./src/utils");
 
 main();
 
 // Primary execution function.
 async function main() {
-    appiumStart();
-    // const obs = await obsConnect();
-    await appiumIsReady();
-    await runTests();
-    // await obsDisconnect(obs);
+    // Check if running
+    switch (process.platform) {
+        case "linux":
+            const commandResult = await spawnCommand("pgrep", ["obs"]);
+            isRunning = Boolean(commandResult.stdout);
+            console.log(isRunning);
+            if (!isRunning) obsCommand = await spawnCommand("obs");
+            console.log(obsCommand.stdout);
+            break;
+        default:
+            break;
+    }
+    // appiumStart();
+    // // const obs = await obsConnect();
+    // await appiumIsReady();
+    // await runTests();
+    // // await obsDisconnect(obs);
     exit();
 }
 

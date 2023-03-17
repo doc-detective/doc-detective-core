@@ -12,6 +12,8 @@ const { checkLink } = require("./tests/checkLink");
 const { typeKeys } = require("./tests/typeKeys");
 const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
+// const { startRecording } = require("./tests/startRecording");
+// const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
 // const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
@@ -86,14 +88,31 @@ const specs = [
         saveFailedTestRecordings: true,
         failedTestDirectory: "sample",
         steps: [
+          // {
+          //   action: "setVariables",
+          //   path: ".env",
+          // },
+          // {
+          //   action: "runShell",
+          //   command: "echo",
+          //   args: ["$FOO"]
+          // },
           {
-            action: "setVariables",
-            path: ".env",
-          },
+            action: "goTo",
+            url: "www.duckduckgo.com",
+          // },
+          // {
+          //   action: "startRecording",
+          // },
           {
-            action: "runShell",
-            command: "echo",
-            args: ["$FOO"]
+            action: "find",
+            selector: "#search_form_input_homepage",
+            timeout: 1000,
+            // matchText: "Frequently Asked Questions",
+            moveTo: true,
+            click: true,
+            typeKeys: {
+              keys: ["shorthair cats", "$ENTER$"],
             },
           },
           {
@@ -104,6 +123,9 @@ const specs = [
             action: "saveScreenshot",
             filePath: "shorthair-cats.png",
           },
+          // {
+          //   action: "stopRecording",
+          // },
           // {
           //   action: "httpRequest",
           //   url: "https://reqres.in/api/users",
@@ -207,6 +229,55 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
+// Check if any specs/tests/steps require OBS.
+function isObsRequired(specs) {
+  let obsRequired = false;
+  specs.forEach((spec) => {
+    // Check if contexts are defined at the spec level.
+    spec.tests.forEach((test) => {
+      // Check if contexts are defined at the test level.
+      test.steps.forEach((step) => {
+        // Check if test includes actions that require a driver.
+        // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
+        if (step.action === "startRecording") obsRequired = true;
+      });
+    });
+  });
+  return obsRequired;
+}
+
+// TODO: Finish
+// Check if OBS is running. If not, start it.
+async function obsStart() {
+  await exec("pgrep obs");
+}
+
+// TODO: Finish
+// Connect to OBS
+// Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
+async function obsConnect() {
+  obsStart();
+  const obs = new OBSWebSocket();
+  try {
+      const {
+          obsWebSocketVersion,
+          negotiatedRpcVersion
+      } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
+      console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
+      // If doesn't already exist, create scene
+      // Set active scene
+      // Create input
+      // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
+      // Configure input
+      // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
+      console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
+      // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
+      return obs;
+  } catch (error) {
+      console.error('Failed to connect', error.code, error.message);
+  }
+}
+
 // Check if context is supported by current platform and available apps
 function isSupportedContext(context, apps, platform) {
   // Check apps
@@ -240,6 +311,7 @@ async function runSpecs(config, specs) {
   // TODO: Move to config definition
   const platform = platformMap[process.platform];
   const appiumRequired = isAppiumRequired(specs);
+  const obsRequired = isObsRequired(specs);
 
   // Warm up Appium
   if (appiumRequired) {
@@ -247,6 +319,11 @@ async function runSpecs(config, specs) {
     appiumStart();
     await appiumIsReady();
   }
+
+  // // Warm up OBS
+  // if (obsRequired) {
+  //   const obs = obsConnect();
+  // }
 
   // Iterate specs
   log(config, "info", "Running test specs.");
