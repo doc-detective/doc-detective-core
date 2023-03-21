@@ -4,6 +4,7 @@
   "description": "The documentation testing framework.",
   "main": "index.js",
   "scripts": {
+    "preinstall": "npm upgrade doc-detective-common",
     "test": "mocha */*.test.js",
     "watch": "chokidar \"**/*.js\" -c \"npm run test\"",
     "appium": "appium"
@@ -26,8 +27,11 @@
   "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
     "@appium/doctor": "^2.0.7",
+    "@appium/images-plugin": "^2.0.6",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "appium": "^2.0.0-beta.55",
+    "appium-chromium-driver": "^1.0.29",
+    "appium-geckodriver": "^1.1.8",
     "arch": "^2.2.0",
     "axios": "^0.27.2",
     "doc-detective-common": "^1.1.0",
@@ -45,13 +49,10 @@
     "puppeteer": "^13.7.0",
     "puppeteer-screen-recorder": "^2.0.2",
     "uuid": "^8.3.2",
-    "webdriverio": "^8.3.5",
+    "webdriverio": "^8.6.7",
     "yargs": "^17.4.1"
   },
   "devDependencies": {
-    "@appium/images-plugin": "^2.0.6",
-    "appium-chromium-driver": "^1.0.29",
-    "appium-geckodriver": "^1.1.8",
     "chokidar-cli": "^3.0.0",
     "make": "^0.8.1"
   }
