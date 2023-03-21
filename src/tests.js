@@ -28,8 +28,8 @@ const driverActions = [
   "find",
   "typeKeys",
   "saveScreenshot",
-  "startRecording",
-  "stopRecording",
+  // "startRecording",
+  // "stopRecording",
 ];
 
 // Driver capabilities.
@@ -100,7 +100,7 @@ const specs = [
           {
             action: "goTo",
             url: "www.duckduckgo.com",
-          // },
+          },
           // {
           //   action: "startRecording",
           // },
@@ -229,54 +229,54 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
-// Check if any specs/tests/steps require OBS.
-function isObsRequired(specs) {
-  let obsRequired = false;
-  specs.forEach((spec) => {
-    // Check if contexts are defined at the spec level.
-    spec.tests.forEach((test) => {
-      // Check if contexts are defined at the test level.
-      test.steps.forEach((step) => {
-        // Check if test includes actions that require a driver.
-        // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
-        if (step.action === "startRecording") obsRequired = true;
-      });
-    });
-  });
-  return obsRequired;
-}
+// // Check if any specs/tests/steps require OBS.
+// function isObsRequired(specs) {
+//   let obsRequired = false;
+//   specs.forEach((spec) => {
+//     // Check if contexts are defined at the spec level.
+//     spec.tests.forEach((test) => {
+//       // Check if contexts are defined at the test level.
+//       test.steps.forEach((step) => {
+//         // Check if test includes actions that require a driver.
+//         // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
+//         if (step.action === "startRecording") obsRequired = true;
+//       });
+//     });
+//   });
+//   return obsRequired;
+// }
 
-// TODO: Finish
-// Check if OBS is running. If not, start it.
-async function obsStart() {
-  await exec("pgrep obs");
-}
+// // TODO: Finish
+// // Check if OBS is running. If not, start it.
+// async function obsStart() {
+//   await exec("pgrep obs");
+// }
 
-// TODO: Finish
-// Connect to OBS
-// Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
-async function obsConnect() {
-  obsStart();
-  const obs = new OBSWebSocket();
-  try {
-      const {
-          obsWebSocketVersion,
-          negotiatedRpcVersion
-      } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
-      console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
-      // If doesn't already exist, create scene
-      // Set active scene
-      // Create input
-      // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
-      // Configure input
-      // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
-      console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
-      // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
-      return obs;
-  } catch (error) {
-      console.error('Failed to connect', error.code, error.message);
-  }
-}
+// // TODO: Finish
+// // Connect to OBS
+// // Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
+// async function obsConnect() {
+//   obsStart();
+//   const obs = new OBSWebSocket();
+//   try {
+//       const {
+//           obsWebSocketVersion,
+//           negotiatedRpcVersion
+//       } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
+//       console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
+//       // If doesn't already exist, create scene
+//       // Set active scene
+//       // Create input
+//       // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
+//       // Configure input
+//       // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
+//       console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
+//       // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
+//       return obs;
+//   } catch (error) {
+//       console.error('Failed to connect', error.code, error.message);
+//   }
+// }
 
 // Check if context is supported by current platform and available apps
 function isSupportedContext(context, apps, platform) {
@@ -468,12 +468,12 @@ async function runStep(config, step, driver) {
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
       break;
-    case "startRecording":
-      actionResult = await startRecording(config, step, driver);
-      break;
-    case "stopRecording":
-      actionResult = await stopRecording(config, step, driver);
-      break;
+    // case "startRecording":
+    //   actionResult = await startRecording(config, step, driver);
+    //   break;
+    // case "stopRecording":
+    //   actionResult = await stopRecording(config, step, driver);
+    //   break;
     case "wait":
       actionResult = await wait(config, step);
       break;
