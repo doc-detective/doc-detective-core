@@ -1,4 +1,4 @@
-const { validate } = require("../../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
 
 exports.findElement = findElement;

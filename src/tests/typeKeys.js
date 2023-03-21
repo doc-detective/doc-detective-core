@@ -1,4 +1,4 @@
-const { validate } = require("../../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const { Key } = require("webdriverio");
 
 exports.typeKeys = typeKeys;

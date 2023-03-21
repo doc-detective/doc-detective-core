@@ -1,4 +1,4 @@
-const { validate } = require("../../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const axios = require("axios");
 const jq = require("node-jq");
 const { exit } = require("yargs");

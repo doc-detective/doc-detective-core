@@ -1,4 +1,4 @@
-const { validate } = require("../../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const axios = require("axios");
 
 exports.checkLink = checkLink;

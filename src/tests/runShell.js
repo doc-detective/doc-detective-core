@@ -1,4 +1,4 @@
-const { validate } = require("../../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const { spawnCommand } = require("../utils");
 
 exports.runShell = runShell;
