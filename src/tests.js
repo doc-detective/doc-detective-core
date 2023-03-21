@@ -311,7 +311,7 @@ async function runSpecs(config, specs) {
   // TODO: Move to config definition
   const platform = platformMap[process.platform];
   const appiumRequired = isAppiumRequired(specs);
-  const obsRequired = isObsRequired(specs);
+  // const obsRequired = isObsRequired(specs);
 
   // Warm up Appium
   if (appiumRequired) {
