@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "preinstall": "npm upgrade doc-detective-common",
+    "postinstall": "node scripts/postinstall.js",
     "test": "mocha */*.test.js",
     "watch": "chokidar \"**/*.js\" -c \"npm run test\"",
     "appium": "appium"
@@ -28,6 +29,7 @@
   "dependencies": {
     "@appium/doctor": "^2.0.7",
     "@appium/images-plugin": "^2.0.6",
+    "@eyeo/get-browser-binary": "^0.10.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "appium": "^2.0.0-beta.55",
     "appium-chromium-driver": "^1.0.29",
