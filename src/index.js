@@ -5,12 +5,12 @@ const {
   parseTests,
   outputResults,
   log,
-} = require("./src/utils");
-const { sendAnalytics } = require("./src/analytics.js");
-const { runTests } = require("./src/tests");
-const { checkTestCoverage, checkMarkupCoverage } = require("./src/analysis");
-const { reportCoverage } = require("./src/coverage");
-const { suggestTests, runSuggestions } = require("./src/suggest");
+} = require("./utils");
+const { sendAnalytics } = require("./analytics.js");
+const { runTests } = require("./tests");
+const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
+const { reportCoverage } = require("./coverage");
+const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
 
 exports.test = test;
