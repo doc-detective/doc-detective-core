@@ -1,30 +1,22 @@
-const {
-  setArgs,
-  setConfig,
-  setFiles,
-  parseTests,
-  outputResults,
-  log,
-} = require("./utils");
-const { sendAnalytics } = require("./analytics.js");
-const { runTests } = require("./tests");
+const { setFiles, parseTests, outputResults, log } = require("./utils");
+const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { reportCoverage } = require("./coverage");
 const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
+const { validate } = require("doc-detective-common");
 
 exports.test = test;
 exports.coverage = coverage;
 exports.suggest = suggest;
 
-async function test(config, argv) {
-  // Set args
-  argv = setArgs(argv);
-  log(config, "debug", `ARGV:`);
-  log(config, "debug", argv);
-
+async function test(config) {
   // Set config
-  config = setConfig(config, argv);
+  const validityCheck = validate("config_v2", config);
+  if (!validityCheck.valid) {
+    // TODO: Improve error message reporting.
+    log(config, "error", "Invalid config object. Exiting.");
+  }
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 
@@ -119,11 +111,7 @@ async function suggest(config, argv) {
   await runSuggestions(config, suggestionReport);
 
   // Output
-  outputResults(
-    config.testSuggestions.reportOutput,
-    suggestionReport,
-    config
-  );
+  outputResults(config.testSuggestions.reportOutput, suggestionReport, config);
 
   return suggestionReport;
 }
