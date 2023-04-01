@@ -1,3 +1,4 @@
+const { setConfig } = require("./config");
 const { setFiles, parseTests, outputResults, log } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
@@ -6,17 +7,15 @@ const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
 const { validate } = require("doc-detective-common");
 
-exports.test = test;
+exports.runTests = runTests;
 exports.coverage = coverage;
 exports.suggest = suggest;
 
-async function test(config) {
+runTests({logLevel:"debug"});
+
+async function runTests(config) {
   // Set config
-  const validityCheck = validate("config_v2", config);
-  if (!validityCheck.valid) {
-    // TODO: Improve error message reporting.
-    log(config, "error", "Invalid config object. Exiting.");
-  }
+  config = setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 

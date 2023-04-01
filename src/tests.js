@@ -3,7 +3,6 @@ const wdio = require("webdriverio");
 const { exit } = require("process");
 const { log, timestamp, loadEnvs } = require("./utils");
 const axios = require("axios");
-const arch = require("arch");
 require("geckodriver");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
@@ -306,10 +305,6 @@ async function runSpecs(config, specs) {
       path: "", // Optional
     },
   ];
-  // TODO: Move to config definition
-  const architecture = arch();
-  // TODO: Move to config definition
-  const platform = platformMap[process.platform];
   const appiumRequired = isAppiumRequired(specs);
   // const obsRequired = isObsRequired(specs);
 
@@ -349,7 +344,7 @@ async function runSpecs(config, specs) {
         const supportedContext = isSupportedContext(
           context,
           availableApps,
-          platform
+          config.platform
         );
 
         // If context isn't supported, skip it
@@ -359,7 +354,7 @@ async function runSpecs(config, specs) {
           log(
             config,
             "warning",
-            `Skipping context. The current platform (${platform}) and available apps (${appList.join(
+            `Skipping context. The current platform (${config.platform}) and available apps (${appList.join(
               ""
             )}) don't support don't support this context (${JSON.stringify(
               context
@@ -528,12 +523,6 @@ async function driverStart(capabilities) {
   });
   return driver;
 }
-
-const platformMap = {
-  darwin: "mac",
-  linux: "linux",
-  win32: "windows",
-};
 
 async function main() {
   let config = {
