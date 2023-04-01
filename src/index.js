@@ -39,9 +39,6 @@ async function test(config) {
 
   // Output
   outputResults(config.output, results, config);
-  if (config.analytics.send) {
-    // sendAnalytics(config, results);
-  }
 
   return results;
 }

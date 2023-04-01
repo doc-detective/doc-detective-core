@@ -19,20 +19,6 @@ exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 
-const analyticsRequest =
-  "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
-const defaultAnalyticsServers = [
-  {
-    name: "GA",
-    method: "post",
-    url: "https://www.google-analytics.com/mp/collect",
-    params: {
-      api_secret: "J_RJCtf0Rk-G42nX6XQBLQ",
-      measurement_id: "G-5VDP3TNPWC",
-    },
-  },
-];
-
 // Define args
 function setArgs(args) {
   if (!args) return {};
@@ -124,22 +110,6 @@ function setArgs(args) {
       alias: "l",
       description:
         "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
-      type: "string",
-    })
-    .option("analytics", {
-      alias: "a",
-      description:
-        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
-      type: "string",
-    })
-    .option("analyticsUserId", {
-      description:
-        "Identifier of the organization or individual running tests.",
-      type: "string",
-    })
-    .option("analyticsDetailLevel", {
-      description:
-        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .help()
