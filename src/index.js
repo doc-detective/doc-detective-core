@@ -5,14 +5,18 @@ const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { reportCoverage } = require("./coverage");
 const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
-const { validate } = require("doc-detective-common");
+const { validate, schemas } = require("doc-detective-common");
 
 exports.runTests = runTests;
 exports.coverage = coverage;
 exports.suggest = suggest;
 
-runTests({logLevel:"debug"});
+json = schemas.config_v2.examples[3];
+json.logLevel = "debug";
+json.runTests.input = ".dev"
+runTests(json);
 
+// Run tests defined in specifications and documentation source files.
 async function runTests(config) {
   // Set config
   config = setConfig(config);

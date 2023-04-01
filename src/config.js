@@ -1,5 +1,6 @@
 const { validate } = require("../../doc-detective-common");
 const arch = require("arch");
+const { log } = require("./utils")
 const { exit } = require("process");
 
 exports.setConfig = setConfig;
@@ -17,8 +18,23 @@ function setConfig(config) {
   const validityCheck = validate("config_v2", config);
   if (!validityCheck.valid) {
     // TODO: Improve error message reporting.
-    log(config, "error", "Invalid config object. Exiting.");
+    log(config, "error", `Invalid config object: ${validityCheck.errors}. Exiting.`);
     exit(1);
+  }
+
+  // Standardize value formats
+  // Convert `input` into array
+  if (typeof config.input === "string") config.input = [config.input];
+  if (config.runTests) {
+    // Convert `runTests.input` into array
+    if (config.runTests.input && typeof config.runTests.input === "string")
+      config.runTests.input = [config.runTests.input];
+    // Convert `runTests.setup` into array
+    if (config.runTests.setup && typeof config.runTests.setup === "string")
+      config.runTests.setup = [config.runTests.setup];
+    // Convert `runTests.cleanup` into array
+    if (config.runTests.cleanup && typeof config.runTests.cleanup === "string")
+      config.runTests.cleanup = [config.runTests.cleanup];
   }
 
   // Detect current environment.

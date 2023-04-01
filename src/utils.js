@@ -7,6 +7,7 @@ const uuid = require("uuid");
 const nReadlines = require("n-readlines");
 const { spawn } = require("child_process");
 const defaultConfig = require("../config.json");
+const { validate } = require("doc-detective-common");
 
 exports.setArgs = setArgs;
 exports.setFiles = setFiles;
@@ -124,49 +125,34 @@ function setFiles(config) {
   let files = [];
   let sequence = [];
 
-  // Validate input
-  const setup = config.setup;
-  if (setup) sequence.push(setup);
-  const input = config.input;
-  sequence.push(input);
-  const cleanup = config.cleanup;
-  if (cleanup) sequence.push(cleanup);
+  // Determine source sequence
+  const setup = config.runTests.setup;
+  if (setup) sequence = sequence.concat(setup);
+  const input = config.runTests.input || config.input;
+  sequence = sequence.concat(input);
+  const cleanup = config.runTests.cleanup;
+  if (cleanup) sequence = sequence.concat(cleanup);
 
-  for (s = 0; s < sequence.length; s++) {
-    let isFile = fs.statSync(sequence[s]).isFile();
-    let isDir = fs.statSync(sequence[s]).isDirectory();
+  for (const source of sequence) {
+    let isFile = fs.statSync(source).isFile();
+    let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (
-      // Is a file
-      isFile &&
-      // Isn't present in files array already
-      files.indexOf(sequence[s]) < 0 &&
-      // No extension filter or extension included in filter
-      (config.testExtensions === "" ||
-        config.testExtensions.includes(path.extname(sequence[s])))
-    ) {
-      files.push(sequence[s]);
+    if (isFile && isValidSourceFile(config, files, source)) {
+      // Passes all checks
+      files.push(source);
     } else if (isDir) {
       // Load files from directory
       dirs = [];
-      dirs[0] = sequence[s];
-      for (let i = 0; i < dirs.length; i++) {
-        fs.readdirSync(dirs[i]).forEach((object) => {
-          let content = path.resolve(dirs[i] + "/" + object);
-          let isFile = fs.statSync(content).isFile();
-          let isDir = fs.statSync(content).isDirectory();
-          if (
-            // Is a file
-            isFile &&
-            // Isn't present in files array already
-            files.indexOf(content) < 0 &&
-            // No extension filter or extension included in filter
-            (config.testExtensions === "" ||
-              config.testExtensions.includes(path.extname(content)))
-          ) {
+      dirs[0] = source;
+      for (const dir of dirs) {
+        fs.readdirSync(dir).forEach((object) => {
+          const content = path.resolve(dir + "/" + object);
+          const isFile = fs.statSync(content).isFile();
+          const isDir = fs.statSync(content).isDirectory();
+          if (isFile && isValidSourceFile(config, files, content)) {
             files.push(content);
-          } else if (isDir && config.recursive) {
+          } else if (isDir && (config.runTests.recursive || config.recursive)) {
             // recursive set to true
             dirs.push(content);
           }
@@ -175,6 +161,34 @@ function setFiles(config) {
     }
   }
   return files;
+}
+
+function isValidSourceFile(config, files, source) {
+  // Determine allowed extensions
+  let allowedExtensions = [".json"];
+  config.fileTypes.forEach((fileType) => {
+    allowedExtensions = allowedExtensions.concat(fileType.extensions);
+  });
+
+  // Is present in files array already
+  if (files.indexOf(source) >= 0) return false;
+  // Is JSON but isn't a valid spec-formatted JSON object
+  if (path.extname(source) === ".json") {
+    const json = JSON.parse(fs.readFileSync(source).toString());
+    const validation = validate("spec_v2", json);
+    if (!validation.valid) {
+      log(
+        config,
+        "warning",
+        `${source} isn't a valid test specification. Skipping.`
+      );
+      return false;
+    }
+  }
+  // If extension isn't in list of allowed extensions
+  if (!allowedExtensions.includes(path.extname(source))) return false;
+
+  return true;
 }
 
 // Parse files for tests
@@ -478,7 +492,7 @@ async function spawnCommand(cmd, args) {
     stdout += chunk;
   }
   // Remove trailing newline
-  stdout = stdout.replace(/\n$/,"");
+  stdout = stdout.replace(/\n$/, "");
 
   // Capture stderr
   let stderr = "";
@@ -486,7 +500,7 @@ async function spawnCommand(cmd, args) {
     stderr += chunk;
   }
   // Remove trailing newline
-  stderr = stderr.replace(/\n$/,"");
+  stderr = stderr.replace(/\n$/, "");
 
   // Capture exit code
   const exitCode = await new Promise((resolve, reject) => {
