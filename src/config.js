@@ -1,4 +1,4 @@
-const { validate } = require("../../doc-detective-common");
+const { validate } = require("doc-detective-common");
 const arch = require("arch");
 const { log } = require("./utils")
 const { exit } = require("process");
