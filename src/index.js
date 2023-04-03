@@ -19,10 +19,9 @@ runTests(json);
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
   // Set config
-  config = setConfig(config);
+  config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
-
   // Set files
   const files = setFiles(config);
   log(config, "debug", `FILES:`);
