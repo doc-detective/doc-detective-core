@@ -4,9 +4,7 @@ const fs = require("fs");
 const { exit } = require("process");
 const path = require("path");
 const uuid = require("uuid");
-const nReadlines = require("n-readlines");
 const { spawn } = require("child_process");
-const defaultConfig = require("../config.json");
 const { validate } = require("doc-detective-common");
 
 exports.setArgs = setArgs;
@@ -140,7 +138,7 @@ function setFiles(config) {
     // Parse input
     if (isFile && isValidSourceFile(config, files, source)) {
       // Passes all checks
-      files.push(source);
+      files.push(path.resolve(source));
     } else if (isDir) {
       // Load files from directory
       dirs = [];
@@ -151,7 +149,7 @@ function setFiles(config) {
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           if (isFile && isValidSourceFile(config, files, content)) {
-            files.push(content);
+            files.push(path.resolve(content));
           } else if (isDir && (config.runTests.recursive || config.recursive)) {
             // recursive set to true
             dirs.push(content);
@@ -179,181 +177,132 @@ function isValidSourceFile(config, files, source) {
     if (!validation.valid) {
       log(
         config,
-        "warning",
+        "log",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;
     }
   }
   // If extension isn't in list of allowed extensions
-  if (!allowedExtensions.includes(path.extname(source))) return false;
+  if (!allowedExtensions.includes(path.extname(source))) {
+    log(
+      config,
+      "log",
+      `${source} extension isn't specified in a \`config.fileTypes\` object. Skipping.`
+    );
+    return false;
+  }
 
   return true;
 }
 
+function increment(integer) {
+  return integer++;
+}
+
 // Parse files for tests
 function parseTests(config, files) {
-  let json = { tests: [] };
+  let specs = [];
 
-  // Loop through test files
-  files.forEach((file) => {
+  // Loop through files
+  for (const file of files) {
     log(config, "debug", `file: ${file}`);
-    let fileId = `${uuid.v4()}`;
-    let id = fileId;
-    let line;
-    let lineNumber = 1;
-    let inputFile = new nReadlines(file);
-    let extension = path.extname(file);
-    let fileType = config.fileTypes.find((fileType) =>
-      fileType.extensions.includes(extension)
-    );
-    let testStartStatementOpen;
-    let testStartStatementClose;
-    let testEndStatement;
-    let actionStatementOpen;
-    let actionStatementClose;
+    const extension = path.extname(file);
+    let content = fs.readFileSync(file).toString();
 
-    if (typeof fileType != "undefined") {
-      testStartStatementOpen = fileType.testStartStatementOpen;
-      if (!testStartStatementOpen) {
-        log(
-          config,
-          "warning",
-          `Skipping tests in ${file}. No 'testStartStatementOpen' value specified.`
-        );
-        return;
-      }
-      testStartStatementClose = fileType.testStartStatementClose;
-      if (!testStartStatementClose) {
-        log(
-          config,
-          "warning",
-          `Skipping tests in ${file}. No 'testStartStatementClose' value specified.`
-        );
-        return;
-      }
-      testEndStatement = fileType.testEndStatement;
-      if (!testEndStatement) {
-        log(
-          config,
-          "warning",
-          `Skipping tests in ${file}. No 'testEndStatement' value specified.`
-        );
-        return;
-      }
-      actionStatementOpen =
-        fileType.actionStatementOpen ||
-        fileType.openActionStatement ||
-        fileType.openTestStatement;
-      if (!actionStatementOpen) {
-        log(
-          config,
-          "warning",
-          `Skipping tests in ${file}. No 'actionStatementOpen' value specified.`
-        );
-        return;
-      }
-      actionStatementClose =
-        fileType.actionStatementClose ||
-        fileType.closeActionStatement ||
-        fileType.closeTestStatement;
-      if (!actionStatementClose) {
-        log(
-          config,
-          "warning",
-          `Skipping tests in ${file}. No 'actionStatementClose' value specified.`
-        );
-        return;
-      }
-    }
-
-    if (!fileType && extension !== ".json") {
-      // Missing filetype options
-      log(
-        config,
-        "warning",
-        `Skipping file with ${extension} extension. Specify options for the ${extension} extension in your config file.`
-      );
-      return;
-    }
-
-    // If file is JSON, add tests straight to array
-    if (path.extname(file) === ".json") {
-      content = require(file);
-      if (typeof content.tests === "object" && content.tests.length > 0) {
-        content.tests.forEach((test) => {
-          json.tests.push(test);
-        });
-      } else {
-        log(
-          config,
-          "debug",
-          `Skipping ${file} because of unexpected object structure.`
-        );
-        return;
-      }
+    if (extension === ".json") {
+      // Process JSON
+      content = JSON.parse(content);
+      specs.push(content);
     } else {
-      // Loop through lines
-      while ((line = inputFile.next())) {
-        let lineJson;
-        let subStart;
-        let subEnd;
-        const lineAscii = line.toString("ascii");
-
-        if (line.includes(testStartStatementOpen)) {
-          // Test start
-          if (testStartStatementClose) {
-            subEnd = lineAscii.lastIndexOf(testStartStatementClose);
+      // Process non-JSON
+      let id = `${uuid.v4()}`;
+      const spec = { id, file, tests: [] };
+      content = content.split("\n");
+      fileType = config.fileTypes.find((fileType) =>
+        fileType.extensions.includes(extension)
+      );
+      for (const line of content) {
+        // console.log(line);
+        if (line.includes(fileType.testStartStatementOpen)) {
+          // Test start statement
+          startStatementOpen =
+            line.indexOf(fileType.testStartStatementOpen) +
+            fileType.testStartStatementOpen.length;
+          if (line.includes(fileType.testStartStatementClose)) {
+            startStatementClose = line.lastIndexOf(
+              fileType.testStartStatementClose
+            );
           } else {
-            subEnd = lineAscii.length;
+            startStatementClose = line.length;
           }
-          subStart =
-            lineAscii.indexOf(testStartStatementOpen) +
-            testStartStatementOpen.length;
-          lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
-          // If test is defined in this file instead of referencing a test defined in another file
-          if (!lineJson.file) {
-            test = { id, file, actions: [] };
-            if (lineJson.id) {
-              test.id = lineJson.id;
-              // Set ID for following actions
-              id = lineJson.id;
+          startStatement = line.substring(
+            startStatementOpen,
+            startStatementClose
+          );
+          // Parse JSON
+          statementJson = JSON.parse(startStatement);
+          // Add `file` property
+          statementJson.file = file;
+          // Add `steps` array
+          statementJson.steps = [];
+          // Push to spec if `file` isn't set
+          if (!statementJson.file) {
+            spec.tests.push(statementJson);
+          }
+          // Set id if `id` is set
+          if (statementJson.id) {
+            id = statementJson.id;
+          }
+        } else if (line.includes(fileType.stepStatementOpen)) {
+          // Find step statement
+          if (line.includes(fileType.stepStatementOpen)) {
+            stepStatementOpen =
+              line.indexOf(fileType.stepStatementOpen) +
+              fileType.stepStatementOpen.length;
+            if (line.includes(fileType.stepStatementClose)) {
+              stepStatementClose = line.lastIndexOf(
+                fileType.stepStatementClose
+              );
+            } else {
+              stepStatementClose = line.length;
             }
-            if (lineJson.saveFailedTestRecordings)
-              test.saveFailedTestRecordings = lineJson.saveFailedTestRecordings;
-            if (lineJson.failedTestDirectory)
-              test.failedTestDirectory = lineJson.failedTestDirectory;
-            json.tests.push(test);
+            stepStatement = line.substring(
+              stepStatementOpen,
+              stepStatementClose
+            );
+            // Parse JSON
+            statementJson = JSON.parse(stepStatement);
+            // Find test with `id`
+            test = spec.tests.find((test) => test.id === id);
+            // If test doesn't exist, create it
+            if (!test) {
+              test = { id, file, steps: [] };
+              spec.tests.push(test);
+              test = spec.tests.find((test) => test.id === id);
+            }
+            // Push to test
+            test.steps.push(statementJson);
           }
-        } else if (line.includes(testEndStatement)) {
-          // Revert back to file-based ID
-          id = fileId;
-        } else if (line.includes(actionStatementOpen)) {
-          if (actionStatementClose) {
-            subEnd = lineAscii.lastIndexOf(actionStatementClose);
-          } else {
-            subEnd = lineAscii.length;
-          }
-          subStart =
-            lineAscii.indexOf(actionStatementOpen) + actionStatementOpen.length;
-          lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
-          if (!lineJson.testId) {
-            lineJson.testId = id;
-          }
-          let test = json.tests.find((item) => item.id === lineJson.testId);
-          if (!test) {
-            json.tests.push({ id: lineJson.testId, file, actions: [] });
-            test = json.tests.find((item) => item.id === lineJson.testId);
-          }
-          delete lineJson.testId;
-          lineJson.line = lineNumber;
-          test.actions.push(lineJson);
+        } else if (line.includes(fileType.testEndStatement)) {
+          // Set `id` to new UUID
+          id = `${uuid.v4()}`;
         }
-        lineNumber++;
+      }
+      // Push spec to specs, if it is valid
+      const validation = validate("spec_v2", spec);
+      if (!validation.valid) {
+        log(
+          config,
+          "warning",
+          `Tests from ${file} don't create a valid test specification. Skipping.`
+        );
+      } else {
+        specs.push(spec);
       }
     }
-  });
-  return json;
+  }
+  return specs;
 }
 
 async function outputResults(path, results, config) {

@@ -13,7 +13,7 @@ exports.suggest = suggest;
 
 json = schemas.config_v2.examples[3];
 json.logLevel = "debug";
-json.runTests.input = ".dev"
+json.runTests.input = ".dev";
 runTests(json);
 
 // Run tests defined in specifications and documentation source files.
@@ -28,14 +28,15 @@ async function runTests(config) {
   log(config, "debug", `FILES:`);
   log(config, "debug", files);
 
-  // Set tests
-  const tests = parseTests(config, files);
-  if (config.logLevel === "debug") {
-    console.log("(DEBUG) TESTS:");
-    tests.tests.forEach((test) => {
-      console.log(test);
-    });
-  }
+  // Set specs
+  const specs = parseTests(config, files);
+  log(config, "debug", `SPECS:`);
+  log(config, "debug", specs);
+
+  // Set dependency availability
+  const dependencyAvailability = checkDependencyAvailability(config, specs);
+  log(config, "debug", "DEPENDENCY AVAILABILITY:");
+  log(config, "debug", dependencyAvailability);
 
   // Run tests
   const results = await runTests(config, tests);
