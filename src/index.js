@@ -48,6 +48,10 @@ async function runTests(config) {
 }
 
 async function coverage(config, argv) {
+  // TODO
+  console.log("Not yet supported in Doc Detective Core v2 beta.");
+  exit(1);
+
   // Set args
   argv = setArgs(argv);
   log(config, "debug", `ARGV:`);
@@ -82,6 +86,10 @@ async function coverage(config, argv) {
 }
 
 async function suggest(config, argv) {
+  // TODO
+  console.log("Not yet supported in Doc Detective Core v2 beta.");
+  exit(1);
+
   // Set args
   argv = setArgs(argv);
   log(config, "debug", `ARGV:`);
