@@ -22,23 +22,19 @@ async function runTests(config) {
   config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
+
   // Set files
   const files = setFiles(config);
   log(config, "debug", `FILES:`);
   log(config, "debug", files);
 
-  // Set specs
+  // Set test specs
   const specs = parseTests(config, files);
   log(config, "debug", `SPECS:`);
   log(config, "debug", specs);
 
-  // Set dependency availability
-  const dependencyAvailability = checkDependencyAvailability(config, specs);
-  log(config, "debug", "DEPENDENCY AVAILABILITY:");
-  log(config, "debug", dependencyAvailability);
-
-  // Run tests
-  const results = await runTests(config, tests);
+  // Run test specs
+  const results = await runSpecs(config, specs);
 
   // Output
   outputResults(config.output, results, config);
