@@ -64,8 +64,8 @@ async function setConfig(config) {
 
   // Detect current environment.
   config.environment = getEnvironment();
-  config.environment.apps = await getAvailableApps();
-
+  config.environment.apps = await getAvailableApps(config);
+  
   return config;
 }
 
@@ -80,47 +80,55 @@ function getEnvironment() {
 }
 
 // Detect available apps.
-async function getAvailableApps() {
+async function getAvailableApps(config) {
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
 
-  const apps = {
-    // androidStudio: "",
-    chromium: "",
-    chrome: "",
-    // edge: "",
-    firefox: "",
-    // iOsSimulator: "",
-    // obs: "",
-    // safari: "",
-  };
+  const apps = [];
 
-  // Detect Chromium
+  // Detect Chrome/Chromium
   try {
     // Get internal dependency path
-    chromium = await BROWSERS.chromium.installBrowser("latest");
-    apps.chromium = chromium.binary;
+    chrome = await BROWSERS.chromium.installBrowser("latest");
+    chrome = chrome.binary;
   } catch {}
-  if (!chromium) {
-  // Check external default install locations
-    apps.chromium = await getInstallPath(
+  if (!chrome) {
+    // Check external default install locations for Chromium
+    chrome = await getInstallPath(
       config,
       defaultAppIDs.chromium[config.environment.platform]
     );
+    if (!chrome) {
+      // Check external default install locations for Chrome
+      chrome = await getInstallPath(
+        config,
+        defaultAppIDs.chrome[config.environment.platform]
+      );
+    }
   }
+  if (chrome) apps.push({ name: "chrome", path: chrome });
 
   // Detect Firefox
+  let firefox = "";
   try {
     // Get internal dependency path
     firefox = await BROWSERS.firefox.installBrowser("latest");
-    apps.firefox = firefox.binary;
-  } catch {  }
-  if (!apps.firefox) {
+    firefox = firefox.binary;
+  } catch {}
+  if (!firefox) {
     // Check external default install locations
-    apps.firefox = await getInstallPath(
+    firefox = await getInstallPath(
       config,
-      defaultAppIDs.firefox[config.environment.platform] 
+      defaultAppIDs.firefox[config.environment.platform]
     );
   }
+  if (firefox) apps.push({ name: "firefox", path: firefox });
+
+  // TODO
+  // Detect Edge
+  // Detect Safari
+  // Detect Android Studio
+  // Detect iOS Simulator
+  // Detect OBS
 
   return apps;
 }
@@ -142,7 +150,7 @@ async function getInstallPath(config, id) {
   }
   try {
     const appPath = await spawnCommand(command, [id]);
-    installPath = appPath;
+    if (appPath.exitCode === 0) installPath = appPath.stdout;
   } catch {}
   return installPath;
 }
