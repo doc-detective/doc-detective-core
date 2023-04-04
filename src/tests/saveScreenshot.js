@@ -18,12 +18,14 @@ async function saveScreenshot(config, step, driver) {
   }
 
   // Set filePath
-  if (!step.filePath) {
-    step.filePath = path.join(config.mediaDirectory, `${step.id}.png`);
+  if (!step.path) {
+    // Set path directory
+    const dir = config.runTests.mediaDirectory || config.runTests.output || config.output;
+    step.path = path.join(dir, `${step.id}.png`);
   }
 
   try {
-    await driver.saveScreenshot(step.filePath);
+    await driver.saveScreenshot(step.path);
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
