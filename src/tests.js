@@ -1,4 +1,4 @@
-const appium = require("appium");
+const kill = require("tree-kill");
 const wdio = require("webdriverio");
 const { exit } = require("process");
 const { log, loadEnvs } = require("./utils");
@@ -16,6 +16,8 @@ const { saveScreenshot } = require("./tests/saveScreenshot");
 const { setVariables } = require("./tests/setVariables");
 const { httpRequest } = require("./tests/httpRequest");
 const fs = require("fs");
+const path = require("path");
+const { spawn } = require("child_process");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -180,6 +182,7 @@ async function runSpecs(config, specs) {
   const configContexts = config.contexts;
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
+  let appium;
   const report = {
     summary: {
       specs: {
@@ -217,8 +220,13 @@ async function runSpecs(config, specs) {
   // Warm up Appium
   if (appiumRequired) {
     // Start Appium server
-    appiumStart();
+    appium = spawn("npm", ["run", "appium"]);
+    // appium.stdout.on('data', (data) => {
+    //   console.log(`stdout: ${data}`);
+    // });
+    // appiumStart();
     await appiumIsReady();
+    log(config, "debug", "Appium is ready.");
   }
 
   // Warm up OBS
@@ -398,6 +406,12 @@ async function runSpecs(config, specs) {
     report.summary.specs[specResult.toLowerCase()]++;
   }
 
+  // Close appium server
+  if (appium) {
+    log(config, "debug", "Closing Appium server");
+    kill(appium.pid);
+  }
+
   return report;
 }
 
@@ -445,11 +459,6 @@ async function runStep(config, step, driver) {
       break;
   }
   return actionResult;
-}
-
-// Start the Appium server asynchronously.
-async function appiumStart() {
-  appium.main();
 }
 
 // Delay execution until Appium server is available.
