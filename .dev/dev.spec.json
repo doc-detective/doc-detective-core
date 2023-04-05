@@ -3,30 +3,15 @@
   "contexts": [
     {
       "app": {
-        "name": "chrome",
-        "path": "/usr/bin/firefox"
+        "name": "firefox"
       },
-      "platforms": [
-        "windows",
-        "mac"
-      ]
+      "platforms": ["windows", "mac", "linux"]
     }
   ],
   "tests": [
     {
       "id": "Do all the things! - Test",
       "description": "This test includes nearly every property across all actions.",
-      "contexts": [
-        {
-          "app": {
-            "name": "firefox",
-            "path": "/usr/bin/firefox"
-          },
-          "platforms": [
-            "linux"
-          ]
-        }
-      ],
       "steps": [
         {
           "action": "setVariables",
@@ -35,9 +20,7 @@
         {
           "action": "runShell",
           "command": "echo",
-          "args": [
-            "$USER"
-          ]
+          "args": ["$USER"]
         },
         {
           "action": "checkLink",
@@ -55,33 +38,21 @@
             "name": "morpheus",
             "job": "leader"
           },
-          "statusCodes": [
-            200,
-            201
-          ]
+          "statusCodes": [200, 201]
         },
         {
           "action": "goTo",
-          "url": "https://www.duckduckgo.com"
+          "url": "https://www.google.com"
         },
         {
           "action": "find",
           "selector": "[title=Search]",
           "timeout": 10000,
-          "matchText": "Search",
           "moveTo": true,
           "click": true,
           "typeKeys": {
-            "keys": [
-              "shorthair cat"
-            ]
+            "keys": ["shorthair cat", "$ENTER$"]
           }
-        },
-        {
-          "action": "typeKeys",
-          "keys": [
-            "$ENTER$"
-          ]
         },
         {
           "action": "saveScreenshot"
