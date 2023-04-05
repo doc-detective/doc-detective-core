@@ -35,9 +35,9 @@ async function runTests(config) {
 
   // Run test specs
   const results = await runSpecs(config, specs);
-
-  // Output
-  outputResults(config.output, results, config);
+  log(config, "info", "RESULTS:");
+  log(config, "info", results);
+  log(config, "info", "Cleaning up and finishing post-processing.");
 
   return results;
 }

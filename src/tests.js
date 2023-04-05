@@ -174,13 +174,106 @@ function isSupportedContext(context, apps, platform) {
   }
 }
 
+let devReport = {
+  summary: {
+    specs: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      warning: 0,
+      skipped: 0,
+    },
+    tests: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      warning: 0,
+      skipped: 0,
+    },
+    contexts: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      warning: 0,
+      skipped: 0,
+    },
+    steps: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      warning: 0,
+      skipped: 0,
+    },
+  },
+  specs: [
+    {
+      id: "",
+      result: {
+        status: "",
+        description: "",
+      },
+      tests: [
+        {
+          id: "",
+          result: {
+            status: "",
+            description: "",
+          },
+          contexts: [
+            {
+              name: "",
+              steps: [
+                {
+                  id: "",
+                  result: {
+                    status: "",
+                    description: "",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   // Set initial shorthand values
-  const capabilities = getDriverCapabilities(config);
   const configContexts = config.contexts;
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
+  const report = {
+    summary: {
+      specs: {
+        pass: 0,
+        fail: 0,
+        warning: 0,
+        skipped: 0,
+      },
+      tests: {
+        pass: 0,
+        fail: 0,
+        warning: 0,
+        skipped: 0,
+      },
+      contexts: {
+        pass: 0,
+        fail: 0,
+        warning: 0,
+        skipped: 0,
+      },
+      steps: {
+        pass: 0,
+        fail: 0,
+        warning: 0,
+        skipped: 0,
+      },
+    },
+    specs: [],
+  };
 
   // Determine which apps are required
   const appiumRequired = isAppiumRequired(specs);
@@ -203,12 +296,25 @@ async function runSpecs(config, specs) {
   log(config, "info", "Running test specs.");
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.id}`);
+
+    let specReport = {
+      id: spec.id,
+      tests: [],
+    };
+    if (spec.description) specReport.description = spec.description;
+
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
 
     // Iterates tests
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.id}`);
+
+      let testReport = {
+        id: test.id,
+        contexts: [],
+      };
+      if (test.description) testReport.description = test.description;
 
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
@@ -218,6 +324,13 @@ async function runSpecs(config, specs) {
       for (const index in testContexts) {
         const context = testContexts[index];
         log(config, "debug", `CONTEXT: ${context.app.name}`);
+
+        let contextReport = {
+          app: context.app.name,
+          path: context.app.path,
+          platform,
+          steps: [],
+        };
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext(
@@ -239,6 +352,8 @@ async function runSpecs(config, specs) {
               context
             )}).`
           );
+          contextReport = { result: { status: "SKIPPED" }, ...contextReport };
+          report.summary.contexts.skipped++;
           continue;
         }
 
@@ -253,42 +368,47 @@ async function runSpecs(config, specs) {
         // Instantiate driver
         const driver = await driverStart(caps);
 
-        // Set up test
-        let pass = 0;
-        let warning = 0;
-        let fail = 0;
-
         // Iterates steps
         for (let step of test.steps) {
           log(config, "debug", `STEP: ${step.id}`);
+
           const stepResult = await runStep(config, step, driver);
-          // TODO: Remove
-          console.log(stepResult);
           log(
             config,
             "debug",
             `RESULT: ${stepResult.status}, ${stepResult.description}`
           );
-          if (stepResult.status === "FAIL") {
-            fail++;
-            continue;
-          }
-          if (stepResult.status === "WARNING") warning++;
-          if (stepResult.status === "PASS") pass++;
+
+          // Add step result to report
+          stepReport = {
+            result: stepResult.status,
+            resultDescription: stepResult.description,
+            ...step,
+          };
+          contextReport.steps.push(stepReport);
+          report.summary.steps[stepResult.status.toLowerCase()]++;
         }
 
-        // Calc context result
-        // TODO: Handle `SKIPPED` result
-        if (fail) {
-          context.status = "FAIL";
-        } else if (warning) {
-          context.status = "WARNING";
-        } else if (pass) {
-          context.status = "PASS";
-        } else {
-          log(config, "debug", "ERROR: Couldn't read step results.");
-          exit(1);
-        }
+        // Parse step results to calc context result
+
+        // If any step fails, context fails
+        if (contextReport.steps.find((step) => step.result === "FAIL"))
+          contextResult = "FAIL";
+        // If any step warns, context warns
+        else if (contextReport.steps.find((step) => step.result === "WARNING"))
+          contextResult = "WARNING";
+        // If all steps skipped, context skipped
+        else if (
+          contextReport.steps.length ===
+          contextReport.steps.filter((step) => step.result === "SKIPPED").length
+        )
+          contextResult = "SKIPPED";
+        // If all steps pass, context passes
+        else contextResult = "PASS";
+
+        contextReport = { result: contextResult, ...contextReport };
+        testReport.contexts.push(contextReport);
+        report.summary.contexts[contextResult.toLowerCase()]++;
 
         // Close driver
         try {
@@ -296,33 +416,54 @@ async function runSpecs(config, specs) {
         } catch {}
       }
 
-      // Calc test result
-      if (testContexts.find((context) => context.status === "FAIL")) {
-        test.status = "FAIL";
-      } else if (testContexts.find((context) => context.status === "WARNING")) {
-        test.status = "WARNING";
-      } else if (testContexts.find((context) => context.status === "PASS")) {
-        test.status = "PASS";
-      } else {
-        log(config, "debug", "ERROR: Couldn't read context results.");
-        exit(1);
-      }
+      // Parse context results to calc test result
+
+      // If any context fails, test fails
+      if (testReport.contexts.find((context) => context.result === "FAIL"))
+        testResult = "FAIL";
+      // If any context warns, test warns
+      else if (
+        testReport.contexts.find((context) => context.result === "WARNING")
+      )
+        testResult = "WARNING";
+      // If all contexts skipped, test skipped
+      else if (
+        testReport.contexts.length ===
+        testReport.contexts.filter((context) => context.result === "SKIPPED")
+          .length
+      )
+        testResult = "SKIPPED";
+      // If all contexts pass, test passes
+      else testResult = "PASS";
+
+      testReport = { result: testResult, ...testReport };
+      specReport.tests.push(testReport);
+      report.summary.tests[testResult.toLowerCase()]++;
     }
 
-    // Calc spec result
-    if (spec.tests.find((test) => test.status === "FAIL")) {
-      spec.status = "FAIL";
-    } else if (spec.tests.find((test) => test.status === "WARNING")) {
-      spec.status = "WARNING";
-    } else if (spec.tests.find((test) => test.status === "PASS")) {
-      spec.status = "PASS";
-    } else {
-      log(config, "debug", "ERROR: Couldn't read test results.");
-      exit(1);
-    }
+    // Parse test results to calc spec result
+
+    // If any context fails, test fails
+    if (specReport.tests.find((test) => test.result === "FAIL"))
+      specResult = "FAIL";
+    // If any test warns, spec warns
+    else if (specReport.tests.find((test) => test.result === "WARNING"))
+      specResult = "WARNING";
+    // If all tests skipped, spec skipped
+    else if (
+      specReport.tests.length ===
+      specReport.tests.filter((test) => test.result === "SKIPPED").length
+    )
+      specResult = "SKIPPED";
+    // If all contexts pass, test passes
+    else specResult = "PASS";
+
+    specReport = { result: specResult, ...specReport };
+    report.specs.push(specReport);
+    report.summary.specs[specResult.toLowerCase()]++;
   }
-  // TODO: Remove
-  exit();
+
+  return report;
 }
 
 // Run a specific step
