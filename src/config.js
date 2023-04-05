@@ -1,6 +1,6 @@
 const { validate } = require("doc-detective-common");
 const arch = require("arch");
-const { log, spawnCommand } = require("./utils");
+const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
 const { exit } = require("process");
 const path = require("path");
 
@@ -35,6 +35,12 @@ const defaultAppIDs = {
 
 // Validate config and set extra internal-only values.
 async function setConfig(config) {
+  // Set environment variables from file
+  if (config.envVariables) await setEnvs(config.envVariables);
+
+  // Load environment variables for `config`
+  config = loadEnvs(config);
+
   // Validate inbound `config`.
   const validityCheck = validate("config_v2", config);
   if (!validityCheck.valid) {
@@ -65,7 +71,7 @@ async function setConfig(config) {
   // Detect current environment.
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
-  
+
   return config;
 }
 
