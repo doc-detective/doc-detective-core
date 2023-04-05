@@ -1,7 +1,7 @@
 const appium = require("appium");
 const wdio = require("webdriverio");
 const { exit } = require("process");
-const { log, timestamp, loadEnvs } = require("./utils");
+const { log, loadEnvs } = require("./utils");
 const axios = require("axios");
 require("geckodriver");
 const { goTo } = require("./tests/goTo");
@@ -14,14 +14,15 @@ const { saveScreenshot } = require("./tests/saveScreenshot");
 // const { startRecording } = require("./tests/startRecording");
 // const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
-// const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
+const fs = require("fs");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
 
+// Doc Detective actions that require a driver.
 const driverActions = [
   "goTo",
   "find",
@@ -31,184 +32,59 @@ const driverActions = [
   // "stopRecording",
 ];
 
-// Driver capabilities.
-// TODO: Update for non-Linux platforms
-const capabilities = {
-  firefox: {
-    platformName: "linux",
-    "appium:automationName": "Gecko",
-    browserName: "MozillaFirefox",
-    "moz:firefoxOptions": {
-      // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
-      args: [
-        // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
-        // "-height=800",
-        // "-width=1200",
-        "-headless",
-      ],
-      // "binary": ""
-    },
-  },
-  chrome: {
-    platformName: "linux",
-    "appium:automationName": "Chromium",
-    browserName: "chrome",
-    "goog:chromeOptions": {
-      // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
-      args: [
-        // Reference: https://peter.sh/experiments/chromium-command-line-switches/
-        // "window-size=1200,800",
-        "headless",
-        "disable-gpu",
-      ],
-      // "binary": ""
-    },
-  },
-};
+// Get Appium driver capabilities and apply overrides.
+function getDriverCapabilities(config, name, overrides) {
+  let capabilities = {};
 
-const specs = [
-  {
-    id: "dev-spec",
-    description: "",
-    contexts: [
-      {
-        app: { name: "firefox", path: "" },
-        platforms: ["windows", "linux", "mac"],
-      },
-      {
-        app: { name: "chrome", path: "" },
-        platforms: ["windows", "linux", "mac"],
-      },
-    ],
-    tests: [
-      {
-        id: "dev-test",
-        description: "",
-        saveFailedTestRecordings: true,
-        failedTestDirectory: "sample",
-        steps: [
-          // {
-          //   action: "setVariables",
-          //   path: ".env",
-          // },
-          // {
-          //   action: "runShell",
-          //   command: "echo",
-          //   args: ["$FOO"]
-          // },
-          {
-            action: "goTo",
-            url: "www.duckduckgo.com",
+  // Set Firefox capabilities
+  switch (name) {
+    case "firefox":
+      firefox = config.environment.apps.find((app) => app.name === "firefox");
+      if (!firefox) break;
+      capabilities = {
+        platformName: config.environment.platform,
+        "appium:automationName": "Gecko",
+        browserName: "MozillaFirefox",
+        "moz:firefoxOptions": {
+          // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
+          args: [
+            // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
+            // "-height=800",
+            // "-width=1200",
+            "-headless",
+          ],
+          binary: overrides.path || firefox.path,
+        },
+      };
+      break;
+    case "chrome":
+      // Set Chrome(ium) capabilities
+      if (config.environment.apps.find((app) => app.name === "chrome")) {
+        chrome = config.environment.apps.find((app) => app.name === "chrome");
+        if (!chrome) break;
+        capabilities = {
+          platformName: "linux",
+          "appium:automationName": "Chromium",
+          browserName: "chrome",
+          "goog:chromeOptions": {
+            // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
+            args: [
+              // Reference: https://peter.sh/experiments/chromium-command-line-switches/
+              // "window-size=1200,800",
+              "headless",
+              "disable-gpu",
+            ],
+            binary: overrides.path || chrome.path,
           },
-          // {
-          //   action: "startRecording",
-          // },
-          {
-            action: "find",
-            selector: "#search_form_input_homepage",
-            timeout: 1000,
-            // matchText: "Frequently Asked Questions",
-            moveTo: true,
-            click: true,
-            typeKeys: {
-              keys: ["shorthair cats", "$ENTER$"],
-            },
-          },
-          {
-            action: "wait",
-            duration: 2000,
-          },
-          {
-            action: "saveScreenshot",
-            filePath: "shorthair-cats.png",
-          },
-          // {
-          //   action: "stopRecording",
-          // },
-          // {
-          //   action: "httpRequest",
-          //   url: "https://reqres.in/api/users",
-          //   method: "post",
-          //   requestData: {
-          //     name: "morpheus",
-          //     job: "leader",
-          //   },
-          //   responseData: {
-          //     name: "morpheus",
-          //     job: "leader",
-          //   },
-          //   statusCodes: [
-          //     200,
-          //     201
-          //   ]
-          // },
-          // {
-          //   action: "moveMouse",
-          //   css: "#gbqfbb",
-          //   alignH: "center",
-          //   alignV: "center",
-          // },
-          // {
-          //   action: "moveMouse",
-          //   css: "[title=Search]",
-          //   alignV: "center",
-          // },
-          // {
-          //   action: "type",
-          //   css: "[title=Search]",
-          //   keys: "kittens",
-          //   trailingSpecialKey: "Enter",
-          // },
-          // {
-          //   action: "scroll",
-          //   y: 300,
-          // },
-          // {
-          //   action: "screenshot",
-          //   filename: "results.png",
-          //   matchPrevious: true,
-          //   matchThreshold: 0.1,
-          // },
-        ],
-      },
-    ],
-  },
-];
+        };
+      }
+      break;
+    default:
+      break;
+  }
 
-const contexts = [
-  {
-    app: "chrome",
-    platforms: ["windows", "linux", "mac"],
-  },
-  {
-    app: "chrome_mobile",
-    platforms: ["ios", "android"],
-  },
-  {
-    app: "firefox",
-    platforms: ["windows", "linux", "mac"],
-  },
-  {
-    app: "firefox_mobile",
-    platforms: ["android"],
-  },
-  {
-    app: "safari",
-    platforms: ["mac"],
-  },
-  {
-    app: "safari_mobile",
-    platforms: ["ios"],
-  },
-  {
-    app: "edge",
-    platforms: ["windows", "linux", "mac"],
-  },
-  {
-    app: "edge_mobile",
-    platforms: ["ios", "android"],
-  },
-];
+  return capabilities;
+}
 
 // Check if any specs/tests/steps require drivers.
 function isAppiumRequired(specs) {
@@ -228,22 +104,22 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
-// // Check if any specs/tests/steps require OBS.
-// function isObsRequired(specs) {
-//   let obsRequired = false;
-//   specs.forEach((spec) => {
-//     // Check if contexts are defined at the spec level.
-//     spec.tests.forEach((test) => {
-//       // Check if contexts are defined at the test level.
-//       test.steps.forEach((step) => {
-//         // Check if test includes actions that require a driver.
-//         // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
-//         if (step.action === "startRecording") obsRequired = true;
-//       });
-//     });
-//   });
-//   return obsRequired;
-// }
+// Check if any specs/tests/steps require OBS.
+function isObsRequired(specs) {
+  let obsRequired = false;
+  specs.forEach((spec) => {
+    // Check if contexts are defined at the spec level.
+    spec.tests.forEach((test) => {
+      // Check if contexts are defined at the test level.
+      test.steps.forEach((step) => {
+        // Check if test includes actions that require a driver.
+        // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
+        if (step.action === "startRecording") obsRequired = true;
+      });
+    });
+  });
+  return obsRequired;
+}
 
 // // TODO: Finish
 // // Check if OBS is running. If not, start it.
@@ -280,14 +156,18 @@ function isAppiumRequired(specs) {
 // Check if context is supported by current platform and available apps
 function isSupportedContext(context, apps, platform) {
   // Check apps
-  const isSupportedApp = apps.find(
-    // TODO: If `app.path` exists, check that path value is valid. If not, return false.
-    (app) => app.name === context.app.name && app.path === context.app.path
-  );
+  let isSupportedApp = true;
+  if (context.app.name)
+    isSupportedApp = apps.find(
+      (app) => app.name === context.app.name && app.path
+    );
+  // Check path
+  let isSupportedPath = true;
+  if (context.app.path) isSupportedPath = fs.existsSync(context.app.path);
   // Check platform
   const isSupportedPlatform = context.platforms.includes(platform);
   // Return boolean
-  if (isSupportedApp && isSupportedPlatform) {
+  if (isSupportedApp && isSupportedPath && isSupportedPlatform) {
     return true;
   } else {
     return false;
@@ -296,17 +176,15 @@ function isSupportedContext(context, apps, platform) {
 
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
+  // Set initial shorthand values
+  const capabilities = getDriverCapabilities(config);
   const configContexts = config.contexts;
-  // TODO: Move to config definition
-  // TODO: Detect instlaled applications
-  const availableApps = [
-    {
-      name: "firefox",
-      path: "", // Optional
-    },
-  ];
+  const platform = config.environment.platform;
+  const availableApps = config.environment.apps;
+
+  // Determine which apps are required
   const appiumRequired = isAppiumRequired(specs);
-  // const obsRequired = isObsRequired(specs);
+  const obsRequired = isObsRequired(specs);
 
   // Warm up Appium
   if (appiumRequired) {
@@ -315,7 +193,8 @@ async function runSpecs(config, specs) {
     await appiumIsReady();
   }
 
-  // // Warm up OBS
+  // Warm up OBS
+  // TODO: OBS support
   // if (obsRequired) {
   //   const obs = obsConnect();
   // }
@@ -336,15 +215,15 @@ async function runSpecs(config, specs) {
 
       // Iterate contexts
       // TODO: Support both serial and parallel execution
-      for (const i in testContexts) {
-        const context = testContexts[i];
+      for (const index in testContexts) {
+        const context = testContexts[index];
         log(config, "debug", `CONTEXT: ${context.app.name}`);
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext(
           context,
           availableApps,
-          config.platform
+          platform
         );
 
         // If context isn't supported, skip it
@@ -354,8 +233,8 @@ async function runSpecs(config, specs) {
           log(
             config,
             "warning",
-            `Skipping context. The current platform (${config.platform}) and available apps (${appList.join(
-              ""
+            `Skipping context. The current platform (${platform}) and available apps (${appList.join(
+              ", "
             )}) don't support don't support this context (${JSON.stringify(
               context
             )}).`
@@ -365,10 +244,11 @@ async function runSpecs(config, specs) {
 
         // Define driver capabilities
         // TODO: Support custom apps
-        let caps = capabilities[context.app.name];
-        // TODO: Support paths for reserved and custom apps
-        // if (context.app.path) {
-        // }
+        let caps = getDriverCapabilities(config, context.app.name, {
+          path: context.app.path,
+        });
+        log(config, "debug", "CAPABILITIES:");
+        log(config, "debug", caps);
 
         // Instantiate driver
         const driver = await driverStart(caps);
@@ -523,22 +403,3 @@ async function driverStart(capabilities) {
   });
   return driver;
 }
-
-async function main() {
-  let config = {
-    logLevel: "debug",
-    sequence: "serial",
-    mediaDirectory: ".",
-    contexts: [
-      {
-        app: {
-          name: "firefox",
-          path: "", // Optional
-        },
-        platforms: ["linux"],
-      },
-    ],
-  };
-  await runSpecs(config, specs);
-}
-main();
