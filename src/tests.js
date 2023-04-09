@@ -18,6 +18,7 @@ const { httpRequest } = require("./tests/httpRequest");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const uuid = require("uuid");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -224,7 +225,6 @@ async function runSpecs(config, specs) {
     // appium.stdout.on('data', (data) => {
     //   console.log(`stdout: ${data}`);
     // });
-    // appiumStart();
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
   }
@@ -313,6 +313,8 @@ async function runSpecs(config, specs) {
 
         // Iterates steps
         for (let step of test.steps) {
+          // Set step id if not defined
+          if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP: ${step.id}`);
 
           const stepResult = await runStep(config, step, driver);
