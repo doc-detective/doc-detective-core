@@ -1,18 +1,120 @@
-const axios = require("axios");
-const { exit } = require("node:process");
-const wdio = require("webdriverio");
-const OBSWebSocket = require("obs-websocket-js").default;
-const { spawnCommand } = require("./src/utils");
+// const axios = require("axios");
+// const { exit } = require("node:process");
+// const wdio = require("webdriverio");
+// const OBSWebSocket = require("obs-websocket-js").default;
+// const { spawnCommand } = require("./src/utils");
 const { runTests } = require("./src");
 const { validate, schemas } = require("doc-detective-common");
 
 main();
 
 async function main() {
-  json = schemas.config_v2.examples[3];
-  json.logLevel = "silent";
-  json.runTests.input = ".dev";
-  console.log(await runTests(json));
+  json = {
+    envVariables: "",
+    input: ".",
+    output: ".",
+    recursive: true,
+    logLevel: "debug",
+    runTests: {
+      input: ".dev/",
+      output: ".",
+      setup: "",
+      cleanup: "",
+      recursive: true,
+      mediaDirectory: ".",
+      downloadDirectory: ".",
+      contexts: [
+        {
+          app: {
+            name: "firefox",
+            path: "",
+          },
+          platforms: ["linux", "mac", "windows"],
+        },
+      ],
+    },
+    runCoverage: {
+      recursive: true,
+      input: ".dev/",
+      output: ".",
+      markup: [],
+    },
+    suggestTests: {
+      recursive: true,
+      input: ".",
+      output: ".",
+      markup: [],
+    },
+    fileTypes: [
+      {
+        extensions: [".md", ".mdx"],
+        testStartStatementOpen: "[comment]: # (test start",
+        testStartStatementClose: ")",
+        testIgnoreStatement: "[comment]: # (test ignore)",
+        testEndStatement: "[comment]: # (test end)",
+        stepStatementOpen: "[comment]: # (action",
+        stepStatementClose: ")",
+        markup: [
+          {
+            name: "onscreenText",
+            regex: ["\\*\\*.+?\\*\\*"],
+          },
+          {
+            name: "emphasis",
+            regex: ["(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"],
+          },
+          {
+            name: "image",
+            regex: ["!\\[.+?\\]\\(.+?\\)"],
+          },
+          {
+            name: "hyperlink",
+            regex: ["(?<!!)\\[.+?\\]\\(.+?\\)"],
+          },
+          {
+            name: "orderedList",
+            regex: ["(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"],
+          },
+          {
+            name: "unorderedList",
+            regex: ["(?<=\n) *?\\*.\\s*.*", "(?<=\n) *?-.\\s*.*"],
+          },
+          {
+            name: "codeInline",
+            regex: ["(?<!`)`(?!`).+?(?<!`)`(?!`)"],
+          },
+          {
+            name: "codeBlock",
+            regex: ["(?=(```))(\\w|\\W)*(?<=```)"],
+          },
+          {
+            name: "interaction",
+            regex: [
+              "[cC]lick",
+              "[tT]ap",
+              "[tT]ouch",
+              "[sS]elect",
+              "[cC]hoose",
+              "[tT]oggle",
+              "[eE]nable",
+              "[dD]isable",
+              "[tT]urn [oO][ff|n]",
+              "[tT]ype",
+              "[eE]nter",
+            ],
+          },
+        ],
+      },
+    ],
+    integrations: {},
+    telemetry: {
+      send: false,
+      userId: "Doc Detective",
+    },
+  };
+  // console.log(json);
+  await runTests(json);
+  // console.log(await runTests(json));
 }
 
 // Primary execution function.

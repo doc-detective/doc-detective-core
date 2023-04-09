@@ -167,12 +167,12 @@ function isValidSourceFile(config, files, source) {
   config.fileTypes.forEach((fileType) => {
     allowedExtensions = allowedExtensions.concat(fileType.extensions);
   });
-
   // Is present in files array already
   if (files.indexOf(source) >= 0) return false;
   // Is JSON but isn't a valid spec-formatted JSON object
   if (path.extname(source) === ".json") {
-    const json = JSON.parse(fs.readFileSync(source).toString());
+    const jsonContent = fs.readFileSync(source).toString();
+    const json = JSON.parse(jsonContent);
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
       log(
@@ -194,10 +194,6 @@ function isValidSourceFile(config, files, source) {
   }
 
   return true;
-}
-
-function increment(integer) {
-  return integer++;
 }
 
 // Parse files for tests
