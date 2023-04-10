@@ -177,10 +177,41 @@ function isSupportedContext(context, apps, platform) {
   }
 }
 
+// Define default contexts based on config.runTests.contexts, then using a fallback strategy of Chrome(ium) and Firefox.
+// TODO: Update with additional browsers as they are supported.
+function getDefaultContexts(config) {
+  const contexts = [];
+  const apps = config.environment.apps;
+  const platform = config.environment.platform;
+  // Check if contexts are defined in config
+  if (config.runTests.contexts) {
+    // Check if contexts are supported
+    config.runTests.contexts.forEach((context) => {
+      if (isSupportedContext(context, apps, platform)) {
+        contexts.push(context);
+      }
+    });
+  }
+  // If no contexts are defined in config, or if none are supported, use fallback strategy
+  if (contexts.length === 0) {
+    const fallback = ["chrome", "firefox"];
+    for (const browser of fallback) {
+      const app = apps.find((app) => app.name === browser);
+      if (app) {
+        contexts.push({
+          app,
+          platforms: [platform],
+        });
+      }
+    }
+  }
+  return contexts;
+}
+
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   // Set initial shorthand values
-  const configContexts = config.contexts;
+  const configContexts = getDefaultContexts(config);
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
   let appium;
