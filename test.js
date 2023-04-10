@@ -23,15 +23,6 @@ async function main() {
       recursive: true,
       mediaDirectory: ".",
       downloadDirectory: ".",
-      contexts: [
-        {
-          app: {
-            name: "firefox",
-            path: "",
-          },
-          platforms: ["linux", "mac", "windows"],
-        },
-      ],
     },
     runCoverage: {
       recursive: true,

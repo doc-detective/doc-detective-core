@@ -92,26 +92,26 @@ async function getAvailableApps(config) {
   const apps = [];
 
   // Detect Chrome/Chromium
-  try {
-    // Get internal dependency path
-    chrome = await BROWSERS.chromium.installBrowser("latest");
-    chrome = chrome.binary;
-  } catch {}
-  if (!chrome) {
-    // Check external default install locations for Chromium
-    chrome = await getInstallPath(
-      config,
-      defaultAppIDs.chromium[config.environment.platform]
-    );
-    if (!chrome) {
-      // Check external default install locations for Chrome
-      chrome = await getInstallPath(
-        config,
-        defaultAppIDs.chrome[config.environment.platform]
-      );
-    }
-  }
-  if (chrome) apps.push({ name: "chrome", path: chrome });
+  // try {
+  //   // Get internal dependency path
+  //   chrome = await BROWSERS.chromium.installBrowser("latest");
+  //   chrome = chrome.binary;
+  // } catch {}
+  // if (!chrome) {
+  //   // Check external default install locations for Chromium
+  //   chrome = await getInstallPath(
+  //     config,
+  //     defaultAppIDs.chromium[config.environment.platform]
+  //   );
+  //   if (!chrome) {
+  //     // Check external default install locations for Chrome
+  //     chrome = await getInstallPath(
+  //       config,
+  //       defaultAppIDs.chrome[config.environment.platform]
+  //     );
+  //   }
+  // }
+  // if (chrome) apps.push({ name: "chrome", path: chrome });
 
   // Detect Firefox
   let firefox = "";
@@ -130,6 +130,7 @@ async function getAvailableApps(config) {
   if (firefox) apps.push({ name: "firefox", path: firefox });
 
   // TODO
+  // Detect Chromium/Chrome
   // Detect Edge
   // Detect Safari
   // Detect Android Studio
