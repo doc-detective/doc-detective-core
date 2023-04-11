@@ -69,7 +69,7 @@ async function findElement(config, step, driver) {
   if (step.typeKeys) {
     typeStep = {
       action: "typeKeys",
-      keys: step.typeKeys,
+      keys: step.typeKeys.keys || step.typeKeys,
     };
     typeResult = await typeKeys(config, typeStep, driver);
     if (typeResult.status === "FAIL") {
