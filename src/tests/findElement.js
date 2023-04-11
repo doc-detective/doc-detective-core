@@ -1,5 +1,6 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
+const { exit } = require("yargs");
 
 exports.findElement = findElement;
 
@@ -34,10 +35,10 @@ async function findElement(config, step, driver) {
 
   // Match text
   if (step.matchText) {
-    const text = await element.getText();
+    const text = await element.getText() || await element.getValue();
     if (text !== step.matchText) {
       result.status = "FAIL";
-      result.description = `Element text ("${text}") didn't equal match text ("${step.matchText}").`;
+      result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
       return result;
     }
     result.description = result.description + " Matched text.";
