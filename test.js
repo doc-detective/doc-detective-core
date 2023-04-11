@@ -104,8 +104,8 @@ async function main() {
     },
   };
   // console.log(json);
-  await runTests(json);
-  // console.log(await runTests(json));
+  result = await runTests(json);
+  console.log(JSON.stringify(result,null,2));
 }
 
 // Primary execution function.
