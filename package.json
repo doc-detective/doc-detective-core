@@ -7,7 +7,6 @@
     "preinstall": "npm upgrade doc-detective-common",
     "postinstall": "node scripts/postinstall.js",
     "test": "mocha */*.test.js",
-    "watch": "chokidar \"**/*.js\" -c \"npm run test\"",
     "appium": "appium"
   },
   "repository": {
@@ -27,34 +26,22 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
-    "@appium/doctor": "^2.0.7",
-    "@appium/images-plugin": "^2.0.6",
+    "@appium/images-plugin": "^2.0.10",
     "@eyeo/get-browser-binary": "^0.10.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "appium": "^2.0.0-beta.55",
+    "appium": "^2.0.0-beta.62",
     "appium-chromium-driver": "^1.0.29",
     "appium-geckodriver": "^1.1.8",
     "arch": "^2.2.0",
-    "axios": "^0.27.2",
-    "doc-detective-common": "^1.1.0",
-    "dotenv": "^16.0.2",
+    "axios": "^1.3.5",
+    "doc-detective-common": "^1.2.8",
+    "dotenv": "^16.0.3",
     "geckodriver": "^3.2.0",
-    "git": "^0.1.5",
-    "gnumake": "^0.3.5",
     "mocha": "^10.2.0",
-    "n-readlines": "^1.0.1",
     "node-jq": "^2.3.4",
     "obs-websocket-js": "^5.0.2",
-    "pixelmatch": "^5.3.0",
-    "pngjs": "^6.0.0",
-    "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
-    "uuid": "^8.3.2",
-    "webdriverio": "^8.6.7",
-    "yargs": "^17.4.1"
-  },
-  "devDependencies": {
-    "chokidar-cli": "^3.0.0",
-    "make": "^0.8.1"
+    "uuid": "^9.0.0",
+    "webdriverio": "^8.8.0"
   }
 }
