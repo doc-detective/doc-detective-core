@@ -66,6 +66,9 @@ async function setConfig(config) {
     // Convert `runTests.cleanup` into array
     if (config.runTests.cleanup && typeof config.runTests.cleanup === "string")
       config.runTests.cleanup = [config.runTests.cleanup];
+  } else {
+    // If `runTests` is not defined, set it to an empty object.
+    config.runTests = {};
   }
 
   // Detect current environment.
