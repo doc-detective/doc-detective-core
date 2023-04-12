@@ -31,13 +31,13 @@ After the v2 stable release, future updates may include support for the followin
 ## Install
 
 ```bash
-npm i doc-detective@next
+npm i doc-detective-core@next
 ```
 
 ## Init
 
 ```javascript
-const { runTests } = require("doc-detective");
+const { runTests } = require("doc-detective-core");
 ```
 
 ## Methods
