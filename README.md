@@ -12,11 +12,13 @@ For pre-built implementations, see [Doc Detective](https://github.com/doc-detect
 
 Doc Detective v2 is in beta. The beta currently supports the following browsers and platforms:
 
+- Methods: `runTests(config)`
 - Apps: Firefox
 - Platforms: macOS, Linux (tested on Ubuntu)
 
 When support for the following features, apps, and platforms are implemented, v2 will exit beta:
 
+- Methods: `runCoverage(config)`, `suggesteTests(config)`
 - Actions: startRecording, stopRecording
 - Apps: Chrome(ium)
 - Platforms: Windows
