@@ -1,10 +1,11 @@
 # Doc Detective Core
 
-![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective-core?color=orange)
-[![NPM Shield](https://img.shields.io/npm/v/doc-detective/next)](https://www.npmjs.com/package/doc-detective)
+![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective-core/2.0.0?color=orange)
+[![NPM Shield](https://img.shields.io/npm/v/doc-detective-core/next)](https://www.npmjs.com/package/doc-detectiv-core/v/next)
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/2M7wXEThfF)
+[![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://doc-detective.com)
 
-Low-code documentation testing embedded in your project via [NPM](https://www.npmjs.com/package/doc-detective).
+Low-code documentation testing embedded in your project via [NPM](https://www.npmjs.com/package/doc-detective-core).
 
 For pre-built implementations, see [Doc Detective](https://github.com/doc-detective/doc-detective).
 
