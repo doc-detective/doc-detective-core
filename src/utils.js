@@ -146,8 +146,12 @@ function setFiles(config) {
       for (const dir of dirs) {
         fs.readdirSync(dir).forEach((object) => {
           const content = path.resolve(dir + "/" + object);
+          // Exclude node_modules
+          if (content.includes("node_modules")) return;
+          // Check if file or directory
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
+          // Add to files or dirs array
           if (isFile && isValidSourceFile(config, files, content)) {
             files.push(path.resolve(content));
           } else if (isDir && (config.runTests.recursive || config.recursive)) {
