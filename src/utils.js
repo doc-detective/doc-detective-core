@@ -4,7 +4,7 @@ const fs = require("fs");
 const { exit } = require("process");
 const path = require("path");
 const uuid = require("uuid");
-const { spawn } = require("child_process");
+const { spawn, exec } = require("child_process");
 const { validate } = require("doc-detective-common");
 
 exports.setArgs = setArgs;
@@ -430,8 +430,21 @@ function timestamp() {
   ).slice(-2)}`;
 }
 
-// Perform a command
+// Perform a native command in the current working directory.
 async function spawnCommand(cmd, args) {
+  // Split command into command and arguments
+  if (cmd.includes(" ")) {
+    const cmdArray = cmd.split(" ");
+    cmd = cmdArray[0];
+    cmdArgs = cmdArray.slice(1);
+    // Add arguments to args array
+    if (args) {
+      args = cmdArgs.concat(args);
+    } else {
+      args = cmdArgs;
+    }
+  }
+
   const runCommand = spawn(cmd, args);
 
   // Capture stdout

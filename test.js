@@ -5,8 +5,17 @@
 // const { spawnCommand } = require("./src/utils");
 const { runTests } = require("./src");
 const { validate, schemas } = require("doc-detective-common");
+const { execCommand, spawnCommand } = require("./src/utils");
+
+
 
 main();
+// const { spawn } = require("child_process");
+
+// appium = spawn("node",["./node_modules/appium"]);
+// appium.stdout.on('data', (data) => {
+//   console.log(`stdout: ${data}`);
+// });
 
 async function main() {
   json = {
