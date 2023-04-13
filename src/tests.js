@@ -253,9 +253,12 @@ async function runSpecs(config, specs) {
   if (appiumRequired) {
     // Start Appium server
     appiumPath = path.join(__dirname, "../node_modules/appium");
-    appium = spawn("node",[appiumPath]);
-    // appium.stdout.on('data', (data) => {
+    appium = spawn("node", [appiumPath]);
+    // appium.stdout.on("data", (data) => {
     //   console.log(`stdout: ${data}`);
+    // });
+    // appium.stderr.on("data", (data) => {
+    //   console.error(`stderr: ${data}`);
     // });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");

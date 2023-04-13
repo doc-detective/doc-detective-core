@@ -5,7 +5,7 @@ main();
 
 async function main() {
   await installBrowsers();
-  await installAppliumDepencencies();
+  // await installAppliumDepencencies();
 }
 
 async function installBrowsers() {
