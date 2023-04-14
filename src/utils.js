@@ -7,7 +7,6 @@ const uuid = require("uuid");
 const { spawn, exec } = require("child_process");
 const { validate } = require("doc-detective-common");
 
-exports.setArgs = setArgs;
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
@@ -17,105 +16,6 @@ exports.log = log;
 exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
-
-// Define args
-function setArgs(args) {
-  if (!args) return {};
-  let argv = yargs(hideBin(args))
-    .option("config", {
-      alias: "c",
-      description: "Path to a custom config file.",
-      type: "string",
-    })
-    .option("input", {
-      alias: "i",
-      description: "Path to a file or directory to parse for tests.",
-      type: "string",
-    })
-    .option("output", {
-      alias: "o",
-      description: "Path for a JSON file of test result output.",
-      type: "string",
-    })
-    .option("setup", {
-      description:
-        "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
-      type: "string",
-    })
-    .option("cleanup", {
-      description:
-        "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
-      type: "string",
-    })
-    .option("recursive", {
-      alias: "r",
-      description:
-        "Boolean. Recursively find test files in the test directory. Defaults to true.",
-      type: "string",
-    })
-    .option("coverageOutput", {
-      description: "Path for a JSON file of coverage result output.",
-      type: "string",
-    })
-    .option("ext", {
-      description:
-        "Comma-separated list of file extensions to test, including the leading period.",
-      type: "string",
-    })
-    .option("env", {
-      alias: "e",
-      description:
-        "Path to file of environment variables to set before running tests.",
-      type: "string",
-    })
-    .option("mediaDir", {
-      description: "Path to the media output directory.",
-      type: "string",
-    })
-    .option("downloadDir", {
-      description: "Path to the download directory.",
-      type: "string",
-    })
-    .option("saveFailedTestRecordings", {
-      description:
-        "Boolean. Whether to save recordings of failed tests. Defaults to true.",
-      type: "string",
-    })
-    .option("failedTestDir", {
-      description: "Path to the failed test directory.",
-      type: "string",
-    })
-    .option("browserHeadless", {
-      description:
-        "Boolean. Whether to run the browser in headless mode. Defaults to true.",
-      type: "string",
-    })
-    .option("browserPath", {
-      description:
-        "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
-      type: "string",
-    })
-    .option("browserHeight", {
-      description:
-        "Height of the browser viewport in pixels. Default is 600 px.",
-      type: "number",
-    })
-    .option("browserWidth", {
-      description:
-        "Width of the browser viewport in pixels. Default is 800 px.",
-      type: "number",
-    })
-    .option("logLevel", {
-      alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
-      type: "string",
-    })
-    .help()
-    .alias("help", "h").argv;
-
-  return argv;
-}
 
 // Set array of test files
 function setFiles(config) {
