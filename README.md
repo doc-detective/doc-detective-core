@@ -17,9 +17,9 @@ Doc Detective v2 is in beta. The beta currently supports the following browsers 
 - Apps: Firefox
 - Platforms: macOS, Linux (tested on Ubuntu)
 
-When support for the following features, apps, and platforms are implemented, v2 will exit beta:
+When support for at least the following features, apps, and platforms are implemented, v2 will exit beta:
 
-- Methods: `runCoverage(config)`, `suggesteTests(config)`
+- Methods: `runCoverage(config)`, `suggestTests(config)`
 - Actions: startRecording, stopRecording
 - Apps: Chrome(ium)
 - Platforms: Windows
