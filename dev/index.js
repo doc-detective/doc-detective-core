@@ -3,10 +3,9 @@
 // const wdio = require("webdriverio");
 // const OBSWebSocket = require("obs-websocket-js").default;
 // const { spawnCommand } = require("./src/utils");
-const { runTests } = require("./src");
+const { runTests } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
-const { execCommand, spawnCommand } = require("./src/utils");
-
+const { execCommand, spawnCommand } = require("../src/utils");
 
 
 main();
