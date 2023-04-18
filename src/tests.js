@@ -275,11 +275,10 @@ async function runSpecs(config, specs) {
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.id}`);
 
-    let specReport = {
-      id: spec.id,
-      tests: [],
-    };
+    let specReport = { id: spec.id };
+    if (spec.file) specReport.file = spec.file;
     if (spec.description) specReport.description = spec.description;
+    specReport.tests = [];
 
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
