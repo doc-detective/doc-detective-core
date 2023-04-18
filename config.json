@@ -9,91 +9,62 @@
   "testSuggestions": {
     "reportOutput": "./suggestions.json"
   },
-  "testExtensions": [
-    ".md",
-    ".mdx",
-    ".html",
-    ".htm",
-    ".xml",
-    ".json"
-  ],
+  "testExtensions": [".md", ".mdx", ".html", ".htm", ".xml", ".json"],
   "mediaDirectory": ".",
   "downloadDirectory": ".",
   "saveFailedTestRecordings": true,
   "failedTestDirectory": "./failedTests",
   "fileTypes": [
     {
-      "extensions": [
-        ".md",
-        ".mdx"
-      ],
+      "name": "Markdown",
+      "extensions": [".md", ".mdx"],
       "testStartStatementOpen": "[comment]: # (test start",
       "testStartStatementClose": ")",
       "testIgnoreStatement": "[comment]: # (test ignore)",
       "testEndStatement": "[comment]: # (test end)",
-      "actionStatementOpen": "[comment]: # (action",
-      "actionStatementClose": ")",
-      "markup": {
-        "onscreenText": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "\\*\\*.+?\\*\\*"
-          ]
+      "stepStatementOpen": "[comment]: # (step",
+      "stepStatementClose": ")",
+      "markup": [
+        {
+          "name": "onscreenText",
+          "regex": ["\\*\\*.+?\\*\\*"],
+          "actions": ["find"]
         },
-        "emphasis": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
-          ]
+        {
+          "name": "emphasis",
+          "regex": ["(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"],
+          "actions": ["find"]
         },
-        "image": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "!\\[.+?\\]\\(.+?\\)"
-          ]
+        {
+          "name": "image",
+          "regex": ["!\\[.+?\\]\\(.+?\\)"],
+          "actions": ["checkLink"]
         },
-        "hyperlink": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?<!!)\\[.+?\\]\\(.+?\\)"
-          ]
+        {
+          "name": "hyperlink",
+          "regex": ["(?<!!)\\[.+?\\]\\(.+?\\)"],
+          "actions": ["checkLink", "goTo", "httpRequest"]
         },
-        "orderedList": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
-          ]
+        {
+          "name": "orderedList",
+          "regex": ["(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"]
         },
-        "unorderedList": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?<=\n) *?\\*.\\s*.*",
-            "(?<=\n) *?-.\\s*.*"
-          ]
+        {
+          "name": "unorderedList",
+          "regex": ["(?<=\n) *?\\*.\\s*.*", "(?<=\n) *?-.\\s*.*"]
         },
-        "codeInline": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?<!`)`(?!`).+?(?<!`)`(?!`)"
-          ]
+        {
+          "name": "codeInline",
+          "regex": ["(?<!`)`(?!`).+?(?<!`)`(?!`)"],
+          "actions": ["runShell", "setVariables", "httpRequest"]
         },
-        "codeBlock": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
-          "regex": [
-            "(?=(```))(\\w|\\W)*(?<=```)"
-          ]
+        {
+          "name": "codeBlock",
+          "regex": ["(?=(```))(\\w|\\W)*(?<=```)"],
+          "actions": ["runShell", "setVariables", "httpRequest"]
         },
-        "interaction": {
-          "includeInCoverage": true,
-          "includeInSuggestions": true,
+        {
+          "name": "interaction",
           "regex": [
             "[cC]lick",
             "[tT]ap",
@@ -105,17 +76,57 @@
             "[dD]isable",
             "[tT]urn [oO][ff|n]",
             "[tT]ype",
-            "[eE]nter"
+            "[eE]nter",
+            "[sS]end",
+            "[aA]dd",
+            "[rR]emove",
+            "[dD]elete",
+            "[uU]pload",
+            "[dD]ownload",
+            "[sS]croll",
+            "[sS]earch",
+            "[fF]ilter",
+            "[sS]ort",
+            "[cC]opy",
+            "[pP]aste",
+            "[cC]ut",
+            "[rR]eplace",
+            "[cC]lear",
+            "[rR]efresh",
+            "[rR]evert",
+            "[rR]estore",
+            "[rR]eset",
+            "[lL]ogin",
+            "[lL]ogout",
+            "[sS]ign [iI]n",
+            "[sS]ign [oO]ut",
+            "[sS]ubmit",
+            "[cC]ancel",
+            "[cC]lose",
+            "[aA]ccept",
+            "[dD]ecline",
+            "[dD]eny",
+            "[rR]eject",
+            "[rR]etry",
+            "[rR]estart",
+            "[rR]esume"
+          ],
+          "actions": [
+            "checkLink",
+            "find",
+            "goTo",
+            "httpRequest",
+            "runShell",
+            "saveScreenshot",
+            "setVariables",
+            "typeKeys",
+            "wait"
           ]
         }
-      }
+      ]
     },
     {
-      "extensions": [
-        ".html",
-        ".htm",
-        ".xml"
-      ],
+      "extensions": [".html", ".htm", ".xml"],
       "testStartStatementOpen": "<!-- test start",
       "testStartStatementClose": "-->",
       "testIgnoreStatement": "<!-- test ignore -->",
@@ -126,58 +137,42 @@
         "onscreenText": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<b))(\\w|\\W)*(?<=<\/b>)"
-          ]
+          "regex": ["(?=(<b))(\\w|\\W)*(?<=</b>)"]
         },
         "emphasis": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<i))(\\w|\\W)*(?<=<\/i>)"
-          ]
+          "regex": ["(?=(<i))(\\w|\\W)*(?<=</i>)"]
         },
         "image": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<img))(\\w|\\W)*(?<=<\/img>|>)"
-          ]
+          "regex": ["(?=(<img))(\\w|\\W)*(?<=</img>|>)"]
         },
         "hyperlink": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<a))(\\w|\\W)*(?<=<\/a>)"
-          ]
+          "regex": ["(?=(<a))(\\w|\\W)*(?<=</a>)"]
         },
         "orderedList": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<ol))(\\w|\\W)*(?<=<\/ol>)"
-          ]
+          "regex": ["(?=(<ol))(\\w|\\W)*(?<=</ol>)"]
         },
         "unorderedList": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<ul))(\\w|\\W)*(?<=<\/ul>)"
-          ]
+          "regex": ["(?=(<ul))(\\w|\\W)*(?<=</ul>)"]
         },
         "codeInline": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<code))(\\w|\\W)*(?<=<\/code>)"
-          ]
+          "regex": ["(?=(<code))(\\w|\\W)*(?<=</code>)"]
         },
         "codeBlock": {
           "includeInCoverage": true,
           "includeInSuggestions": true,
-          "regex": [
-            "(?=(<pre))(\\w|\\W)*(?<=<\/pre>)"
-          ]
+          "regex": ["(?=(<pre))(\\w|\\W)*(?<=</pre>)"]
         },
         "interaction": {
           "includeInCoverage": true,

@@ -1,0 +1,28 @@
+{
+  "envVariables": "",
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "debug",
+  "runTests": {
+    "input": "./dev/doc-conetent.md",
+    "output": ".",
+    "setup": "",
+    "cleanup": "",
+    "recursive": true,
+    "mediaDirectory": ".",
+    "downloadDirectory": "."
+  },
+  "runCoverage": {
+    "recursive": true,
+    "input": ".dev/",
+    "output": ".",
+    "markup": []
+  },
+  "suggestTests": {
+    "recursive": true,
+    "input": ".",
+    "output": ".",
+    "markup": []
+  }
+}
