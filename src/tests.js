@@ -1,7 +1,7 @@
 const kill = require("tree-kill");
 const wdio = require("webdriverio");
 const { exit } = require("process");
-const { log, loadEnvs } = require("./utils");
+const { log, loadEnvs, spawnCommand } = require("./utils");
 const axios = require("axios");
 require("geckodriver");
 const { goTo } = require("./tests/goTo");
@@ -252,8 +252,14 @@ async function runSpecs(config, specs) {
   // Warm up Appium
   if (appiumRequired) {
     // Start Appium server
-    appiumPath = path.join(__dirname, "../node_modules/appium");
-    appium = spawn("node", [appiumPath]);
+    if (__dirname.includes("node_modules")) {
+      // If running from node_modules
+      appiumPath = path.join(__dirname, "../../appium");
+      appium = spawn("node", [appiumPath]);
+    } else {
+      // If running from source
+      appium = spawn("npm", ["run", "appium"]);
+    }
     // appium.stdout.on("data", (data) => {
     //   console.log(`stdout: ${data}`);
     // });

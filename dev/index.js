@@ -24,7 +24,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: ".dev/",
+      input: "dev/dev.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
@@ -34,7 +34,7 @@ async function main() {
     },
     runCoverage: {
       recursive: true,
-      input: ".dev/",
+      input: ".",
       output: ".",
       markup: [],
     },

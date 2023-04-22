@@ -331,7 +331,10 @@ function timestamp() {
 }
 
 // Perform a native command in the current working directory.
-async function spawnCommand(cmd, args) {
+async function spawnCommand(cmd, args, options) {
+  // Set default options
+  if (!options) options = {};
+
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
@@ -351,6 +354,7 @@ async function spawnCommand(cmd, args) {
   let stdout = "";
   for await (const chunk of runCommand.stdout) {
     stdout += chunk;
+    if (options.debug) console.log(chunk.toString());
   }
   // Remove trailing newline
   stdout = stdout.replace(/\n$/, "");
@@ -359,6 +363,7 @@ async function spawnCommand(cmd, args) {
   let stderr = "";
   for await (const chunk of runCommand.stderr) {
     stderr += chunk;
+    if (options.debug) console.log(chunk.toString());
   }
   // Remove trailing newline
   stderr = stderr.replace(/\n$/, "");
