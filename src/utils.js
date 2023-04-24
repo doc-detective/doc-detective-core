@@ -272,7 +272,7 @@ function loadEnvs(stringOrObject) {
     ) {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch {}
+  } catch { }
   if (typeof stringOrObject === "object") {
     // Load for object
     stringOrObject = loadEnvsForObject(stringOrObject);
@@ -285,7 +285,7 @@ function loadEnvs(stringOrObject) {
     if (typeof JSON.parse(stringOrObject) === "object") {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch {}
+  } catch { }
   return stringOrObject;
 }
 
@@ -348,7 +348,7 @@ async function spawnCommand(cmd, args, options) {
     }
   }
 
-  const runCommand = spawn(cmd, args);
+  const runCommand = spawn(cmd, args, { shell: true, windowsHide: true });
 
   // Capture stdout
   let stdout = "";
