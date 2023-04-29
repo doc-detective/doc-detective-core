@@ -6,12 +6,22 @@
 const { runTests } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
 const { execCommand, spawnCommand } = require("../src/utils");
-
+const path = require("path")
 
 main();
 // const { spawn } = require("child_process");
 
-// appium = spawn("node",["./node_modules/appium"]);
+//     // Start Appium server
+//     if (__dirname.includes("node_modules")) {
+//       // If running from node_modules
+//       appiumPath = path.join(__dirname, "../../../appium");
+//     } else {
+//       // If running from source
+//       appiumPath = path.join(__dirname, "../node_modules/appium");
+//     }
+//     console.log(appiumPath)
+//     appium = spawn("node", [appiumPath]);
+// // appium = spawn("appium");
 // appium.stdout.on('data', (data) => {
 //   console.log(`stdout: ${data}`);
 // });
@@ -24,7 +34,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/dev.spec.json",
+      input: "test/artifacts/",
       output: ".",
       setup: "",
       cleanup: "",
@@ -51,7 +61,7 @@ async function main() {
         testStartStatementClose: ")",
         testIgnoreStatement: "[comment]: # (test ignore)",
         testEndStatement: "[comment]: # (test end)",
-        stepStatementOpen: "[comment]: # (action",
+        stepStatementOpen: "[comment]: # (step",
         stepStatementClose: ")",
         markup: [
           {
@@ -113,7 +123,7 @@ async function main() {
   };
   // console.log(json);
   result = await runTests(json);
-  // console.log(JSON.stringify(result,null,2));
+  console.log(JSON.stringify(result,null,2));
 }
 
 // Primary execution function.
