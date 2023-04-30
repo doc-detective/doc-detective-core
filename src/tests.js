@@ -255,17 +255,23 @@ async function runSpecs(config, specs) {
     if (__dirname.includes("node_modules")) {
       // If running from node_modules
       appiumPath = path.join(__dirname, "../../appium");
+      appium = spawn("node", [appiumPath]);
     } else {
       // If running from source
-      appiumPath = path.join(__dirname, "../node_modules/appium");
+      // If Windows, run Appium server with Windows-specific command
+      if (platform === "windows") {
+        appiumPath = path.join(__dirname, "../node_modules/appium");
+        appium = spawn("node", [appiumPath]);
+      } else {
+        appium = spawn("npm", ["run", "appium"]);
+      }
     }
-    appium = spawn("node", [appiumPath]);
-    appium.stdout.on("data", (data) => {
-      log(config,"debug",`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data) => {
-      log(config,"debug",`stderr: ${data}`);
-    });
+    // appium.stdout.on("data", (data) => {
+    //   console.log(`stdout: ${data}`);
+    // });
+    // appium.stderr.on("data", (data) => {
+    //   console.error(`stderr: ${data}`);
+    // });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
   }

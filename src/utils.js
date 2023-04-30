@@ -348,7 +348,14 @@ async function spawnCommand(cmd, args, options) {
     }
   }
 
-  const runCommand = spawn(cmd, args, { shell: true, windowsHide: true });
+  // Set spawnOptions based on OS
+  let spawnOptions = {};
+  if (process.platform === "win32") {
+    spawnOptions.shell = true;
+    spawnOptions.windowsHide = true;
+  }
+
+  const runCommand = spawn(cmd, args, spawnOptions);
 
   // Capture stdout
   let stdout = "";
