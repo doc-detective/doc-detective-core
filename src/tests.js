@@ -258,7 +258,13 @@ async function runSpecs(config, specs) {
       appium = spawn("node", [appiumPath]);
     } else {
       // If running from source
-      appium = spawn("npm", ["run", "appium"]);
+      // If Windows, run Appium server with Windows-specific command
+      if (platform === "windows") {
+        appiumPath = path.join(__dirname, "../node_modules/appium");
+        appium = spawn("node", [appiumPath]);
+      } else {
+        appium = spawn("npm", ["run", "appium"]);
+      }
     }
     // appium.stdout.on("data", (data) => {
     //   console.log(`stdout: ${data}`);

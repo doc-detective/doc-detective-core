@@ -6,12 +6,22 @@
 const { runTests } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
 const { execCommand, spawnCommand } = require("../src/utils");
-
+const path = require("path")
 
 main();
 // const { spawn } = require("child_process");
 
-// appium = spawn("node",["./node_modules/appium"]);
+//     // Start Appium server
+//     if (__dirname.includes("node_modules")) {
+//       // If running from node_modules
+//       appiumPath = path.join(__dirname, "../../../appium");
+//     } else {
+//       // If running from source
+//       appiumPath = path.join(__dirname, "../node_modules/appium");
+//     }
+//     console.log(appiumPath)
+//     appium = spawn("node", [appiumPath]);
+// // appium = spawn("appium");
 // appium.stdout.on('data', (data) => {
 //   console.log(`stdout: ${data}`);
 // });
@@ -24,7 +34,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/dev.spec.json",
+      input: "test/artifacts/",
       output: ".",
       setup: "",
       cleanup: "",
@@ -44,67 +54,6 @@ async function main() {
       output: ".",
       markup: [],
     },
-    fileTypes: [
-      {
-        extensions: [".md", ".mdx"],
-        testStartStatementOpen: "[comment]: # (test start",
-        testStartStatementClose: ")",
-        testIgnoreStatement: "[comment]: # (test ignore)",
-        testEndStatement: "[comment]: # (test end)",
-        stepStatementOpen: "[comment]: # (action",
-        stepStatementClose: ")",
-        markup: [
-          {
-            name: "onscreenText",
-            regex: ["\\*\\*.+?\\*\\*"],
-          },
-          {
-            name: "emphasis",
-            regex: ["(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"],
-          },
-          {
-            name: "image",
-            regex: ["!\\[.+?\\]\\(.+?\\)"],
-          },
-          {
-            name: "hyperlink",
-            regex: ["(?<!!)\\[.+?\\]\\(.+?\\)"],
-          },
-          {
-            name: "orderedList",
-            regex: ["(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"],
-          },
-          {
-            name: "unorderedList",
-            regex: ["(?<=\n) *?\\*.\\s*.*", "(?<=\n) *?-.\\s*.*"],
-          },
-          {
-            name: "codeInline",
-            regex: ["(?<!`)`(?!`).+?(?<!`)`(?!`)"],
-          },
-          {
-            name: "codeBlock",
-            regex: ["(?=(```))(\\w|\\W)*(?<=```)"],
-          },
-          {
-            name: "interaction",
-            regex: [
-              "[cC]lick",
-              "[tT]ap",
-              "[tT]ouch",
-              "[sS]elect",
-              "[cC]hoose",
-              "[tT]oggle",
-              "[eE]nable",
-              "[dD]isable",
-              "[tT]urn [oO][ff|n]",
-              "[tT]ype",
-              "[eE]nter",
-            ],
-          },
-        ],
-      },
-    ],
     integrations: {},
     telemetry: {
       send: false,
@@ -113,7 +62,7 @@ async function main() {
   };
   // console.log(json);
   result = await runTests(json);
-  // console.log(JSON.stringify(result,null,2));
+  console.log(JSON.stringify(result,null,2));
 }
 
 // Primary execution function.
