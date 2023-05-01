@@ -5,7 +5,7 @@ main();
 
 async function main() {
   await installBrowsers();
-  // await installAppliumDepencencies();
+  await installAppliumDepencencies();
 }
 
 async function installBrowsers() {
@@ -24,7 +24,12 @@ async function installBrowsers() {
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
 async function installAppliumDepencencies() {
-  appiumPath = path.join(__dirname, "../node_modules/appium");
+  if (__dirname.includes("node_modules")) {
+    // If running from node_modules
+    appiumPath = path.join(__dirname, "../../appium");
+  } else {
+    appiumPath = path.join(__dirname, "../node_modules/appium");
+  }
   appiumDriverList = await spawnCommand(
     `node "${appiumPath}" driver list --installed`
   );
@@ -33,6 +38,7 @@ async function installAppliumDepencencies() {
   );
   await appiumDriverList;
   await appiumPluginsList;
+  // Install gecko and chromium drivers if not already installed
   if (!appiumDriverList.stderr.includes("gecko")) {
     geckoInstall = await spawnCommand(
       `node ${appiumPath} driver install gecko`
