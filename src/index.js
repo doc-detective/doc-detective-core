@@ -1,13 +1,13 @@
 const { setConfig } = require("./config");
 const { setFiles, parseTests, outputResults, log } = require("./utils");
 const { runSpecs } = require("./tests");
-// const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
+const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { reportCoverage } = require("./coverage");
 // const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
 
 exports.runTests = runTests;
-exports.coverage = coverage;
+exports.runCoverage = runCoverage;
 exports.suggest = suggest;
 
 // Run tests defined in specifications and documentation source files.
@@ -36,18 +36,10 @@ async function runTests(config) {
   return results;
 }
 
-async function coverage(config, argv) {
-  // TODO
-  console.log("Not yet supported in Doc Detective Core v2 beta.");
-  exit(1);
-
-  // Set args
-  argv = setArgs(argv);
-  log(config, "debug", `ARGV:`);
-  log(config, "debug", argv);
-
+// Calculate test coverage of doc content.
+async function runCoverage(config) {
   // Set config
-  config = setConfig(config, argv);
+  config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 
@@ -59,6 +51,8 @@ async function coverage(config, argv) {
   const testCoverage = checkTestCoverage(config, files);
   log(config, "debug", "TEST COVERAGE:");
   log(config, "debug", testCoverage);
+  console.log(JSON.stringify(testCoverage, null, 2))
+  process.exit()
 
   const markupCoverage = checkMarkupCoverage(config, testCoverage);
   log(config, "debug", "MARKUP COVERAGE:");
@@ -67,9 +61,6 @@ async function coverage(config, argv) {
   const coverageReport = reportCoverage(config, markupCoverage);
   log(config, "debug", "COVERAGE REPORT:");
   log(config, "debug", coverageReport);
-
-  // Output
-  outputResults(config.coverageOutput, coverageReport, config);
 
   return coverageReport;
 }

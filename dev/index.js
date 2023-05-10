@@ -3,10 +3,10 @@
 // const wdio = require("webdriverio");
 // const OBSWebSocket = require("obs-websocket-js").default;
 // const { spawnCommand } = require("./src/utils");
-const { runTests } = require("../src");
+const { runTests, runCoverage } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
 const { execCommand, spawnCommand } = require("../src/utils");
-const path = require("path")
+const path = require("path");
 
 main();
 // const { spawn } = require("child_process");
@@ -44,7 +44,7 @@ async function main() {
     },
     runCoverage: {
       recursive: true,
-      input: ".",
+      input: "test/artifacts/",
       output: ".",
       markup: [],
     },
@@ -61,8 +61,8 @@ async function main() {
     },
   };
   // console.log(json);
-  result = await runTests(json);
-  console.log(JSON.stringify(result,null,2));
+  result = await runCoverage(json);
+  console.log(JSON.stringify(result, null, 2));
 }
 
 // Primary execution function.
