@@ -121,29 +121,37 @@ function checkTestCoverage(config, files) {
   return testCoverage;
 }
 
+// Detect markup on uncovered lines
 function checkMarkupCoverage(config, testCoverage) {
-  let markupCoverage = testCoverage;
+  let markupCoverage = {
+    summary: {
+      covered: 0,
+      uncovered: 0,
+      markup: {}
+    },
+    files: [],
+    errors: []
+  }
 
-  markupCoverage.files.forEach((file) => {
-    file.markup = {};
-    let extension = path.extname(file.file);
-    let markup = file.fileType.markup;
+  for (const i in testCoverage.files){
+    const file = testCoverage.files[i];
+  let fileCoverage = {
+      file: file.file,
+      covered: file.coveredLines.length,
+      uncovered: file.uncoveredLines.length,
+      markup: {}
+    }
+    markupCoverage.summary.covered = file.coveredLines.length;
+    markupCoverage.summary.uncovered = file.uncoveredLines.length;
 
-    Object.keys(markup).forEach((mark) => {
-      if (markup[mark].regex.length === 1 && markup[mark].regex[0] === "") {
-        log(
-          config,
-          "warning",
-          `No regex for '${mark}'. Set 'fileType.markup.${mark}' for the '${extension}' extension in your config.`
-        );
-        delete markup[mark];
-      }
-    });
+    let content = fs.readFileSync(file.file).toString();
 
-    const fileBody = fs.readFileSync(file.file, {
-      encoding: "utf8",
-      flag: "r",
-    });
+    console.log(fileCoverage)
+    process.exit()
+    for (const i in file.fileType.markup) {
+      const mark = file.fileType.markup[i];
+        
+    }
 
     // Only keep marks that have a truthy (>0) length
     Object.keys(markup).forEach((mark) => {
@@ -219,6 +227,6 @@ function checkMarkupCoverage(config, testCoverage) {
       });
       file.markup[mark] = markCoverage;
     });
-  });
+  }
   return markupCoverage;
 }
