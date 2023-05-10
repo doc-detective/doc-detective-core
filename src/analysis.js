@@ -24,7 +24,11 @@ function checkTestCoverage(config, files) {
     );
     // Skip JSON files
     if (extension === ".json") {
-      log(config, "info", `Skipping ${file}. JSON files are invalid targets for coverage analysis.`)
+      log(
+        config,
+        "info",
+        `Skipping ${file}. JSON files are invalid targets for coverage analysis.`
+      );
       continue;
     }
     // Set file parsing defaults
@@ -34,14 +38,13 @@ function checkTestCoverage(config, files) {
       file,
       coveredLines: [],
       uncoveredLines: [],
-      fileType
+      fileType,
     };
     // Gather content
     let content = fs.readFileSync(file).toString();
     content = content.split("\n");
 
     // Loop through lines of content to identify if each line is covered or not
-    // TODO: Get line item in addition to line content
     for (const line of content) {
       lineNumber++;
       let ignoreLine = false;
@@ -71,22 +74,16 @@ function checkTestCoverage(config, files) {
           referencePath = path.resolve(path.dirname(file), statementJson.file);
           // Check to make sure file exists
           if (fs.existsSync(referencePath)) {
+          // Make sure test `id` exists in the referenced file
             if (statementJson.id) {
               remoteJSON = fs.readFileSync(referencePath).toString();
               remoteJSON = JSON.parse(remoteJSON);
-              // Make sure test of matching ID exists in file
-              // TODO: Make it iterate through all tests in all specs
-              // idMatch = remoteJSON.tests.find(
-              //   (test) => test.id === statementJson.id
-              // );
-              // if (!idMatch) {
-              //   // log error
-              //   testCoverage.errors.push({
-              //     file,
-              //     line,
-              //     description: `Test with ID ${statementJson.id} missing from ${referencePath}.`,
-              //   });
-              // }
+              let idMatch = false;
+              remoteJSON.forEach((spec) => {
+                spec.tests.forEach((test) => {
+                  if (test.id && test.id === statementJson.id) idMatch = true;
+                });
+              });
             }
           } else {
             // log error
