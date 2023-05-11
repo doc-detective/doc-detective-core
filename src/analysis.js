@@ -74,7 +74,7 @@ function checkTestCoverage(config, files) {
           referencePath = path.resolve(path.dirname(file), statementJson.file);
           // Check to make sure file exists
           if (fs.existsSync(referencePath)) {
-          // Make sure test `id` exists in the referenced file
+            // Make sure test `id` exists in the referenced file
             if (statementJson.id) {
               remoteJSON = fs.readFileSync(referencePath).toString();
               remoteJSON = JSON.parse(remoteJSON);
@@ -127,59 +127,58 @@ function checkMarkupCoverage(config, testCoverage) {
     summary: {
       covered: 0,
       uncovered: 0,
-      markup: {}
+      markup: {},
     },
     files: [],
-    errors: []
-  }
+    errors: [],
+  };
 
-  for (const i in testCoverage.files){
+  // Loop through files
+  for (const i in testCoverage.files) {
     const file = testCoverage.files[i];
-  let fileCoverage = {
+    let fileCoverage = {
       file: file.file,
-      covered: file.coveredLines.length,
-      uncovered: file.uncoveredLines.length,
-      markup: {}
-    }
-    markupCoverage.summary.covered = file.coveredLines.length;
-    markupCoverage.summary.uncovered = file.uncoveredLines.length;
+      coveredLines: file.coveredLines,
+      uncoveredLines: file.uncoveredLines,
+      markup: {},
+    };
 
     let content = fs.readFileSync(file.file).toString();
 
-    console.log(fileCoverage)
-    process.exit()
+    // Loop through markup types
     for (const i in file.fileType.markup) {
       const mark = file.fileType.markup[i];
-        
-    }
-
-    // Only keep marks that have a truthy (>0) length
-    Object.keys(markup).forEach((mark) => {
-      markCoverage = {
-        includeInCoverage: markup[mark].includeInCoverage,
-        includeInSuggestions: markup[mark].includeInSuggestions,
+      let markCoverage = {
         coveredLines: [],
         coveredMatches: [],
         uncoveredLines: [],
         uncoveredMatches: [],
       };
 
-      markup[mark].regex.forEach((matcher) => {
+      // Check if mark is defined in summary
+      if (typeof markupCoverage.summary.markup[mark.name] === "undefined") {
+        markupCoverage.summary.markup[mark.name] = {
+          covered: 0,
+          uncovered: 0,
+        };
+      }
+
+      // Loop through regexes
+      for (const i in mark.regex) {
+        matcher = mark.regex[i];
         // Run a match
         regex = new RegExp(matcher, "g");
-        matches = fileBody.match(regex);
+        matches = content.match(regex);
         if (matches != null) {
           matches.forEach((match) => {
             // Check for duplicates and handle lines separately
             matchEscaped = match.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
             start = 0;
             occuranceRegex = new RegExp(matchEscaped, "g");
-            occurances = fileBody.match(occuranceRegex).length;
-            for (i = 0; i < occurances; i++) {
-              index = fileBody.slice(start).match(matchEscaped).index;
-              line = fileBody
-                .slice(0, start + index)
-                .split(/\r\n|\r|\n/).length;
+            occurances = content.match(occuranceRegex).length;
+            for (x = 0; x < occurances; x++) {
+              index = content.slice(start).match(matchEscaped).index;
+              line = content.slice(0, start + index).split(/\r\n|\r|\n/).length;
               start = start + index + 1;
               matchObject = {
                 line,
@@ -224,9 +223,16 @@ function checkMarkupCoverage(config, testCoverage) {
             }
           });
         }
-      });
-      file.markup[mark] = markCoverage;
-    });
+      }
+      fileCoverage.markup[mark.name] = markCoverage;
+      markupCoverage.summary.covered += markCoverage.coveredLines.length;
+      markupCoverage.summary.markup[mark.name].covered +=
+        markCoverage.coveredLines.length;
+      markupCoverage.summary.uncovered += markCoverage.uncoveredLines.length;
+      markupCoverage.summary.markup[mark.name].uncovered +=
+        markCoverage.uncoveredLines.length;
+    }
+    markupCoverage.files.push(fileCoverage);
   }
   return markupCoverage;
 }

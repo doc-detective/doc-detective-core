@@ -2,7 +2,6 @@ const { setConfig } = require("./config");
 const { setFiles, parseTests, outputResults, log } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
-const { reportCoverage } = require("./coverage");
 // const { suggestTests, runSuggestions } = require("./suggest");
 const { exit } = require("process");
 
@@ -51,18 +50,12 @@ async function runCoverage(config) {
   const testCoverage = checkTestCoverage(config, files);
   log(config, "debug", "TEST COVERAGE:");
   log(config, "debug", testCoverage);
-  console.log(JSON.stringify(testCoverage, null, 2))
-  process.exit()
 
   const markupCoverage = checkMarkupCoverage(config, testCoverage);
   log(config, "debug", "MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
 
-  const coverageReport = reportCoverage(config, markupCoverage);
-  log(config, "debug", "COVERAGE REPORT:");
-  log(config, "debug", coverageReport);
-
-  return coverageReport;
+  return markupCoverage;
 }
 
 async function suggest(config, argv) {
