@@ -16,6 +16,7 @@ exports.log = log;
 exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
+exports.inContainer = inContainer;
 
 // Set array of test files
 function setFiles(config) {
@@ -381,4 +382,15 @@ async function spawnCommand(cmd, args, options) {
   });
 
   return { stdout, stderr, exitCode };
+}
+
+async function inContainer() {
+  if (process.env.IN_CONTAINER === "true") return true;
+  if (process.platform === "linux") {
+    result = await spawnCommand(
+      `grep -sq "docker\|lxc\|kubepods" /proc/1/cgroup`
+    );
+    if (result.exitCode === 0) return true;
+  }
+  return false;
 }
