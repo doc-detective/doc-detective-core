@@ -5,14 +5,16 @@ main();
 
 async function main() {
   await installBrowsers();
-  await installAppliumDepencencies();
+  await installAppiumDepencencies();
 }
 
 async function installBrowsers() {
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
   // Install Chromium
-  // console.log("Installing Chromium");
-  // let chromium = await BROWSERS.chromium.installBrowser("latest");
+  console.log("Installing Chromium");
+  let chromium = await BROWSERS.chromium.installBrowser("latest");
+  let chromedriverInstall = await spawnCommand(`npm i chromedriver --chromedriver_version=${chromium.versionNumber}}`);
+  if (chromedriverInstall.stdout.includes("added") || chromedriverInstall.stdout.includes("up to date")) console.log("Installed Chromedriver.");
   // Install Firefox
   console.log("Installing Firefox");
   let firefox = await BROWSERS.firefox.installBrowser("latest");
@@ -23,7 +25,7 @@ async function installBrowsers() {
 }
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
-async function installAppliumDepencencies() {
+async function installAppiumDepencencies() {
   if (__dirname.includes("node_modules")) {
     // If running from node_modules
     appiumPath = path.join(__dirname, "../../appium");
