@@ -88,6 +88,19 @@ function getEnvironment() {
   return environment;
 }
 
+async function getChromeDriver(version) {
+  if (__dirname.includes("node_modules")) {
+    // If running from node_modules
+    chromedriver = path.join(__dirname, "../../chromedriver/bin/chromedriver");
+  } else {
+    chromedriver = path.join(__dirname, "../node_modules/chromedriver/bin/chromedriver");
+  }
+  chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
+  if (!chromedriverVersion.stdout.includes(`${version}.`)) {
+    await spawnCommand(`npm i chromedriver --chromedriver_version=${version}`);
+  }
+}
+
 // Detect available apps.
 async function getAvailableApps(config) {
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
@@ -95,26 +108,38 @@ async function getAvailableApps(config) {
   const apps = [];
 
   // Detect Chrome/Chromium
-  // try {
-  //   // Get internal dependency path
-  //   chrome = await BROWSERS.chromium.installBrowser("latest");
-  //   chrome = chrome.binary;
-  // } catch {}
-  // if (!chrome) {
-  //   // Check external default install locations for Chromium
-  //   chrome = await getInstallPath(
-  //     config,
-  //     defaultAppIDs.chromium[config.environment.platform]
-  //   );
-  //   if (!chrome) {
-  //     // Check external default install locations for Chrome
-  //     chrome = await getInstallPath(
-  //       config,
-  //       defaultAppIDs.chrome[config.environment.platform]
-  //     );
-  //   }
-  // }
-  // if (chrome) apps.push({ name: "chrome", path: chrome });
+  try {
+    // Get internal dependency path
+    chrome = await BROWSERS.chromium.installBrowser("latest");
+    chromeVersion = chrome.versionNumber.split(".")[0];
+    chromePath = chrome.binary;
+  } catch { }
+  if (!chromePath) {
+    // Check external default install locations for Chromium
+    chromePath = await getInstallPath(
+      config,
+      defaultAppIDs.chromium[config.environment.platform]
+    );
+    if (chromePath) {
+      chromeVersion = await spawnCommand(`${chromePath} --version`)
+      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
+    }
+  }
+  if (!chromePath) {
+    // Check external default install locations for Chrome
+    chromePath = await getInstallPath(
+      config,
+      defaultAppIDs.chromium[config.environment.platform]
+    );
+    if (chromePath) {
+      chromeVersion = await spawnCommand(`${chromePath} --version`)
+      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
+    }
+  }
+  if (chromePath) {
+    await getChromeDriver(chromeVersion)
+    apps.push({ name: "chrome", path: chromePath });
+  }
 
   // Detect Firefox
   let firefox = "";
@@ -122,7 +147,7 @@ async function getAvailableApps(config) {
     // Get internal dependency path
     firefox = await BROWSERS.firefox.installBrowser("latest");
     firefox = firefox.binary;
-  } catch {}
+  } catch { }
   if (!firefox) {
     // Check external default install locations
     firefox = await getInstallPath(
@@ -161,6 +186,6 @@ async function getInstallPath(config, id) {
   try {
     const appPath = await spawnCommand(command, [id]);
     if (appPath.exitCode === 0) installPath = appPath.stdout;
-  } catch {}
+  } catch { }
   return installPath;
 }
