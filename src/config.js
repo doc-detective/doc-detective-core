@@ -127,10 +127,11 @@ async function getAvailableApps(config) {
     apps.push({ name: "chrome", path: chromePath });
     if (__dirname.includes("node_modules")) {
       // If running from node_modules
-      chromedriver = path.join(__dirname, "../../chromedriver/bin/chromedriver");
+      chromedriver = path.join(__dirname, "../../chromedriver/lib/chromedriver/chromedriver");
     } else {
-      chromedriver = path.join(__dirname, "../node_modules/chromedriver/bin/chromedriver");
+      chromedriver = path.join(__dirname, "../node_modules/chromedriver/lib/chromedriver/chromedriver");
     }
+    if (config.environment.platform === "windows") chromedriver += ".exe";
     chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
     if (!chromedriverVersion.stdout.includes(`${chromeVersion}.`)) {
       await spawnCommand(`npm i chromedriver --chromedriver_version=${chromeVersion}`);
