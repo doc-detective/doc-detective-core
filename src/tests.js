@@ -65,9 +65,11 @@ function getDriverCapabilities(config, name, overrides) {
       if (config.environment.apps.find((app) => app.name === "chrome")) {
         chrome = config.environment.apps.find((app) => app.name === "chrome");
         if (!chrome) break;
+        chromedriver = config.environment.apps.find((app) => app.name === "chromedriver");
         capabilities = {
           platformName: "linux",
           "appium:automationName": "Chromium",
+          "appium:executable": overrides.driverPath || chromedriver.path,
           browserName: "chrome",
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102

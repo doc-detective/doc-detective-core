@@ -33,6 +33,7 @@
     "appium-geckodriver": "^1.1.8",
     "arch": "^2.2.0",
     "axios": "^1.3.5",
+    "chromedriver": "^113.0.0",
     "doc-detective-common": "^1.2.11",
     "dotenv": "^16.0.3",
     "geckodriver": "^3.2.0",
