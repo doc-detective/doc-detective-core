@@ -88,19 +88,6 @@ function getEnvironment() {
   return environment;
 }
 
-async function getChromeDriver(version) {
-  if (__dirname.includes("node_modules")) {
-    // If running from node_modules
-    chromedriver = path.join(__dirname, "../../chromedriver/bin/chromedriver");
-  } else {
-    chromedriver = path.join(__dirname, "../node_modules/chromedriver/bin/chromedriver");
-  }
-  chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
-  if (!chromedriverVersion.stdout.includes(`${version}.`)) {
-    await spawnCommand(`npm i chromedriver --chromedriver_version=${version}`);
-  }
-}
-
 // Detect available apps.
 async function getAvailableApps(config) {
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
@@ -137,8 +124,18 @@ async function getAvailableApps(config) {
     }
   }
   if (chromePath) {
-    await getChromeDriver(chromeVersion)
     apps.push({ name: "chrome", path: chromePath });
+    if (__dirname.includes("node_modules")) {
+      // If running from node_modules
+      chromedriver = path.join(__dirname, "../../chromedriver/bin/chromedriver");
+    } else {
+      chromedriver = path.join(__dirname, "../node_modules/chromedriver/bin/chromedriver");
+    }
+    chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
+    if (!chromedriverVersion.stdout.includes(`${chromeVersion}.`)) {
+      await spawnCommand(`npm i chromedriver --chromedriver_version=${chromeVersion}`);
+    }
+    apps.push({ name: "chromedriver", path: chromedriver });
   }
 
   // Detect Firefox
