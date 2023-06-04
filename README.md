@@ -13,13 +13,13 @@ For pre-built implementations, see [Doc Detective](https://github.com/doc-detect
 
 Doc Detective v2 is in beta. The beta currently supports the following browsers and platforms:
 
-- Methods: `runTests(config)`
+- Methods: `runTests(config)`, `runCoverage(config)`
 - Apps: Firefox, Chrome/Chromium
 - Platforms: Windows, macOS, Linux (tested on Ubuntu)
 
 When support for at least the following features, apps, and platforms are implemented, v2 will exit beta:
 
-- Methods: `runCoverage(config)`, `suggestTests(config)`
+- Methods: `suggestTests(config)`
 - Actions: startRecording, stopRecording
 
 After the v2 stable release, future updates may include support for the following items:
@@ -36,11 +36,15 @@ npm i doc-detective-core@next
 ## Init
 
 ```javascript
-const { runTests } = require("doc-detective-core");
+const { runTests, runCoverage } = require("doc-detective-core");
 ```
 
 ## Methods
 
 ### `runTests(config)`
 
-Run test specifications. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runTests.input` for test specifications to perform. Returns a test report object.
+Run test specifications. Returns a test report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runTests.input` for test specifications to perform.
+
+### `runCoverage(config)`
+
+Analyze test coverage in documentation source files. Returns a coverage report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runCoverage.input` for documentation source files to analyze. Parses markup based on file's type and the markup definitions specified in `config.fileTypes.markup`.

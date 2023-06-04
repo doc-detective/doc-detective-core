@@ -5,7 +5,7 @@
   "recursive": true,
   "logLevel": "debug",
   "runTests": {
-    "input": "./dev/doc-conetent.md",
+    "input": "./dev/doc-content.md",
     "output": ".",
     "setup": "",
     "cleanup": "",
