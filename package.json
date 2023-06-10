@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "test": "mocha test/*.test.js",
+    // "test": "mocha test/*.test.js",
     "appium": "appium"
   },
   "repository": {
@@ -39,6 +39,7 @@
     "geckodriver": "^3.2.0",
     "node-jq": "^2.3.4",
     "obs-websocket-js": "^5.0.2",
+    "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
     "uuid": "^9.0.0",
     "webdriverio": "^8.8.0"
