@@ -22,28 +22,16 @@ const actions = [
   "wait",
 ]
 
+// TODO: Migrate this content into a summary in the action schemas and update `decideIntent`.
 const intents = {
-  find: { intent: "find", description: "Find an element." },
-  matchText: {
-    intent: "matchText",
-    description: "Verify that an element has this text.",
-  },
-  type: { intent: "type", description: "Type keys in an element." },
-  click: { intent: "click", description: "Click an element." },
-  captureImage: { intent: "captureImage", description: "Capture an image." },
-  openLink: { intent: "openLink", description: "Open the link." },
-  checkLink: {
-    intent: "checkLink",
-    description: "Check that the link is valid.",
-  },
-  runShell: {
-    intent: "runShell",
-    description: "Perform a native command, such as running a script.",
-  },
-  makeHttpRequest: {
-    intent: "makeHttpRequest",
-    description: "Make an HTTP request, such as calling an API.",
-  },
+  find: "Find, click, and/or match the text of an element.",
+  typeKeys: "Type keys in an element.",
+  saveScreenshot: "Capture an image.",
+  goTo: "Open the link.",
+  checkLink: "Check that the link is valid.",
+  runShell:"Perform a native command, such as running a script.",
+  httpRequest: "Make an HTTP request, such as calling an API.",
+  wait: "Wait for a specified amount of time.",
 };
 
 
@@ -65,13 +53,13 @@ function decideIntent(match, filepath) {
   console.log(
     `What do you want to do with this ${match.type}? Enter nothing to ignore.`
   );
-  markupToIntent[match.type].intents.forEach((intent, index) => {
-    console.log(`(${index + 1}) ${intent.description}`);
+  match.actions.forEach((action, index) => {
+    console.log(`(${index + 1}) ${intents[action]}`);
   });
   let choice = prompt("Enter a number: ");
   if (choice) {
     choice = Number(choice) - 1;
-    return markupToIntent[match.type].intents[choice].intent;
+    return match.actions[choice];
   } else {
     // Ignore match
     return null;
@@ -629,7 +617,6 @@ function getSuggestions(config, markupCoverage) {
     // Get uncovered matches
     matches = getUncoveredMatches(config, file);
 
-    process.exit()
     // Iterate over uncovered matches
     matches.forEach((match) => {
       // Prompt for intent
