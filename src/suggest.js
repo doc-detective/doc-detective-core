@@ -7,8 +7,20 @@ const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
 const { runTests } = require("./tests");
 
-exports.suggestTests = suggestTests;
+exports.getSuggestions = getSuggestions;
 exports.runSuggestions = runSuggestions;
+
+const actions = [
+  "checkLink",
+  "find",
+  "goTo",
+  "httpRequest",
+  "runShell",
+  "saveScreenshot",
+  "setVariables",
+  "typeKeys",
+  "wait",
+]
 
 const intents = {
   find: { intent: "find", description: "Find an element." },
@@ -34,43 +46,6 @@ const intents = {
   },
 };
 
-const markupToIntent = {
-  onscreenText: {
-    item: "text",
-    intents: [intents.find, intents.matchText, intents.click],
-  },
-  image: {
-    item: "image",
-    intents: [intents.captureImage],
-  },
-  hyperlink: {
-    item: "link",
-    intents: [intents.openLink, intents.checkLink],
-  },
-  codeInline: {
-    item: "inline code",
-    //intents: [intents.makeHttpRequest, intents.runShell],
-    intents: [intents.runShell],
-  },
-  codeBlock: {
-    item: "code block",
-    //intents: [intents.makeHttpRequest, intents.runShell],
-    intents: [intents.runShell],
-  },
-  interaction: {
-    item: "item",
-    intents: [
-      intents.find,
-      intents.matchText,
-      intents.click,
-      intents.type,
-      intents.openLink,
-      intents.checkLink,
-      // intents.makeHttpRequest,
-      intents.runShell,
-    ],
-  },
-};
 
 function constructPrompt(prompt, defaultValue) {
   if (defaultValue) {
@@ -88,9 +63,7 @@ function decideIntent(match, filepath) {
   console.log(lineText);
   console.log();
   console.log(
-    `What do you want to do with this ${
-      markupToIntent[match.type].item
-    }? Enter nothing to ignore.`
+    `What do you want to do with this ${match.type}? Enter nothing to ignore.`
   );
   markupToIntent[match.type].intents.forEach((intent, index) => {
     console.log(`(${index + 1}) ${intent.description}`);
@@ -595,20 +568,33 @@ function buildRunShell(config, match) {
   return action;
 }
 
-function transformMatches(fileMarkupObject) {
-  matches = [];
+// Build array of uncovered markup for a file
+function getUncoveredMatches(config, file) {
+  uncoveredMatches = [];
+
+  const includeInSuggestions = config.suggestTests.markup;
+  const extension = path.extname(file.file);
+  const fileType = config.fileTypes.find((fileType) => fileType.extensions.includes(extension));
+  
   // Load array with uncovered matches
-  Object.keys(fileMarkupObject).forEach((mark) => {
-    if (fileMarkupObject[mark].includeInSuggestions) {
-      fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
+  Object.keys(file.markup).forEach((mark) => {
+    // Find markup config
+    const markConfig = fileType.markup.find((markup) => markup.name === mark);
+    if (!fileType) return;
+    const markActions = markConfig.actions || actions;
+
+    // If included in suggestion markup, add uncovered matches
+    if (includeInSuggestions.length === 0 || includeInSuggestions.includes(mark)){
+      file.markup[mark].uncoveredMatches.forEach((match) => {
         match.type = mark;
-        matches.push(match);
+        match.actions = markActions;
+        uncoveredMatches.push(match);
       });
     }
   });
   // Sort matches by line, then index
-  matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
-  return matches;
+  uncoveredMatches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
+  return uncoveredMatches;
 }
 
 function getLineFromFile(filepath, line) {
@@ -620,32 +606,32 @@ function getLineFromFile(filepath, line) {
   return lines[line - 1];
 }
 
-function suggestTests(config, markupCoverage) {
-  let report = {
-    name: "Doc Detective Test Suggestion Report",
-    timestamp: timestamp(),
-    files: [],
+// 
+function getSuggestions(config, markupCoverage) {
+  let spec = {
+    id: `Suggested Tests - ${timestamp()}`,
+    tests: [],
   };
 
-  markupCoverage.files.forEach((file) => {
-    suggestions = {
-      tests: [
-        {
-          id: `${uuid.v4()}`,
-          file: file.file,
-          actions: [],
-        },
-      ],
-    };
+  for (file of markupCoverage.files) {
+    log(config, "debug", file);
+    tests: [
+      {
+        id: `${uuid.v4()}`,
+        file: file.file,
+        actions: [],
+      },
+    ],
 
     console.log("------");
     console.log(`File: ${file.file}`);
 
-    matches = transformMatches(file.markup);
+    // Get uncovered matches
+    matches = getUncoveredMatches(config, file);
+
+    process.exit()
+    // Iterate over uncovered matches
     matches.forEach((match) => {
-      // Skip over certain match types
-      if (match.type === "unorderedList" || match.type === "orderedList")
-        return;
       // Prompt for intent
       intent = decideIntent(match, file.file);
       // Skip over if user ignored prompt
@@ -714,8 +700,8 @@ function suggestTests(config, markupCoverage) {
         suggestions,
       });
     }
-  });
-  return report;
+  };
+  return spec;
 }
 
 async function runSuggestions(config, suggestionReport) {
