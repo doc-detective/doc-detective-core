@@ -391,71 +391,30 @@ function buildScreenshot(config, match) {
     match.text.match(/(?<=src=")(\w|\W)*(?=")/);
   if (text) text = text[0];
 
-  defaults = {
-    action: "screenshot",
-    filename: text || `${uuid.v4()}.png`,
-    matchPrevious: "Yes",
-    matchThreshold: 10,
-  };
   action = {
-    action: "screenshot",
+    action: "saveScreenshot",
   };
 
-  // Filename
+  // Path (Optional)
   // Define
   console.log("-");
-  let message = constructPrompt("Filename", defaults.filename);
+  let message = constructPrompt("Path", text);
   console.log(
-    "What do you want the screenshot filename to be? Must end in '.png'. If left empty, defaults to a random string."
+    "(Optional) What is the screenshot file path? Must end in '.png'. If not specified, the file path is your media directory and the file name is the ID of the step."
   );
-  let filename = prompt(message);
-  filename = filename || defaults.filename;
-  // Set
-  action.filename = filename;
-
-  // Match previous
-  // Define
-  console.log("-");
-  console.log(
-    "During testing, do you want to check for differences (such as UI changes) between new and old screenshots?"
-  );
-  responses = ["No", "Yes"];
-  responses.forEach((response, index) =>
-    console.log(`(${index + 1}) ${response}`)
-  );
-  choice = prompt("Enter a number: ");
-  if (choice) {
-    choice = Number(choice) - 1;
-    matchPrevious = responses[choice];
-  } else {
-    matchPrevious = "No";
-  }
-  switch (matchPrevious.toLowerCase()) {
-    case "yes":
-    case "y":
-      matchPrevious = true;
-      console.log();
-      console.log(
-        "On a scale of 0-100, what is the mimumim percentage of a new screenshot that must be different to make this action fail?"
-      );
-      message = constructPrompt("Percentage", defaults.matchThreshold);
-      matchThreshold = prompt(message);
-      matchThreshold = matchThreshold.replace("%", "");
-      matchThreshold = Number(matchThreshold) / 100;
-      break;
-    default:
-      matchPrevious = null;
-      matchThreshold = null;
-      break;
-  }
-  // Optional value. Set if present.
-  if (matchPrevious && matchThreshold) {
-    action.matchPrevious = matchPrevious;
-    action.matchThreshold = matchThreshold;
+  let path = prompt(message);
+  if (path) {
+    // Set
+    action.path = path;
   }
 
-  // Report
-  log(config, "debug", action);
+  // Validate
+  const validityCheck = validate("saveScreenshot_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
