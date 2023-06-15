@@ -5,7 +5,7 @@ const uuid = require("uuid");
 const { log, timestamp } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
-const { runTests } = require("./tests");
+const { validate } = require("doc-detective-common");
 
 exports.getSuggestions = getSuggestions;
 exports.runSuggestions = runSuggestions;
@@ -72,35 +72,36 @@ function buildGoTo(config, match) {
     match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
     match.text.match(/(?<=href=")(\w|\W)*(?=")/);
   if (text) text = text[0];
-
-  // Prep
-  defaults = {
-    action: "goTo",
-    uri: text,
-  };
-  action = {
+  
+  // Object skeleton
+  let action = {
     action: "goTo",
   };
 
-  // URI (Required)
+  // URL (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("URI", defaults.uri);
-  console.log("(Required) Which URI do you want to open?");
-  let uri = prompt(message);
-  uri = uri || defaults.uri;
+  let message = constructPrompt("URL", text);
+  console.log("(Required) Which URL do you want to open?");
+  let url = prompt(message);
+  url = url || text;
   // Required value. Return early if empty.
-  if (!uri) {
+  if (!url) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
-  // Sanitize
-  uri = sanitizeUri(uri);
-  // Set
-  action.uri = uri;
 
-  // Report
-  log(config, "debug", action);
+  // Sanitize
+  url = sanitizeUri(url);
+  // Set
+  action.url = url;
+  // Validate
+  const validityCheck = validate("goTo_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
@@ -249,7 +250,7 @@ function buildFind(config, match, intent) {
       break;
     default:
       moveMouse = null;
-      break;
+      break;  
   }
   // Optional value. Set if present.
   if (moveMouse) {
@@ -639,7 +640,7 @@ function getSuggestions(config, markupCoverage) {
         case "captureImage":
           action = buildScreenshot(config, match);
           break;
-        case "openLink":
+        case "goTo":
           action = buildGoTo(config, match);
           break;
         case "checkLink":
@@ -655,7 +656,9 @@ function getSuggestions(config, markupCoverage) {
           action = null;
           break;
       }
-      // Only add to array when action present
+      log(config, "debug", action);
+      process.exit()
+  // Only add to array when action present
       if (action) {
         suggestions.tests[0].actions.push(action);
         // IF SOURCE UPDATE IS TRUE, UPDATE SOURCE WITH TEST FENCES
