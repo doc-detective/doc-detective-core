@@ -5,7 +5,7 @@ const uuid = require("uuid");
 const { log, timestamp } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
-const { validate } = require("doc-detective-common");
+const { validate, schemas } = require("doc-detective-common");
 
 exports.getSuggestions = getSuggestions;
 exports.runSuggestions = runSuggestions;
@@ -113,33 +113,49 @@ function buildCheckLink(config, match) {
   if (text) text = text[0];
 
   // Prep
-  defaults = {
-    action: "checkLink",
-    uri: text,
-  };
-  action = {
+  let action = {
     action: "checkLink",
   };
 
-  // URI (Required)
+  // URL (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("URI", defaults.uri);
-  console.log("(Required) Which URI do you want to validate?");
-  let uri = prompt(message);
-  uri = uri || defaults.uri;
+  let message = constructPrompt("URL", text);
+  console.log("(Required) Which URL do you want to validate?");
+  let url = prompt(message);
+  url = url || text;
   // Required value. Return early if empty.
-  if (!uri) {
+  if (!url) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
   // Sanitize
-  uri = sanitizeUri(uri);
+  url = sanitizeUri(url);
   // Set
-  action.uri = uri;
+  action.url = url;
 
-  // Report
-  log(config, "debug", action);
+  // Status codes (Optional)
+  // Define
+  console.log("-");
+  let defaultStatusCodes = schemas.checkLink_v2.properties.statusCodes.default.join(", ");
+  message = constructPrompt("Status codes", defaultStatusCodes);
+  console.log("(Optional) Which HTTP status codes should be considered successful?");
+  let statusCodes = prompt(message);
+  // Only process if there's input
+  if (statusCodes) {
+    // Sanitize
+    statusCodes = statusCodes.split(",").map((code) => code.trim());
+    // Set 
+    action.statusCodes = statusCodes;
+  }
+
+  // Validate
+  const validityCheck = validate("checkLink_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
