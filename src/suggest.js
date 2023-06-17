@@ -481,11 +481,10 @@ function buildRunShell(config, match) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
-// TODO: SPLIT ARGUMEBTS OUT OF COMMAND
-
-  // Set
-  action.command = command;
-
+  // Split arguments of `command` into `command` and `args` array
+  command = command.split(" ");
+  action.command = command.shift();
+  action.args = command;
 
   return action;
 }
