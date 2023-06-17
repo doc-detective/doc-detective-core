@@ -463,11 +463,7 @@ function buildHttpRequest(config, match) {
 }
 
 function buildRunShell(config, match) {
-  defaults = {
-    action: "runShell",
-    command: "",
-    env: "",
-  };
+  // Prep
   action = {
     action: "runShell",
   };
@@ -475,19 +471,30 @@ function buildRunShell(config, match) {
   // Command (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("Command", defaults.command);
+  let message = constructPrompt("Command");
   console.log(
     "(Required) What command do you want to run? If specifying a path, enter a fully qualified file path or a path relative to the current working directory."
   );
   let command = prompt(message);
-  command = command || defaults.command;
   // Required value. Return early if empty.
   if (!command) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
+// TODO: SPLIT ARGUMEBTS OUT OF COMMAND
+
   // Set
   action.command = command;
+
+
+  return action;
+}
+
+function buildSetVariables(config, match) {
+  // Prep
+  action = {
+    action: "setVariables",
+  };
 
   // Env
   // Define
@@ -526,9 +533,6 @@ function buildRunShell(config, match) {
   if (env) {
     action.env = env;
   }
-
-  // Report
-  log(config, "debug", action);
   return action;
 }
 
