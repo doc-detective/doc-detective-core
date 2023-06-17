@@ -421,7 +421,7 @@ function buildScreenshot(config, match) {
 function buildHttpRequest(config, match) {
   console.log();
   console.log(
-    "Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request"
+    "Not yet supported by this test builder. For action details, see https://doc-detective.com/reference/schemas/httpRequest.html"
   );
   return null;
 
