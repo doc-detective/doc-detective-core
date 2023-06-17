@@ -597,6 +597,9 @@ function getSuggestions(config, markupCoverage) {
 
     // Iterate over uncovered matches
     matches.forEach((match) => {
+      // Skip orderedList and unorderedList
+      if (match.type === "orderedList" || match.type === "unorderedList") return;
+
       // Prompt for intent
       intent = decideIntent(match, file.file);
       // Skip over if user ignored prompt
