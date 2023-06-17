@@ -14,10 +14,10 @@ const actions = [
   "checkLink",
   "find",
   "goTo",
-  "httpRequest",
+  // "httpRequest",
   "runShell",
   "saveScreenshot",
-  "setVariables",
+  // "setVariables",
   "typeKeys",
   "wait",
 ]
@@ -29,7 +29,7 @@ const intents = {
   saveScreenshot: "Capture an image.",
   goTo: "Open the link.",
   checkLink: "Check that the link is valid.",
-  runShell:"Perform a native command, such as running a script.",
+  runShell: "Perform a native command, such as running a script.",
   httpRequest: "Make an HTTP request, such as calling an API.",
   wait: "Wait for a specified amount of time.",
 };
@@ -72,7 +72,7 @@ function buildGoTo(config, match) {
     match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
     match.text.match(/(?<=href=")(\w|\W)*(?=")/);
   if (text) text = text[0];
-  
+
   // Object skeleton
   let action = {
     action: "goTo",
@@ -266,7 +266,7 @@ function buildFind(config, match, intent) {
       break;
     default:
       moveMouse = null;
-      break;  
+      break;
   }
   // Optional value. Set if present.
   if (moveMouse) {
@@ -489,6 +489,7 @@ function buildRunShell(config, match) {
   return action;
 }
 
+// TODO: Add to list of suggested actions
 function buildSetVariables(config, match) {
   // Prep
   action = {
@@ -542,7 +543,7 @@ function getUncoveredMatches(config, file) {
   const includeInSuggestions = config.suggestTests.markup;
   const extension = path.extname(file.file);
   const fileType = config.fileTypes.find((fileType) => fileType.extensions.includes(extension));
-  
+
   // Load array with uncovered matches
   Object.keys(file.markup).forEach((mark) => {
     // Find markup config
@@ -551,7 +552,7 @@ function getUncoveredMatches(config, file) {
     const markActions = markConfig.actions || actions;
 
     // If included in suggestion markup, add uncovered matches
-    if (includeInSuggestions.length === 0 || includeInSuggestions.includes(mark)){
+    if (includeInSuggestions.length === 0 || includeInSuggestions.includes(mark)) {
       file.markup[mark].uncoveredMatches.forEach((match) => {
         match.type = mark;
         match.actions = markActions;
@@ -582,15 +583,13 @@ function getSuggestions(config, markupCoverage) {
 
   for (file of markupCoverage.files) {
     log(config, "debug", file);
-    tests: [
-      {
-        id: `${uuid.v4()}`,
-        file: file.file,
-        actions: [],
-      },
-    ],
+    test = {
+      id: `${uuid.v4()}`,
+      file: file.file,
+      actions: [],
+    },
 
-    console.log("------");
+      console.log("------");
     console.log(`File: ${file.file}`);
 
     // Get uncovered matches
@@ -635,40 +634,20 @@ function getSuggestions(config, markupCoverage) {
           break;
       }
       log(config, "debug", action);
-      process.exit()
-  // Only add to array when action present
+
+      // Only add to array when action present
       if (action) {
-        suggestions.tests[0].actions.push(action);
+        test.actions.push(action);
         // IF SOURCE UPDATE IS TRUE, UPDATE SOURCE WITH TEST FENCES
         // IF SOURCE UPDATE IS TRUE AND LAST ARRAY ITEM, CLOSE TEST FENCE
       }
     });
-    // Various outputs
-    if (suggestions.tests[0].actions.length > 0) {
-      // Write test to sidecar file
-      testPath = path.resolve(
-        path.dirname(file.file),
-        `${path.basename(file.file, path.extname(file.file))}.test.json`
-      );
-      if (fs.existsSync(testPath)) {
-        testPath = path.resolve(
-          path.dirname(file.file),
-          `${path.basename(file.file, path.extname(file.file))}.test.${
-            suggestions.tests[0].id
-          }.json`
-        );
-      }
-      let data = JSON.stringify(suggestions, null, 2);
-      fs.writeFile(testPath, data, (err) => {
-        if (err) throw err;
-      });
-      report.files.push({
-        file: file.file,
-        test: testPath,
-        suggestions,
-      });
+
+    // Only add to array when test present
+    if (test.actions.length > 0) {
+      spec.tests.push(test);
     }
-  };
+  }
   return spec;
 }
 
