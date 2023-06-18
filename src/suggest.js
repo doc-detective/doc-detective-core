@@ -574,7 +574,9 @@ function getLineFromFile(filepath, line) {
   return lines[line - 1];
 }
 
-// 
+// TODO: Base list of available actions on action JSON schemas
+// TODO: Add option to run suggested tests
+// TODO: Add option to update source content with test fences for suggested tests
 function getSuggestions(config, markupCoverage) {
   let spec = {
     id: `Suggested Tests - ${timestamp()}`,
@@ -652,36 +654,4 @@ function getSuggestions(config, markupCoverage) {
     }
   }
   return spec;
-}
-
-async function runSuggestions(config, suggestionReport) {
-  let tests = { tests: [] };
-  suggestionReport.files.forEach((file) => {
-    file.suggestions.tests.forEach((test) => tests.tests.push(test));
-  });
-  if (tests.tests.length == 0) return suggestionReport;
-
-  console.log("Do you want to run the suggested tests now?");
-  console.log("Note: Tests that require additional updates may fail.");
-  responses = ["No", "Yes"];
-  responses.forEach((response, index) =>
-    console.log(`(${index + 1}) ${response}`)
-  );
-  let choice = prompt("Enter a number: ");
-  if (choice) {
-    choice = Number(choice) - 1;
-    run = responses[choice];
-  } else {
-    run = "No";
-  }
-  switch (run.toLowerCase()) {
-    case "yes":
-    case "y":
-      // Run tests
-      suggestionReport.results = await runTests(config, tests);
-      break;
-    default:
-      break;
-  }
-  return suggestionReport;
 }
