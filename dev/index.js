@@ -3,7 +3,7 @@
 // const wdio = require("webdriverio");
 // const OBSWebSocket = require("obs-websocket-js").default;
 // const { spawnCommand } = require("./src/utils");
-const { runTests, runCoverage } = require("../src");
+const { runTests, runCoverage, suggestTests } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
 const { execCommand, spawnCommand } = require("../src/utils");
 const path = require("path");
@@ -50,7 +50,7 @@ async function main() {
     },
     suggestTests: {
       recursive: true,
-      input: ".",
+      input: "test/artifacts/doc-content-uncovered.md",
       output: ".",
       markup: [],
     },
@@ -61,7 +61,7 @@ async function main() {
     },
   };
   // console.log(json);
-  result = await runCoverage(json);
+  result = await suggestTests(json);
   console.log(JSON.stringify(result, null, 2));
 }
 
