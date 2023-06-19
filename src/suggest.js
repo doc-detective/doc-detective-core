@@ -8,7 +8,6 @@ const { exit } = require("process");
 const { validate, schemas } = require("doc-detective-common");
 
 exports.getSuggestions = getSuggestions;
-exports.runSuggestions = runSuggestions;
 
 const actions = [
   "checkLink",

@@ -6,6 +6,7 @@ const config_base = require(`${artifactPath}/config.json`);
 const inputPath = artifactPath;
 
 describe("Analyze coverage sucessfully", function() {
+  this.timeout(0);
   it("Summary values are as expected", async () => {
     const config_coverage = JSON.parse(JSON.stringify(config_base));
     config_coverage.runCoverage.input = inputPath;

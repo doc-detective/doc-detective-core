@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    // "test": "mocha test/*.test.js",
+    "test": "mocha test/*.test.js",
     "appium": "appium"
   },
   "repository": {
