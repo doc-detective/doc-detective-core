@@ -5,72 +5,34 @@ const uuid = require("uuid");
 const { log, timestamp } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
-const { runTests } = require("./tests");
+const { validate, schemas } = require("doc-detective-common");
 
-exports.suggestTests = suggestTests;
-exports.runSuggestions = runSuggestions;
+exports.getSuggestions = getSuggestions;
 
+const actions = [
+  "checkLink",
+  "find",
+  "goTo",
+  // "httpRequest",
+  "runShell",
+  "saveScreenshot",
+  // "setVariables",
+  "typeKeys",
+  "wait",
+]
+
+// TODO: Migrate this content into a summary in the action schemas and update `decideIntent`.
 const intents = {
-  find: { intent: "find", description: "Find an element." },
-  matchText: {
-    intent: "matchText",
-    description: "Verify that an element has this text.",
-  },
-  type: { intent: "type", description: "Type keys in an element." },
-  click: { intent: "click", description: "Click an element." },
-  captureImage: { intent: "captureImage", description: "Capture an image." },
-  openLink: { intent: "openLink", description: "Open the link." },
-  checkLink: {
-    intent: "checkLink",
-    description: "Check that the link is valid.",
-  },
-  runShell: {
-    intent: "runShell",
-    description: "Perform a native command, such as running a script.",
-  },
-  makeHttpRequest: {
-    intent: "makeHttpRequest",
-    description: "Make an HTTP request, such as calling an API.",
-  },
+  find: "Find, click, and/or match the text of an element.",
+  typeKeys: "Type keys in an element.",
+  saveScreenshot: "Capture an image.",
+  goTo: "Open the link.",
+  checkLink: "Check that the link is valid.",
+  runShell: "Perform a native command, such as running a script.",
+  httpRequest: "Make an HTTP request, such as calling an API.",
+  wait: "Wait for a specified amount of time.",
 };
 
-const markupToIntent = {
-  onscreenText: {
-    item: "text",
-    intents: [intents.find, intents.matchText, intents.click],
-  },
-  image: {
-    item: "image",
-    intents: [intents.captureImage],
-  },
-  hyperlink: {
-    item: "link",
-    intents: [intents.openLink, intents.checkLink],
-  },
-  codeInline: {
-    item: "inline code",
-    //intents: [intents.makeHttpRequest, intents.runShell],
-    intents: [intents.runShell],
-  },
-  codeBlock: {
-    item: "code block",
-    //intents: [intents.makeHttpRequest, intents.runShell],
-    intents: [intents.runShell],
-  },
-  interaction: {
-    item: "item",
-    intents: [
-      intents.find,
-      intents.matchText,
-      intents.click,
-      intents.type,
-      intents.openLink,
-      intents.checkLink,
-      // intents.makeHttpRequest,
-      intents.runShell,
-    ],
-  },
-};
 
 function constructPrompt(prompt, defaultValue) {
   if (defaultValue) {
@@ -88,17 +50,15 @@ function decideIntent(match, filepath) {
   console.log(lineText);
   console.log();
   console.log(
-    `What do you want to do with this ${
-      markupToIntent[match.type].item
-    }? Enter nothing to ignore.`
+    `What do you want to do with this ${match.type}? Enter nothing to ignore.`
   );
-  markupToIntent[match.type].intents.forEach((intent, index) => {
-    console.log(`(${index + 1}) ${intent.description}`);
+  match.actions.forEach((action, index) => {
+    console.log(`(${index + 1}) ${intents[action]}`);
   });
   let choice = prompt("Enter a number: ");
   if (choice) {
     choice = Number(choice) - 1;
-    return markupToIntent[match.type].intents[choice].intent;
+    return match.actions[choice];
   } else {
     // Ignore match
     return null;
@@ -112,34 +72,35 @@ function buildGoTo(config, match) {
     match.text.match(/(?<=href=")(\w|\W)*(?=")/);
   if (text) text = text[0];
 
-  // Prep
-  defaults = {
-    action: "goTo",
-    uri: text,
-  };
-  action = {
+  // Object skeleton
+  let action = {
     action: "goTo",
   };
 
-  // URI (Required)
+  // URL (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("URI", defaults.uri);
-  console.log("(Required) Which URI do you want to open?");
-  let uri = prompt(message);
-  uri = uri || defaults.uri;
+  let message = constructPrompt("URL", text);
+  console.log("(Required) Which URL do you want to open?");
+  let url = prompt(message);
+  url = url || text;
   // Required value. Return early if empty.
-  if (!uri) {
+  if (!url) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
-  // Sanitize
-  uri = sanitizeUri(uri);
-  // Set
-  action.uri = uri;
 
-  // Report
-  log(config, "debug", action);
+  // Sanitize
+  url = sanitizeUri(url);
+  // Set
+  action.url = url;
+  // Validate
+  const validityCheck = validate("goTo_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
@@ -151,33 +112,49 @@ function buildCheckLink(config, match) {
   if (text) text = text[0];
 
   // Prep
-  defaults = {
-    action: "checkLink",
-    uri: text,
-  };
-  action = {
+  let action = {
     action: "checkLink",
   };
 
-  // URI (Required)
+  // URL (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("URI", defaults.uri);
-  console.log("(Required) Which URI do you want to validate?");
-  let uri = prompt(message);
-  uri = uri || defaults.uri;
+  let message = constructPrompt("URL", text);
+  console.log("(Required) Which URL do you want to validate?");
+  let url = prompt(message);
+  url = url || text;
   // Required value. Return early if empty.
-  if (!uri) {
+  if (!url) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
   // Sanitize
-  uri = sanitizeUri(uri);
+  url = sanitizeUri(url);
   // Set
-  action.uri = uri;
+  action.url = url;
 
-  // Report
-  log(config, "debug", action);
+  // Status codes (Optional)
+  // Define
+  console.log("-");
+  let defaultStatusCodes = schemas.checkLink_v2.properties.statusCodes.default.join(", ");
+  message = constructPrompt("Status codes", defaultStatusCodes);
+  console.log("(Optional) Which HTTP status codes should be considered successful?");
+  let statusCodes = prompt(message);
+  // Only process if there's input
+  if (statusCodes) {
+    // Sanitize
+    statusCodes = statusCodes.split(",").map((code) => code.trim());
+    // Set 
+    action.statusCodes = statusCodes;
+  }
+
+  // Validate
+  const validityCheck = validate("checkLink_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
@@ -413,78 +390,37 @@ function buildScreenshot(config, match) {
     match.text.match(/(?<=src=")(\w|\W)*(?=")/);
   if (text) text = text[0];
 
-  defaults = {
-    action: "screenshot",
-    filename: text || `${uuid.v4()}.png`,
-    matchPrevious: "Yes",
-    matchThreshold: 10,
-  };
   action = {
-    action: "screenshot",
+    action: "saveScreenshot",
   };
 
-  // Filename
+  // Path (Optional)
   // Define
   console.log("-");
-  let message = constructPrompt("Filename", defaults.filename);
+  let message = constructPrompt("Path", text);
   console.log(
-    "What do you want the screenshot filename to be? Must end in '.png'. If left empty, defaults to a random string."
+    "(Optional) What is the screenshot file path? Must end in '.png'. If not specified, the file path is your media directory and the file name is the ID of the step."
   );
-  let filename = prompt(message);
-  filename = filename || defaults.filename;
-  // Set
-  action.filename = filename;
-
-  // Match previous
-  // Define
-  console.log("-");
-  console.log(
-    "During testing, do you want to check for differences (such as UI changes) between new and old screenshots?"
-  );
-  responses = ["No", "Yes"];
-  responses.forEach((response, index) =>
-    console.log(`(${index + 1}) ${response}`)
-  );
-  choice = prompt("Enter a number: ");
-  if (choice) {
-    choice = Number(choice) - 1;
-    matchPrevious = responses[choice];
-  } else {
-    matchPrevious = "No";
-  }
-  switch (matchPrevious.toLowerCase()) {
-    case "yes":
-    case "y":
-      matchPrevious = true;
-      console.log();
-      console.log(
-        "On a scale of 0-100, what is the mimumim percentage of a new screenshot that must be different to make this action fail?"
-      );
-      message = constructPrompt("Percentage", defaults.matchThreshold);
-      matchThreshold = prompt(message);
-      matchThreshold = matchThreshold.replace("%", "");
-      matchThreshold = Number(matchThreshold) / 100;
-      break;
-    default:
-      matchPrevious = null;
-      matchThreshold = null;
-      break;
-  }
-  // Optional value. Set if present.
-  if (matchPrevious && matchThreshold) {
-    action.matchPrevious = matchPrevious;
-    action.matchThreshold = matchThreshold;
+  let path = prompt(message);
+  if (path) {
+    // Set
+    action.path = path;
   }
 
-  // Report
-  log(config, "debug", action);
+  // Validate
+  const validityCheck = validate("saveScreenshot_v2", action)
+  if (!validityCheck.valid) {
+    log(config, "warning", `Skipping markup. ${validityCheck.message}`);
+    return null;
+  }
+
   return action;
 }
 
 function buildHttpRequest(config, match) {
   console.log();
   console.log(
-    "Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request"
+    "Not yet supported by this test builder. For action details, see https://doc-detective.com/reference/schemas/httpRequest.html"
   );
   return null;
 
@@ -526,11 +462,7 @@ function buildHttpRequest(config, match) {
 }
 
 function buildRunShell(config, match) {
-  defaults = {
-    action: "runShell",
-    command: "",
-    env: "",
-  };
+  // Prep
   action = {
     action: "runShell",
   };
@@ -538,19 +470,30 @@ function buildRunShell(config, match) {
   // Command (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("Command", defaults.command);
+  let message = constructPrompt("Command");
   console.log(
     "(Required) What command do you want to run? If specifying a path, enter a fully qualified file path or a path relative to the current working directory."
   );
   let command = prompt(message);
-  command = command || defaults.command;
   // Required value. Return early if empty.
   if (!command) {
     log(config, "warning", "Skipping markup. Required value is empty.");
     return null;
   }
-  // Set
-  action.command = command;
+  // Split arguments of `command` into `command` and `args` array
+  command = command.split(" ");
+  action.command = command.shift();
+  action.args = command;
+
+  return action;
+}
+
+// TODO: Add to list of suggested actions
+function buildSetVariables(config, match) {
+  // Prep
+  action = {
+    action: "setVariables",
+  };
 
   // Env
   // Define
@@ -589,26 +532,36 @@ function buildRunShell(config, match) {
   if (env) {
     action.env = env;
   }
-
-  // Report
-  log(config, "debug", action);
   return action;
 }
 
-function transformMatches(fileMarkupObject) {
-  matches = [];
+// Build array of uncovered markup for a file
+function getUncoveredMatches(config, file) {
+  uncoveredMatches = [];
+
+  const includeInSuggestions = config.suggestTests.markup;
+  const extension = path.extname(file.file);
+  const fileType = config.fileTypes.find((fileType) => fileType.extensions.includes(extension));
+
   // Load array with uncovered matches
-  Object.keys(fileMarkupObject).forEach((mark) => {
-    if (fileMarkupObject[mark].includeInSuggestions) {
-      fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
+  Object.keys(file.markup).forEach((mark) => {
+    // Find markup config
+    const markConfig = fileType.markup.find((markup) => markup.name === mark);
+    if (!fileType) return;
+    const markActions = markConfig.actions || actions;
+
+    // If included in suggestion markup, add uncovered matches
+    if (includeInSuggestions.length === 0 || includeInSuggestions.includes(mark)) {
+      file.markup[mark].uncoveredMatches.forEach((match) => {
         match.type = mark;
-        matches.push(match);
+        match.actions = markActions;
+        uncoveredMatches.push(match);
       });
     }
   });
   // Sort matches by line, then index
-  matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
-  return matches;
+  uncoveredMatches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
+  return uncoveredMatches;
 }
 
 function getLineFromFile(filepath, line) {
@@ -620,32 +573,34 @@ function getLineFromFile(filepath, line) {
   return lines[line - 1];
 }
 
-function suggestTests(config, markupCoverage) {
-  let report = {
-    name: "Doc Detective Test Suggestion Report",
-    timestamp: timestamp(),
-    files: [],
+// TODO: Base list of available actions on action JSON schemas
+// TODO: Add option to run suggested tests
+// TODO: Add option to update source content with test fences for suggested tests
+function getSuggestions(config, markupCoverage) {
+  let spec = {
+    id: `Suggested Tests - ${timestamp()}`,
+    tests: [],
   };
 
-  markupCoverage.files.forEach((file) => {
-    suggestions = {
-      tests: [
-        {
-          id: `${uuid.v4()}`,
-          file: file.file,
-          actions: [],
-        },
-      ],
-    };
+  for (file of markupCoverage.files) {
+    log(config, "debug", file);
+    test = {
+      id: `${uuid.v4()}`,
+      file: file.file,
+      actions: [],
+    },
 
-    console.log("------");
+      console.log("------");
     console.log(`File: ${file.file}`);
 
-    matches = transformMatches(file.markup);
+    // Get uncovered matches
+    matches = getUncoveredMatches(config, file);
+
+    // Iterate over uncovered matches
     matches.forEach((match) => {
-      // Skip over certain match types
-      if (match.type === "unorderedList" || match.type === "orderedList")
-        return;
+      // Skip orderedList and unorderedList
+      if (match.type === "orderedList" || match.type === "unorderedList") return;
+
       // Prompt for intent
       intent = decideIntent(match, file.file);
       // Skip over if user ignored prompt
@@ -666,7 +621,7 @@ function suggestTests(config, markupCoverage) {
         case "captureImage":
           action = buildScreenshot(config, match);
           break;
-        case "openLink":
+        case "goTo":
           action = buildGoTo(config, match);
           break;
         case "checkLink":
@@ -682,70 +637,20 @@ function suggestTests(config, markupCoverage) {
           action = null;
           break;
       }
+      log(config, "debug", action);
+
       // Only add to array when action present
       if (action) {
-        suggestions.tests[0].actions.push(action);
+        test.actions.push(action);
         // IF SOURCE UPDATE IS TRUE, UPDATE SOURCE WITH TEST FENCES
         // IF SOURCE UPDATE IS TRUE AND LAST ARRAY ITEM, CLOSE TEST FENCE
       }
     });
-    // Various outputs
-    if (suggestions.tests[0].actions.length > 0) {
-      // Write test to sidecar file
-      testPath = path.resolve(
-        path.dirname(file.file),
-        `${path.basename(file.file, path.extname(file.file))}.test.json`
-      );
-      if (fs.existsSync(testPath)) {
-        testPath = path.resolve(
-          path.dirname(file.file),
-          `${path.basename(file.file, path.extname(file.file))}.test.${
-            suggestions.tests[0].id
-          }.json`
-        );
-      }
-      let data = JSON.stringify(suggestions, null, 2);
-      fs.writeFile(testPath, data, (err) => {
-        if (err) throw err;
-      });
-      report.files.push({
-        file: file.file,
-        test: testPath,
-        suggestions,
-      });
+
+    // Only add to array when test present
+    if (test.actions.length > 0) {
+      spec.tests.push(test);
     }
-  });
-  return report;
-}
-
-async function runSuggestions(config, suggestionReport) {
-  let tests = { tests: [] };
-  suggestionReport.files.forEach((file) => {
-    file.suggestions.tests.forEach((test) => tests.tests.push(test));
-  });
-  if (tests.tests.length == 0) return suggestionReport;
-
-  console.log("Do you want to run the suggested tests now?");
-  console.log("Note: Tests that require additional updates may fail.");
-  responses = ["No", "Yes"];
-  responses.forEach((response, index) =>
-    console.log(`(${index + 1}) ${response}`)
-  );
-  let choice = prompt("Enter a number: ");
-  if (choice) {
-    choice = Number(choice) - 1;
-    run = responses[choice];
-  } else {
-    run = "No";
   }
-  switch (run.toLowerCase()) {
-    case "yes":
-    case "y":
-      // Run tests
-      suggestionReport.results = await runTests(config, tests);
-      break;
-    default:
-      break;
-  }
-  return suggestionReport;
+  return spec;
 }

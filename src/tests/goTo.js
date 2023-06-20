@@ -1,39 +1,32 @@
-const { setEnvs, loadEnvs } = require("../utils");
+const { validate } = require("doc-detective-common");
 
 exports.goTo = goTo;
 
 // Open a URI in the browser
-async function goTo(action, page) {
-  let uri;
-  if (!action.uri) {
-    // FAIL: No URI
-    let status = "FAIL";
-    let description = "'uri' is a required field.";
-    let result = { status, description };
-    return { result };
-  }
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  uri = loadEnvs(action.uri);
+async function goTo(config, step, driver) {
+  let result = { status: "PASS", description: "Opened URL." };
 
-  // Catch common formatting errors
-  if (!uri.includes("://")) uri = "https://" + uri;
+  // Make sure there's a protocol
+  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
+
+  // Validate step payload
+  isValidStep = validate("goTo_v2", step);
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    return result;
+  }
+
   // Run action
   try {
-    await page.goto(uri);
+    await driver.url(step.url);
   } catch {
-    // FAIL: Error opening URI
-    let status = "FAIL";
-    let description = "Couldn't open URI.";
-    let result = { status, description };
-    return { result };
+    // FAIL: Error opening URL
+    result.status = "FAIL";
+    result.description = "Couldn't open URL.";
+    return result;
   }
+  
   // PASS
-  let status = "PASS";
-  let description = "Opened URI.";
-  let result = { status, description };
-  return { result };
+  return result;
 }

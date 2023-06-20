@@ -1,6 +1,5 @@
 const { log } = require("./utils");
 const uuid = require("uuid");
-const nReadlines = require("n-readlines");
 const path = require("path");
 const { exit } = require("process");
 const fs = require("fs");
@@ -8,226 +7,178 @@ const fs = require("fs");
 exports.checkTestCoverage = checkTestCoverage;
 exports.checkMarkupCoverage = checkMarkupCoverage;
 
+// Parse files for covered/uncovered lines
 function checkTestCoverage(config, files) {
   let testCoverage = {
     files: [],
     errors: [],
   };
 
-  // Loop through test files
-  files.forEach((file) => {
+  // Loop through files
+  for (const file of files) {
     log(config, "debug", `file: ${file}`);
-    fileJson = {
+    // Gather file/filetype metadata
+    const extension = path.extname(file);
+    fileType = config.fileTypes.find((fileType) =>
+      fileType.extensions.includes(extension)
+    );
+    // Skip JSON files
+    if (extension === ".json") {
+      log(
+        config,
+        "info",
+        `Skipping ${file}. JSON files are invalid targets for coverage analysis.`
+      );
+      continue;
+    }
+    // Set file parsing defaults
+    let coveredByTest = false;
+    let lineNumber = 0;
+    fileJSON = {
       file,
       coveredLines: [],
       uncoveredLines: [],
+      fileType,
     };
-    let inTest = false;
-    let line;
-    let lineNumber = 1;
-    let inputFile = new nReadlines(file);
-    let extension = path.extname(file);
-    let fileType = config.fileTypes.find((fileType) =>
-      fileType.extensions.includes(extension)
-    );
-    fileJson.fileType = fileType;
+    // Gather content
+    let content = fs.readFileSync(file).toString();
+    content = content.split("\n");
 
-    if (typeof fileType === "undefined") {
-      // Missing filetype options
-      log(
-        config,
-        "debug",
-        `Skipping ${file}. Specify options for the ${extension} extension in your config file.`
-      );
-      return;
-    }
-
-    let testStartStatementOpen = fileType.testStartStatementOpen;
-    if (!testStartStatementOpen) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'testStartStatementOpen' value specified.`
-      );
-      return;
-    }
-    let testStartStatementClose = fileType.testStartStatementClose;
-    if (!testStartStatementClose) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'testStartStatementClose' value specified.`
-      );
-      return;
-    }
-    let testIgnoreStatement = fileType.testIgnoreStatement;
-    if (!testIgnoreStatement) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'testIgnoreStatement' value specified.`
-      );
-      return;
-    }
-    let testEndStatement = fileType.testEndStatement;
-    if (!testEndStatement) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'testEndStatement' value specified.`
-      );
-      return;
-    }
-    let actionStatementOpen =
-      fileType.actionStatementOpen ||
-      fileType.openActionStatement ||
-      fileType.openTestStatement;
-    if (!actionStatementOpen) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'actionStatementOpen' value specified.`
-      );
-      return;
-    }
-    let actionStatementClose =
-      fileType.actionStatementClose ||
-      fileType.closeActionStatement ||
-      fileType.closeTestStatement;
-    if (!actionStatementClose) {
-      log(
-        config,
-        "warning",
-        `Skipping ${file}. No 'actionStatementClose' value specified.`
-      );
-      return;
-    }
-
-    // Loop through lines
-    while ((line = inputFile.next())) {
-      let lineJson;
-      let subStart;
-      let subEnd;
-      let ignore = false;
-      const lineAscii = line.toString("ascii");
-
-      if (line.includes(testStartStatementOpen)) {
-        // Test start
-        if (testStartStatementClose) {
-          subEnd = lineAscii.lastIndexOf(testStartStatementClose);
+    // Loop through lines of content to identify if each line is covered or not
+    for (const line of content) {
+      lineNumber++;
+      let ignoreLine = false;
+      if (line.includes(fileType.testStartStatementOpen)) {
+        // Test start statement
+        startStatementOpen =
+          line.indexOf(fileType.testStartStatementOpen) +
+          fileType.testStartStatementOpen.length;
+        if (line.includes(fileType.testStartStatementClose)) {
+          startStatementClose = line.lastIndexOf(
+            fileType.testStartStatementClose
+          );
         } else {
-          subEnd = lineAscii.length;
+          startStatementClose = line.length;
         }
-        subStart =
-          lineAscii.indexOf(testStartStatementOpen) +
-          testStartStatementOpen.length;
-        lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
-        // Set inTest to true
-        inTest = true;
-        ignore = true;
+        startStatement = line.substring(
+          startStatementOpen,
+          startStatementClose
+        );
+        // Parse JSON
+        statementJson = JSON.parse(startStatement);
+        // Set following lines to covered
+        coveredByTest = true;
+        ignoreLine = true;
         // Check if test is defined externally
-        if (lineJson.file) {
-          referencePath = path.resolve(path.dirname(file), lineJson.file);
+        if (statementJson.file) {
+          referencePath = path.resolve(path.dirname(file), statementJson.file);
           // Check to make sure file exists
           if (fs.existsSync(referencePath)) {
-            if (lineJson.id) {
-              remoteJson = require(referencePath);
-              // Make sure test of matching ID exists in file
-              idMatch = remoteJson.tests.find(
-                (test) => test.id === lineJson.id
-              );
-              if (!idMatch) {
-                // log error
-                testCoverage.errors.push({
-                  file,
-                  lineNumber,
-                  description: `Test with ID ${lineJson.id} missing from ${referencePath}.`,
+            // Make sure test `id` exists in the referenced file
+            if (statementJson.id) {
+              remoteJSON = fs.readFileSync(referencePath).toString();
+              remoteJSON = JSON.parse(remoteJSON);
+              let idMatch = false;
+              remoteJSON.forEach((spec) => {
+                spec.tests.forEach((test) => {
+                  if (test.id && test.id === statementJson.id) idMatch = true;
                 });
-              }
+              });
             }
           } else {
             // log error
             testCoverage.errors.push({
               file,
               lineNumber,
-              description: `Referenced file missing: ${referencePath}.`,
+              description: `Referenced test spec missing: ${referencePath}.`,
             });
           }
         }
-      } else if (line.includes(testIgnoreStatement)) {
-        inTest = true;
-        ignore = true;
-      } else if (line.includes(testEndStatement)) {
-        inTest = false;
-        ignore = true;
-      } else if (line.includes(actionStatementOpen) && line.includes(actionStatementClose)) {
-        ignore = true;
+      } else if (line.includes(fileType.testIgnoreStatement)) {
+        // Consider ignored lines as covered
+        coveredByTest = true;
+        ignoreLine = true;
+      } else if (line.includes(fileType.testEndStatement)) {
+        // Consider following lines uncovered
+        coveredByTest = false;
+        ignoreLine = true;
+      } else if (
+        line.includes(fileType.stepStatementOpen) &&
+        line.includes(fileType.stepStatementClose)
+      ) {
+        ignoreLine = true;
       }
 
-      if (inTest && !ignore) {
-        fileJson.coveredLines.push(lineNumber);
-      } else if (!inTest && !ignore) {
-        fileJson.uncoveredLines.push(lineNumber);
+      // Evaluate coverage status for line
+      if (coveredByTest && !ignoreLine) {
+        fileJSON.coveredLines.push(lineNumber);
+      } else if (!coveredByTest && !ignoreLine) {
+        fileJSON.uncoveredLines.push(lineNumber);
       }
-
-      lineNumber++;
     }
-    testCoverage.files.push(fileJson);
-  });
+    testCoverage.files.push(fileJSON);
+  }
   return testCoverage;
 }
 
+// Detect markup on uncovered lines
 function checkMarkupCoverage(config, testCoverage) {
-  let markupCoverage = testCoverage;
+  let markupCoverage = {
+    summary: {
+      covered: 0,
+      uncovered: 0,
+      markup: {},
+    },
+    files: [],
+    errors: [],
+  };
 
-  markupCoverage.files.forEach((file) => {
-    file.markup = {};
-    let extension = path.extname(file.file);
-    let markup = file.fileType.markup;
+  // Loop through files
+  for (const i in testCoverage.files) {
+    const file = testCoverage.files[i];
+    let fileCoverage = {
+      file: file.file,
+      coveredLines: file.coveredLines,
+      uncoveredLines: file.uncoveredLines,
+      markup: {},
+    };
 
-    Object.keys(markup).forEach((mark) => {
-      if (markup[mark].regex.length === 1 && markup[mark].regex[0] === "") {
-        log(
-          config,
-          "warning",
-          `No regex for '${mark}'. Set 'fileType.markup.${mark}' for the '${extension}' extension in your config.`
-        );
-        delete markup[mark];
-      }
-    });
+    let content = fs.readFileSync(file.file).toString();
 
-    const fileBody = fs.readFileSync(file.file, {
-      encoding: "utf8",
-      flag: "r",
-    });
-
-    // Only keep marks that have a truthy (>0) length
-    Object.keys(markup).forEach((mark) => {
-      markCoverage = {
-        includeInCoverage: markup[mark].includeInCoverage,
-        includeInSuggestions: markup[mark].includeInSuggestions,
+    // Loop through markup types
+    for (const i in file.fileType.markup) {
+      const mark = file.fileType.markup[i];
+      let markCoverage = {
         coveredLines: [],
         coveredMatches: [],
         uncoveredLines: [],
         uncoveredMatches: [],
+      };
+
+      // Check if mark is defined in summary
+      if (typeof markupCoverage.summary.markup[mark.name] === "undefined") {
+        markupCoverage.summary.markup[mark.name] = {
+          covered: 0,
+          uncovered: 0,
+        };
       }
 
-      markup[mark].regex.forEach((matcher) => {
+      // Loop through regexes
+      for (const i in mark.regex) {
+        matcher = mark.regex[i];
         // Run a match
         regex = new RegExp(matcher, "g");
-        matches = fileBody.match(regex);
+        matches = content.match(regex);
         if (matches != null) {
           matches.forEach((match) => {
             // Check for duplicates and handle lines separately
             matchEscaped = match.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
             start = 0;
             occuranceRegex = new RegExp(matchEscaped, "g");
-            occurances = fileBody.match(occuranceRegex).length;
-            for (i = 0; i < occurances; i++) {
-              index = fileBody.slice(start).match(matchEscaped).index;
-              line = fileBody
-                .slice(0, start + index)
-                .split(/\r\n|\r|\n/).length;
+            occurances = content.match(occuranceRegex).length;
+            for (x = 0; x < occurances; x++) {
+              index = content.slice(start).match(matchEscaped).index;
+              line = content.slice(0, start + index).split(/\r\n|\r|\n/).length;
               start = start + index + 1;
               matchObject = {
                 line,
@@ -262,17 +213,26 @@ function checkMarkupCoverage(config, testCoverage) {
               // });
               if (isCovered) {
                 if (!inCoveredLines) markCoverage.coveredLines.push(line);
-                if (!inCoveredMatches) markCoverage.coveredMatches.push(matchObject);
+                if (!inCoveredMatches)
+                  markCoverage.coveredMatches.push(matchObject);
               } else if (isUncovered) {
                 if (!inUncoveredLines) markCoverage.uncoveredLines.push(line);
-                if (!inUncoveredMatches) markCoverage.uncoveredMatches.push(matchObject);
+                if (!inUncoveredMatches)
+                  markCoverage.uncoveredMatches.push(matchObject);
               }
             }
           });
         }
-      });
-      file.markup[mark] = markCoverage;
-    });
-  });
+      }
+      fileCoverage.markup[mark.name] = markCoverage;
+      markupCoverage.summary.covered += markCoverage.coveredLines.length;
+      markupCoverage.summary.markup[mark.name].covered +=
+        markCoverage.coveredLines.length;
+      markupCoverage.summary.uncovered += markCoverage.uncoveredLines.length;
+      markupCoverage.summary.markup[mark.name].uncovered +=
+        markCoverage.uncoveredLines.length;
+    }
+    markupCoverage.files.push(fileCoverage);
+  }
   return markupCoverage;
 }

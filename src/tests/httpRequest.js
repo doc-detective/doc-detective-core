@@ -1,164 +1,35 @@
+const { validate } = require("doc-detective-common");
 const axios = require("axios");
 const jq = require("node-jq");
-const { exit } = require("process");
-const { setEnvs, loadEnvs, log } = require("../utils");
+const { exit } = require("yargs");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest(action, config) {
-  const methods = ["get", "post", "put", "patch", "delete"];
+async function httpRequest(config, step) {
+  let result = { status: "", description: "" };
+  let request = { url: "", method: "" };
 
-  let status;
-  let description;
-  let result;
-  let uri;
-  let method;
-  let statusCodes = [];
-  let request = {};
-  let response;
-  let defaultPayload = {
-    uri: "",
-    method: "get",
-    requestHeaders: {},
-    requestParams: {},
-    requestData: {},
-    responseHeaders: {},
-    responseData: {},
-    statusCodes: ["200"],
-    envsFromResponseData: [],
-  };
+  // Make sure there's a protocol
+  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
 
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
+  // Validate step payload
+  isValidStep = validate("httpRequest_v2", step);
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    return result;
   }
 
-  // URI
-  //// Define
-  uri = loadEnvs(action.uri) || defaultPayload.uri;
+  request.url = step.url;
+  request.method = step.method;
+  if (JSON.stringify(step.requestHeaders) != "{}")
+    request.headers = step.requestHeaders;
+  if (JSON.stringify(step.requestParams) != "{}")
+    request.params = step.requestParams;
+  if (JSON.stringify(step.requestData) != "{}") request.data = step.requestData;
 
-  //// Validate
-  if (!uri || typeof uri != "string") {
-    //Fail
-  } else if (uri.indexOf("://") < 0) {
-    // Insert HTTPS if no protocol present
-    uri = `https://${uri}`;
-  }
-  //// Set request
-  request.url = uri;
-
-  // Method
-  //// Define
-  method = loadEnvs(action.method) || defaultPayload.method;
-
-  //// Sanitize
-  method = method.toLowerCase();
-  //// Validate
-  if (!method || typeof method != "string" || methods.indexOf(method) < 0) {
-    // No/undefined method, method isn't a string, method isn't an accepted enum
-    status = "FAIL";
-    description = `Invalid HTTP method: ${method}`;
-    result = { status, description };
-    return { result };
-  }
-  //// Set request
-  request.method = method;
-
-  // Headers
-  if (
-    (action.requestHeaders && JSON.stringify(action.requestHeaders) != "{}") ||
-    (action.headers && JSON.stringify(action.headers) != "{}")
-  ) {
-    //// Define
-    requestHeaders =
-      loadEnvs(action.requestHeaders) ||
-      loadEnvs(action.headers) ||
-      defaultPayload.requestHeaders;
-
-    //// Validate
-    //// Set request
-    if (JSON.stringify(requestHeaders) != "{}")
-      request.headers = requestHeaders;
-  }
-
-  // Params
-  if ((action.requestParams && JSON.stringify(action.requestParams) != "{}") || (action.params && JSON.stringify(action.params) != "{}")) {
-    //// Define
-    requestParams =
-      loadEnvs(action.requestParams) ||
-      loadEnvs(action.params) ||
-      defaultPayload.requestParams;
-
-    //// Validate
-    //// Set request
-    if (JSON.stringify(requestParams) != "{}") request.params = requestParams;
-  }
-
-  // requestData
-  if (action.requestData) {
-    //// Define
-    requestData = loadEnvs(action.requestData) || defaultPayload.requestData;
-
-    //// Validate
-    //// Set request
-    if (requestData != {}) request.data = requestData;
-  }
-
-  // responseData
-  //// Define
-  responseData = loadEnvs(action.responseData) || defaultPayload.responseData;
-
-  //// Validate
-
-  // responseHeaders
-  //// Define
-  responseHeaders =
-    loadEnvs(action.responseHeaders) || defaultPayload.responseHeaders;
-
-  //// Validate
-
-  // Status codes
-  //// Define
-  statusCodes = action.statusCodes || defaultPayload.statusCodes;
-  //// Sanitize
-  for (i = 0; i < statusCodes.length; i++) {
-    if (typeof statusCodes[i] === "string")
-      statusCodes[i] = Number(statusCodes[i]);
-  }
-  //// Validate
-  if (statusCodes === []) statusCodes = defaultPayload.statusCodes;
-
-  // Envs from response data
-  //// Define
-  envsFromResponseData =
-    action.envsFromResponseData || defaultPayload.envsFromResponseData;
-  //// Sanitize
-  for (i = 0; i < envsFromResponseData.length; i++) {
-    if (typeof statusCodes[i] === "string")
-      statusCodes[i] = Number(statusCodes[i]);
-  }
-  //// Validate
-  let validEnvs = envsFromResponseData.every(
-    (env) =>
-      typeof env === "object" &&
-      env.name.match(/^[a-zA-Z0-9_]+$/gm) &&
-      typeof env.jqFilter === "string" &&
-      env.jqFilter.length > 1
-  );
-  if (!validEnvs) {
-    envsFromResponseData = [];
-    log(
-      config,
-      "warning",
-      "Not setting environment variables. One or more invalid variable definitions."
-    );
-  }
-  if (envsFromResponseData === [])
-    envsFromResponseData = defaultPayload.envsFromResponseData;
-
-  // Send request
-  response = await axios(request)
+  // Perform request
+  const response = await axios(request)
     .then((response) => {
       return response;
     })
@@ -168,72 +39,75 @@ async function httpRequest(action, config) {
 
   // If request returned an error
   if (response.error) {
-    status = "FAIL";
-    description = `Error: ${JSON.stringify(response.error.message)}`;
-    result = { status, description };
-    return { result };
+    result.status = "FAIL";
+    result.description = `Error: ${JSON.stringify(response.error.message)}`;
+    return result;
   }
 
   // Compare status codes
-  if (statusCodes.indexOf(response.status) >= 0) {
-    status = "PASS";
-    description = `Returned ${response.status}.`;
+  if (step.statusCodes.indexOf(response.status) >= 0) {
+    result.status = "PASS";
+    result.description = `Returned ${response.status}.`;
   } else {
-    status = "FAIL";
-    description = `Returned ${
+    result.status = "FAIL";
+    result.description = `Returned ${
       response.status
-    }. Expected one of ${JSON.stringify(statusCodes)}`;
+    }. Expected one of ${JSON.stringify(step.statusCodes)}`;
   }
 
   // Compare response.data and responseData
-  if (JSON.stringify(responseData) != "{}") {
-    dataComparison = objectExistsInObject(responseData, response.data);
+  if (JSON.stringify(step.responseData) != "{}") {
+    dataComparison = objectExistsInObject(step.responseData, response.data);
     if (dataComparison.result.status === "PASS") {
-      if (status != "FAIL") status = "PASS";
-      description =
-        description +
+      if (result.status != "FAIL") result.status = "PASS";
+      result.description =
+        result.description +
         ` Expected response data was present in actual response data.`;
     } else {
-      status = "FAIL";
-      description = description + " " + dataComparison.result.description;
+      result.status = "FAIL";
+      result.description =
+        result.description + " " + dataComparison.result.description;
     }
   }
 
   // Compare response.headers and responseHeaders
-  if (JSON.stringify(responseHeaders) != "{}") {
-    dataComparison = objectExistsInObject(responseHeaders, response.headers);
+  if (JSON.stringify(step.responseHeaders) != "{}") {
+    dataComparison = objectExistsInObject(
+      step.responseHeaders,
+      response.headers
+    );
     if (dataComparison.result.status === "PASS") {
-      if (status != "FAIL") status = "PASS";
-      description =
-        description +
+      if (result.status != "FAIL") result.status = "PASS";
+      result.description =
+        result.description +
         ` Expected response headers were present in actual response headers.`;
-      status = "FAIL";
+      result.status = "FAIL";
     } else {
-      description = description + " " + dataComparison.result.description;
+      result.description =
+        result.description + " " + dataComparison.result.description;
     }
   }
 
   // Set environment variables from response data
-  for (const variable of envsFromResponseData) {
-    let value = await jq.run(variable.jqFilter, response.data, {
-      input: "json",
-      output: "compact",
-    });
-    if (value) {
-      process.env[variable.name] = value;
-      description =
-        description + ` Set '$${variable.name}' environment variable.`;
-    } else {
-      if (status != "FAIL") status = "WARNING";
-      description =
-        description +
-        ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
+    for (const variable of step.envsFromResponseData) {
+      let value = await jq.run(variable.jqFilter, response.data, {
+        input: "json",
+        output: "compact",
+      });
+      if (value) {
+        process.env[variable.name] = value;
+        result.description =
+          result.description + ` Set '$${variable.name}' environment variable.`;
+      } else {
+        if (status != "FAIL") status = "WARNING";
+        result.description =
+          result.description +
+          ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
+      }
     }
-  }
 
-  description = description.trim();
-  result = { status, description };
-  return { result };
+  result.description = result.description.trim();
+  return result;
 }
 
 function arrayExistsInArray(expected, actual) {

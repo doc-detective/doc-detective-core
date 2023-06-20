@@ -3,42 +3,44 @@
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective-core?color=orange)
 [![NPM Shield](https://img.shields.io/npm/v/doc-detective)](https://www.npmjs.com/package/doc-detective)
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/2M7wXEThfF)
+[![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://doc-detective.com)
 
-:exclamation: The v2 beta is available! See the [2.0.0 branch](https://github.com/doc-detective/doc-detective-core/tree/2.0.0). :exclamation:
-
-Low-code documentation testing embedded in your project via [NPM](https://www.npmjs.com/package/doc-detective).
+Low-code documentation testing embedded in your project via [NPM](https://www.npmjs.com/package/doc-detective-core).
 
 For pre-built implementations, see [Doc Detective](https://github.com/doc-detective/doc-detective).
 
 ## Install
 
 ```bash
-npm i doc-detective
+npm i doc-detective-core@next
 ```
 
 ## Init
 
 ```javascript
-const { test, coverage, suggest } = require("doc-detective");
+const { runTests, runCoverage } = require("doc-detective-core");
 ```
 
-## Methods
+## Functions
 
-### `test(config, argv)`
+### `runTests(config)`
 
-Run tests. Recursively parses files in the `config.input` path for tests to perform. Returns a test report object.
+Run test specifications. Returns a test report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runTests.input` for test specifications to perform.
 
-### `coverage(config, argv)`
+### `runCoverage(config)`
 
-Run test coverage analysis on the specified source documents. Identifies uncovered markup based on regular expressions in `config.fileTypes.markup`. Returns a coverage report object.
+Analyze test coverage in documentation source files. Returns a coverage report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runCoverage.input` for documentation source files to analyze. Parses markup based on file's type and the markup definitions specified in `config.fileTypes.markup`.
 
-### `suggest(config, argv)`
+### `suggestTests(config)` (Experimental)
 
-Interactively build tests for uncovered markup in the specified source documents. Identifies uncovered markup based on regular expressions in `config.fileTypes.markup`. Writes tests to file and returns a suggestions object.
+> **Note:** This is experimental and subject to change. 
 
+Dynamically built tests to address uncovered markup in documentation source files. Returns a suggested test specification. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input.
 
-## Objects
+## Future updates
 
-### `config`
+Future updates may include support for the following items:
 
-Settings for your documentation source files and Doc Detective tests. See a sample config object in the [Doc Detective](https://github.com/doc-detective/doc-detective/blob/main/sample/config.json) repo.
+- Actions: startRecording, stopRecording
+- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
+- Platforms: iOS, Android
