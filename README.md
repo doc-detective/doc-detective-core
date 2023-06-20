@@ -9,24 +9,6 @@ Low-code documentation testing embedded in your project via [NPM](https://www.np
 
 For pre-built implementations, see [Doc Detective](https://github.com/doc-detective/doc-detective).
 
-## Beta status
-
-Doc Detective v2 is in beta. The beta currently supports the following browsers and platforms:
-
-- Methods: `runTests(config)`, `runCoverage(config)`
-- Apps: Firefox, Chrome/Chromium
-- Platforms: Windows, macOS, Linux (tested on Ubuntu)
-
-When support for at least the following features, apps, and platforms are implemented, v2 will exit beta:
-
-- Methods: `suggestTests(config)`
-- Actions: startRecording, stopRecording
-
-After the v2 stable release, future updates may include support for the following items:
-
-- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
-- Platforms: iOS, Android
-
 ## Install
 
 ```bash
@@ -54,3 +36,11 @@ Analyze test coverage in documentation source files. Returns a coverage report o
 > **Note:** This is experimental and subject to change. 
 
 Dynamically built tests to address uncovered markup in documentation source files. Returns a suggested test specification. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input.
+
+## Future updates
+
+Future updates may include support for the following items:
+
+- Actions: startRecording, stopRecording
+- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
+- Platforms: iOS, Android
