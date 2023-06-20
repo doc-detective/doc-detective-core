@@ -12,7 +12,7 @@ For pre-built implementations, see [Doc Detective](https://github.com/doc-detect
 ## Install
 
 ```bash
-npm i doc-detective-core@next
+npm i doc-detective-core
 ```
 
 ## Init
