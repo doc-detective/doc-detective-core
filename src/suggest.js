@@ -539,7 +539,7 @@ function buildSetVariables(config, match) {
 function getUncoveredMatches(config, file) {
   uncoveredMatches = [];
 
-  const includeInSuggestions = config.suggestTests.markup;
+  const includeInSuggestions = (config.suggestTests) ? config.suggestTests.markup : [];
   const extension = path.extname(file.file);
   const fileType = config.fileTypes.find((fileType) => fileType.extensions.includes(extension));
 
