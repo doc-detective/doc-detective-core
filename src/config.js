@@ -90,8 +90,9 @@ function getEnvironment() {
 
 // Detect available apps.
 async function getAvailableApps(config) {
+  cwd = process.cwd();
+  process.chdir(path.join(__dirname, ".."))
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
-
   const apps = [];
 
   // Detect Chrome/Chromium
@@ -155,8 +156,10 @@ async function getAvailableApps(config) {
   }
   if (firefox) apps.push({ name: "firefox", path: firefox });
 
+  // Return to original working directory after finishing with `BROWSERS`
+  process.chdir(cwd);
+
   // TODO
-  // Detect Chromium/Chrome
   // Detect Edge
   // Detect Safari
   // Detect Android Studio

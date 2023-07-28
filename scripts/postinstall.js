@@ -1,5 +1,6 @@
 const path = require("path");
 const { spawnCommand } = require("../src/utils");
+let geckodriver = require("geckodriver");
 
 main();
 
@@ -9,19 +10,39 @@ async function main() {
 }
 
 async function installBrowsers() {
+  // Move to doc-detective-core directory to correctly set browser snapshot directory
+  cwd = process.cwd();
+  process.chdir(path.join(__dirname, ".."));
+
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
+
   // Install Chromium
   console.log("Installing Chromium");
   let chromium = await BROWSERS.chromium.installBrowser("latest");
-  let chromedriverInstall = await spawnCommand(`npm i chromedriver --chromedriver_version=${chromium.versionNumber}}`);
-  if (chromedriverInstall.stdout.includes("added") || chromedriverInstall.stdout.includes("up to date")) console.log("Installed Chromedriver.");
+  console.log("Installing Chromedriver");
+  let chromedriverInstall = await spawnCommand(
+    `npm i chromedriver --chromedriver_version="${chromium.versionNumber}"`
+  );
   // Install Firefox
   console.log("Installing Firefox");
   let firefox = await BROWSERS.firefox.installBrowser("latest");
+  console.log("Installing Geckodriver");
+  if (__dirname.includes("node_modules")) {
+    // If running from node_modules
+    binPath = path.join(__dirname, "../../.bin");
+  } else {
+    binPath = path.join(__dirname, "../node_modules/.bin");
+  }
+
+  process.env.GECKODRIVER_CACHE_DIR = binPath;
+  gecko = await geckodriver.download();
   // TODO: Installing Edge requires superuser privileges on Linux
   // console.log("Installing Edge");
   // let edge = await BROWSERS.edge.installBrowser("latest");
   // TODO: Catch misc install errors
+
+  // Move back to original directory
+  process.chdir(cwd);
 }
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.

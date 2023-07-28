@@ -3,7 +3,6 @@ const wdio = require("webdriverio");
 const { exit } = require("process");
 const { log, loadEnvs, spawnCommand } = require("./utils");
 const axios = require("axios");
-require("geckodriver");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
@@ -66,8 +65,13 @@ function getDriverCapabilities(config, name, overrides) {
         chrome = config.environment.apps.find((app) => app.name === "chrome");
         if (!chrome) break;
         chromedriver = config.environment.apps.find((app) => app.name === "chromedriver");
+        if (config.environment.platform === "mac") {
+          chromePlatform = "macOS"
+         } else {
+          chromePlatform = config.environment.platform
+        } ;
         capabilities = {
-          platformName: "linux",
+          platformName: chromePlatform,
           "appium:automationName": "Chromium",
           "appium:executable": overrides.driverPath || chromedriver.path,
           browserName: "chrome",
