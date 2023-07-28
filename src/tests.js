@@ -65,8 +65,13 @@ function getDriverCapabilities(config, name, overrides) {
         chrome = config.environment.apps.find((app) => app.name === "chrome");
         if (!chrome) break;
         chromedriver = config.environment.apps.find((app) => app.name === "chromedriver");
+        if (config.environment.platform === "mac") {
+          chromePlatform = "macOS"
+         } else {
+          chromePlatform = config.environment.platform
+        } ;
         capabilities = {
-          platformName: config.environment.platform,
+          platformName: chromePlatform,
           "appium:automationName": "Chromium",
           "appium:executable": overrides.driverPath || chromedriver.path,
           browserName: "chrome",
