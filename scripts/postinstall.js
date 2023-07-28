@@ -9,12 +9,23 @@ async function main() {
 }
 
 async function installBrowsers() {
+  // Move to doc-detective-core directory to correctly set browser snapshot directory
+  cwd = process.cwd();
+  process.chdir(path.join(__dirname, ".."))
+
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
+
   // Install Chromium
   console.log("Installing Chromium");
   let chromium = await BROWSERS.chromium.installBrowser("latest");
-  let chromedriverInstall = await spawnCommand(`npm i chromedriver --chromedriver_version=${chromium.versionNumber}}`);
-  if (chromedriverInstall.stdout.includes("added") || chromedriverInstall.stdout.includes("up to date")) console.log("Installed Chromedriver.");
+  let chromedriverInstall = await spawnCommand(
+    `npm i chromedriver --chromedriver_version="${chromium.versionNumber}"`
+  );
+  if (
+    chromedriverInstall.stdout.includes("added") ||
+    chromedriverInstall.stdout.includes("up to date")
+  )
+    console.log("Installed Chromedriver.");
   // Install Firefox
   console.log("Installing Firefox");
   let firefox = await BROWSERS.firefox.installBrowser("latest");
@@ -22,6 +33,9 @@ async function installBrowsers() {
   // console.log("Installing Edge");
   // let edge = await BROWSERS.edge.installBrowser("latest");
   // TODO: Catch misc install errors
+
+  // Move back to original directory
+  process.chdir(cwd);
 }
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
