@@ -27,10 +27,14 @@ async function installBrowsers() {
   console.log("Installing Firefox");
   let firefox = await BROWSERS.firefox.installBrowser("latest");
   console.log("Installing Geckodriver");
-  process.env.GECKODRIVER_CACHE_DIR = path.join(
-    __dirname,
-    "../node_modules/.bin"
-  );
+  if (__dirname.includes("node_modules")) {
+    // If running from node_modules
+    binPath = path.join(__dirname, "../../.bin");
+  } else {
+    binPath = path.join(__dirname, "../node_modules/.bin");
+  }
+
+  process.env.GECKODRIVER_CACHE_DIR = binPath;
   gecko = await geckodriver.download();
   // TODO: Installing Edge requires superuser privileges on Linux
   // console.log("Installing Edge");
