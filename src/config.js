@@ -9,7 +9,7 @@ exports.getAvailableApps = getAvailableApps;
 
 // Map of Node-detected platforms to common-term equivalents
 const platformMap = {
-  darwin: "macOS",
+  darwin: "mac",
   linux: "linux",
   win32: "windows",
 };
@@ -18,17 +18,17 @@ const platformMap = {
 const defaultAppIDs = {
   chromium: {
     linux: "chromium-browser",
-    macOS: "org.chromium.Chromium",
+    mac: "org.chromium.Chromium",
     windows: "chromium",
   },
   firefox: {
     linux: "firefox",
-    macOS: "org.mozilla.firefox",
+    mac: "org.mozilla.firefox",
     windows: "firefox",
   },
   chrome: {
     linux: "google-chrome",
-    macOS: "org.google.Chrome",
+    mac: "org.google.Chrome",
     windows: "chrome",
   },
 };
@@ -169,12 +169,12 @@ async function getAvailableApps(config) {
   return apps;
 }
 
-// Get path to installed app. For macOS, `id` is the bundle identifier. For linux, `id` is the binary name. For windows, `id` is the binary name.
+// Get path to installed app. For mac, `id` is the bundle identifier. For linux, `id` is the binary name. For windows, `id` is the binary name.
 async function getInstallPath(config, id) {
   let installPath = "";
   let command = "";
   switch (config.environment.platform) {
-    case "macOS":
+    case "mac":
       command = "mdfind";
       break;
     case "linux":
