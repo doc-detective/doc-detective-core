@@ -3,7 +3,6 @@ const wdio = require("webdriverio");
 const { exit } = require("process");
 const { log, loadEnvs, spawnCommand } = require("./utils");
 const axios = require("axios");
-require("geckodriver");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
