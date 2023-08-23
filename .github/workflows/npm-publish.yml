@@ -17,10 +17,23 @@ jobs:
         node: [16, 18, 20]
     steps:
       - uses: actions/checkout@v3
+      
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+      
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          # Cache key uses the contents of `package-lock.json` to identify unique cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+          path: |
+            node_modules
+            
       - run: npm ci
+      
       - run: npm test
 
   publish-npm:
@@ -28,10 +41,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - uses: actions/setup-node@v3
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          # Cache key uses the contents of `package-lock.json` to identify unique cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+          path: |
+            node_modules
+            
       - run: npm ci
       - run: npm publish
         env:
