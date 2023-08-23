@@ -4,7 +4,6 @@ const fs = require("fs");
 const uuid = require("uuid");
 const { log, timestamp } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
-const { exit } = require("process");
 const { validate, schemas } = require("doc-detective-common");
 
 exports.getSuggestions = getSuggestions;

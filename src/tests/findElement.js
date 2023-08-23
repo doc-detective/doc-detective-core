@@ -1,6 +1,5 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
-const { exit } = require("yargs");
 
 exports.findElement = findElement;
 

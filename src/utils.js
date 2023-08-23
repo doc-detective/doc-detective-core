@@ -1,10 +1,7 @@
-const yargs = require("yargs/yargs");
-const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
-const { exit } = require("process");
 const path = require("path");
 const uuid = require("uuid");
-const { spawn, exec } = require("child_process");
+const { spawn } = require("child_process");
 const { validate } = require("doc-detective-common");
 
 exports.setFiles = setFiles;

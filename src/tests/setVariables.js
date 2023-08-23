@@ -1,4 +1,3 @@
-const { exit } = require("yargs");
 const { validate } = require("doc-detective-common");
 const { setEnvs } = require("../utils");
 

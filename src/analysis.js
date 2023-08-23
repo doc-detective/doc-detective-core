@@ -1,7 +1,5 @@
 const { log } = require("./utils");
-const uuid = require("uuid");
 const path = require("path");
-const { exit } = require("process");
 const fs = require("fs");
 
 exports.checkTestCoverage = checkTestCoverage;
