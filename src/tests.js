@@ -1,7 +1,6 @@
 const kill = require("tree-kill");
 const wdio = require("webdriverio");
-const { exit } = require("process");
-const { log, loadEnvs, spawnCommand } = require("./utils");
+const { log, loadEnvs } = require("./utils");
 const axios = require("axios");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");

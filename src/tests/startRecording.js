@@ -1,6 +1,5 @@
 const { validate } = require("doc-detective-common");
 const path = require("path");
-const { exit } = require("process");
 const OBSWebSocket = require("obs-websocket-js").default;
 
 exports.startRecording = startRecording;

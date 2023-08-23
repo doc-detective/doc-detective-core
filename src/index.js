@@ -1,9 +1,8 @@
 const { setConfig } = require("./config");
-const { setFiles, parseTests, outputResults, log } = require("./utils");
+const { setFiles, parseTests, log } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { getSuggestions } = require("./suggest");
-const { exit } = require("process");
 
 exports.runTests = runTests;
 exports.runCoverage = runCoverage;
