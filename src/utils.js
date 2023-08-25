@@ -74,7 +74,17 @@ function isValidSourceFile(config, files, source) {
   // Is JSON but isn't a valid spec-formatted JSON object
   if (path.extname(source) === ".json") {
     const jsonContent = fs.readFileSync(source).toString();
-    const json = JSON.parse(jsonContent);
+    let json;
+    try {
+      json = JSON.parse(jsonContent);
+    } catch {
+      log(
+        config,
+        "log",
+        `${source} isn't a valid test specification. Skipping.`
+      );
+      return false;
+    }
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
       log(
