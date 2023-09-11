@@ -33,28 +33,29 @@ const driverActions = [
   // "stopRecording",
 ];
 
-// Get Appium driver capabilities and apply overrides.
-function getDriverCapabilities(config, name, overrides) {
+// Get Appium driver capabilities and apply options.
+function getDriverCapabilities(config, name, options) {
   let capabilities = {};
+  let args = [];
 
   // Set Firefox capabilities
   switch (name) {
     case "firefox":
       firefox = config.environment.apps.find((app) => app.name === "firefox");
       if (!firefox) break;
+      // Set args
+      // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
+      args.push(`--width=${options.width}`, `--height=${options.height}`);
+      if (options.headless) args.push("--headless");
+      // Set capabilities
       capabilities = {
         platformName: config.environment.platform,
         "appium:automationName": "Gecko",
         browserName: "MozillaFirefox",
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
-          args: [
-            // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
-            // "-height=800",
-            // "-width=1200",
-            "-headless",
-          ],
-          binary: overrides.path || firefox.path,
+          args,
+          binary: options.path || firefox.path,
         },
       };
       break;
@@ -63,26 +64,27 @@ function getDriverCapabilities(config, name, overrides) {
       if (config.environment.apps.find((app) => app.name === "chrome")) {
         chrome = config.environment.apps.find((app) => app.name === "chrome");
         if (!chrome) break;
-        chromedriver = config.environment.apps.find((app) => app.name === "chromedriver");
+        chromedriver = config.environment.apps.find(
+          (app) => app.name === "chromedriver"
+        );
         if (config.environment.platform === "mac") {
-          chromePlatform = "macOS"
-         } else {
-          chromePlatform = config.environment.platform
-        } ;
+          chromePlatform = "macOS";
+        } else {
+          chromePlatform = config.environment.platform;
+        }
+        // Set args
+        args.push(`--window-size=${options.width},${options.height}`);
+        if (options.headless) args.push("--headless", "--disable-gpu");
+        // Set capabilities
         capabilities = {
           platformName: chromePlatform,
           "appium:automationName": "Chromium",
-          "appium:executable": overrides.driverPath || chromedriver.path,
+          "appium:executable": options.driverPath || chromedriver.path,
           browserName: "chrome",
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
-            args: [
-              // Reference: https://peter.sh/experiments/chromium-command-line-switches/
-              // "window-size=1200,800",
-              "headless",
-              "disable-gpu",
-            ],
-            binary: overrides.path || chrome.path,
+            args,
+            binary: options.path || chrome.path,
           },
         };
       }
@@ -354,7 +356,10 @@ async function runSpecs(config, specs) {
         // Define driver capabilities
         // TODO: Support custom apps
         let caps = getDriverCapabilities(config, context.app.name, {
-          path: context.app.path,
+          path: context.app?.path,
+          width: context.app?.options?.width || 1200,
+          height: context.app?.options?.height || 800,
+          headless: context.app?.options?.headless === false ? false : true,
         });
         log(config, "debug", "CAPABILITIES:");
         log(config, "debug", caps);

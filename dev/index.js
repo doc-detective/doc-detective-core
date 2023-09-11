@@ -38,6 +38,19 @@ async function main() {
       output: ".",
       setup: "",
       cleanup: "",
+      contexts: [
+        {
+          app: {
+            name: "firefox",
+            options: {
+              height: 900,
+              width: 1300,
+              headless: false,
+            },
+          },
+          platforms: ["linux", "mac", "windows"],
+        },
+      ],
       recursive: true,
       mediaDirectory: ".",
       downloadDirectory: ".",
@@ -61,7 +74,7 @@ async function main() {
     },
   };
   // console.log(json);
-  result = await suggestTests(json);
+  result = await runTests(json);
   console.log(JSON.stringify(result, null, 2));
 }
 
