@@ -1,5 +1,5 @@
+const os = require("os");
 const { validate } = require("doc-detective-common");
-const arch = require("arch");
 const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
 const { exit } = require("process");
 const path = require("path");
@@ -82,7 +82,7 @@ async function setConfig(config) {
 function getEnvironment() {
   const environment = {};
   // Detect system architecture
-  environment.arch = arch();
+  environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
   return environment;
