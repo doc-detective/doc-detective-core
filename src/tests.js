@@ -114,6 +114,18 @@ function isAppiumRequired(specs) {
   return appiumRequired;
 }
 
+function isDriverRequired(appiumRequired, test) {
+  let driverRequired = false;
+  if (appiumRequired) {
+    if (test.contexts && test.contexts.length > 0) driverRequired = true;
+    test.steps.forEach((step) => {
+      // Check if test includes actions that require a driver.
+      if (driverActions.includes(step.action)) driverRequired = true;
+    });
+  }
+  return driverRequired;
+}
+
 // Check if any specs/tests/steps require OBS.
 function isObsRequired(specs) {
   let obsRequired = false;
@@ -353,19 +365,23 @@ async function runSpecs(config, specs) {
           continue;
         }
 
-        // Define driver capabilities
-        // TODO: Support custom apps
-        let caps = getDriverCapabilities(config, context.app.name, {
-          path: context.app?.path,
-          width: context.app?.options?.width || 1200,
-          height: context.app?.options?.height || 800,
-          headless: context.app?.options?.headless === false ? false : true,
-        });
-        log(config, "debug", "CAPABILITIES:");
-        log(config, "debug", caps);
+        let driver;
+        const driverRequired = isDriverRequired(appiumRequired, test);
+        if (driverRequired) {
+          // Define driver capabilities
+          // TODO: Support custom apps
+          let caps = getDriverCapabilities(config, context.app.name, {
+            path: context.app?.path,
+            width: context.app?.options?.width || 1200,
+            height: context.app?.options?.height || 800,
+            headless: context.app?.options?.headless === false ? false : true,
+          });
+          log(config, "debug", "CAPABILITIES:");
+          log(config, "debug", caps);
 
-        // Instantiate driver
-        const driver = await driverStart(caps);
+          // Instantiate driver
+          driver = await driverStart(caps);
+        }
 
         // Iterates steps
         for (let step of test.steps) {
@@ -411,10 +427,12 @@ async function runSpecs(config, specs) {
         testReport.contexts.push(contextReport);
         report.summary.contexts[contextResult.toLowerCase()]++;
 
-        // Close driver
-        try {
-          await driver.deleteSession();
-        } catch {}
+        if (driverRequired) {
+          // Close driver
+          try {
+            await driver.deleteSession();
+          } catch {}
+        }
       }
 
       // Parse context results to calc test result
