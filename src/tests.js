@@ -13,6 +13,8 @@ const { saveScreenshot } = require("./tests/saveScreenshot");
 // const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
 const { httpRequest } = require("./tests/httpRequest");
+const { getCookies } = require("./tests/getCookies");
+const { setCookies } = require("./tests/setCookies");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -508,6 +510,12 @@ async function runStep(config, step, driver) {
       break;
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
+      break;
+    case "getCookies":
+      actionResult = await getCookies(config, step, driver);
+      break;
+    case "setCookies":
+      actionResult = await setCookies(config, step, driver);
       break;
     // case "startRecording":
     //   actionResult = await startRecording(config, step, driver);

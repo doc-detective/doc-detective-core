@@ -31,7 +31,7 @@ async function setCookies(config, step, driver) {
   } catch {
     // FAIL: Error getting cookies
     result.status = "FAIL";
-    result.description = "Couldn't get cookies.";
+    result.description = "Couldn't set cookies.";
     return result;
   }
   
