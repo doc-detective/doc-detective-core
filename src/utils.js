@@ -94,6 +94,29 @@ function isValidSourceFile(config, files, source) {
       );
       return false;
     }
+    // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
+    for (const test of json.tests) {
+      if (test.setup) {
+        if (!fs.existsSync(test.setup)) {
+          log(
+            config,
+            "log",
+            `${test.setup} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+          );
+          return false;
+        }
+      }
+      if (test.cleanup) {
+        if (!fs.existsSync(test.cleanup)) {
+          log(
+            config,
+            "log",
+            `${test.cleanup} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+          );
+          return false;
+        }
+      }
+    }
   }
   // If extension isn't in list of allowed extensions
   if (!allowedExtensions.includes(path.extname(source))) {
@@ -280,7 +303,7 @@ function loadEnvs(stringOrObject) {
     ) {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch { }
+  } catch {}
   if (typeof stringOrObject === "object") {
     // Load for object
     stringOrObject = loadEnvsForObject(stringOrObject);
@@ -293,7 +316,7 @@ function loadEnvs(stringOrObject) {
     if (typeof JSON.parse(stringOrObject) === "object") {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch { }
+  } catch {}
   return stringOrObject;
 }
 
