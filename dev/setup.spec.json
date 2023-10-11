@@ -1,12 +1,16 @@
 {
-  "id": "Simple",
+  "id": "setup",
   "tests": [
     {
-      "id": "simple",
       "steps": [
         {
           "action": "setVariables",
           "path": ".env"
+        },
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["setup"]
         }
       ]
     }

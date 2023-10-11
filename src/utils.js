@@ -30,6 +30,8 @@ function setFiles(config) {
   if (cleanup) sequence = sequence.concat(cleanup);
 
   for (const source of sequence) {
+    // Check if file or directory
+    log(config, "debug", `source: ${source}`)
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -64,6 +66,7 @@ function setFiles(config) {
 }
 
 function isValidSourceFile(config, files, source) {
+  log(config, "debug", `validation: ${source}`)
   // Determine allowed extensions
   let allowedExtensions = [".json"];
   config.fileTypes.forEach((fileType) => {
@@ -80,26 +83,50 @@ function isValidSourceFile(config, files, source) {
     } catch {
       log(
         config,
-        "log",
+        "debug",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;
     }
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
+      log(config, "debug", validation)
       log(
         config,
-        "log",
+        "debug",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;
+    }
+    // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
+    for (const test of json.tests) {
+      if (test.setup) {
+        if (!fs.existsSync(test.setup)) {
+          log(
+            config,
+            "debug",
+            `${test.setup} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+          );
+          return false;
+        }
+      }
+      if (test.cleanup) {
+        if (!fs.existsSync(test.cleanup)) {
+          log(
+            config,
+            "debug",
+            `${test.cleanup} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+          );
+          return false;
+        }
+      }
     }
   }
   // If extension isn't in list of allowed extensions
   if (!allowedExtensions.includes(path.extname(source))) {
     log(
       config,
-      "log",
+      "debug",
       `${source} extension isn't specified in a \`config.fileTypes\` object. Skipping.`
     );
     return false;
@@ -121,6 +148,30 @@ function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
+      for (const test of content.tests) {
+        // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
+        if (test.setup) {
+          const setupContent = fs.readFileSync(test.setup).toString();
+          const setup = JSON.parse(setupContent);
+          test.steps = setup.tests[0].steps.concat(test.steps);
+        }
+        // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
+        if (test.cleanup) {
+          const cleanupContent = fs.readFileSync(test.cleanup).toString();
+          const cleanup = JSON.parse(cleanupContent);
+          test.steps = test.steps.concat(cleanup.tests[0].steps);
+        }
+      }
+      const validation = validate("spec_v2", content);
+      if (!validation.valid) {
+        log(config, "debug", validation)
+        log(
+          config,
+          "debug",
+          `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
+        );
+        return false;
+      }
       specs.push(content);
     } else {
       // Process non-JSON
@@ -265,7 +316,7 @@ async function log(config, level, message) {
     } else if (typeof message === "object") {
       let logMessage = `(${level.toUpperCase()})`;
       console.log(logMessage);
-      console.log(message);
+      console.log(JSON.stringify(message, null, 2));
     }
   }
 }
@@ -280,7 +331,7 @@ function loadEnvs(stringOrObject) {
     ) {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch { }
+  } catch {}
   if (typeof stringOrObject === "object") {
     // Load for object
     stringOrObject = loadEnvsForObject(stringOrObject);
@@ -293,7 +344,7 @@ function loadEnvs(stringOrObject) {
     if (typeof JSON.parse(stringOrObject) === "object") {
       stringOrObject = JSON.parse(stringOrObject);
     }
-  } catch { }
+  } catch {}
   return stringOrObject;
 }
 
