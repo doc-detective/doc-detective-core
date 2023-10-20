@@ -246,6 +246,60 @@ function parseTests(config, files) {
         } else if (line.includes(fileType.testEndStatement)) {
           // Set `id` to new UUID
           id = `${uuid.v4()}`;
+        } else {
+          // Test for markup/dynamically generate tests
+          fileType.markup.forEach((markup) => {
+            // Test for markup
+            regex = new RegExp(markup.regex,"g");
+            matches = line.match(regex);
+            if (!matches) return false;
+            matches.forEach((match) => {
+              markup.actions.forEach((action) => {
+                // If `action` is string, convert to object
+                if (typeof action === "string") {
+                  action = { name: action };
+                }
+                step = { action: action.name, ...action.params };
+                
+                // Per action `match` insertion
+                switch (step.action) {
+                  case "find":
+                    step.selector = `//*[contains(text(), '${match}')]`;
+                    break;
+                  case "goTo":
+                  case "checkLink":
+                    step.url = match;
+                    break;
+                  case "typeKeys":
+                    step.keys = match;
+                    break;
+                  default:
+                    break;
+                }
+                // Validate step
+                const validation = validate(`${step.action}_v2`, step);
+                if (!validation.valid) {
+                  log(
+                    config,
+                    "warning",
+                    `Step ${step} isn't a valid step. Skipping.`
+                  );
+                  return false;
+                }
+                
+                // Find test with `id`
+                test = spec.tests.find((test) => test.id === id);
+                // If test doesn't exist, create it
+                if (!test) {
+                  test = { id, file, steps: [] };
+                  spec.tests.push(test);
+                  test = spec.tests.find((test) => test.id === id);
+                }
+                // Push to test
+                test.steps.push(step);
+              });
+            });
+          })
         }
       }
       // Push spec to specs, if it is valid
