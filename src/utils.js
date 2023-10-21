@@ -295,6 +295,8 @@ function parseTests(config, files) {
                   spec.tests.push(test);
                   test = spec.tests.find((test) => test.id === id);
                 }
+                // If `detectSteps` is false, skip
+                if (test.detectSteps === false) return false;
                 // Push to test
                 test.steps.push(step);
               });
