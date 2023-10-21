@@ -34,7 +34,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "test/artifacts/",
+      input: "dev/doc-content copy.md",
       output: ".",
       setup: "",
       cleanup: "",
@@ -67,6 +67,35 @@ async function main() {
       output: ".",
       markup: [],
     },
+    fileTypes: [
+      {
+        name: "Markdown",
+        extensions: [".md"],
+        testStartStatementOpen: "[comment]: # (test start",
+        testStartStatementClose: ")",
+        testIgnoreStatement: "[comment]: # (test ignore)",
+        testEndStatement: "[comment]: # (test end)",
+        stepStatementOpen: "[comment]: # (step",
+        stepStatementClose: ")",
+        markup: [
+          {
+            name: "Hyperlink",
+            regex: ["(?<=(?<!!)\\[.*?\\]\\().*?(?=\\))"],
+            actions: ["checkLink"],
+          },
+          {
+            name: "Navigation link",
+            regex: ["(?<=([O|o]pen|[C|c]lick) (?<!!)\\[.*?\\]\\().*?(?=\\))"],
+            actions: ["goTo"],
+          },
+          {
+            name: "Onscreen text",
+            regex: ["(?<=\\*\\*)[\\w|\\s]+?(?=\\*\\*)"],
+            actions: ["find"],
+          },
+        ],
+      },
+    ],
     integrations: {},
     telemetry: {
       send: false,

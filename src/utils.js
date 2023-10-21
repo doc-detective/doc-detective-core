@@ -264,7 +264,7 @@ function parseTests(config, files) {
                 // Per action `match` insertion
                 switch (step.action) {
                   case "find":
-                    step.selector = `//*[contains(text(), '${match}')]`;
+                    step.selector = `aria/${match}`;
                     break;
                   case "goTo":
                   case "checkLink":
