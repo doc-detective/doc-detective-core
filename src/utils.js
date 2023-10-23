@@ -31,7 +31,7 @@ function setFiles(config) {
 
   for (const source of sequence) {
     // Check if file or directory
-    log(config, "debug", `source: ${source}`)
+    log(config, "debug", `source: ${source}`);
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -66,7 +66,7 @@ function setFiles(config) {
 }
 
 function isValidSourceFile(config, files, source) {
-  log(config, "debug", `validation: ${source}`)
+  log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
   let allowedExtensions = [".json"];
   config.fileTypes.forEach((fileType) => {
@@ -90,7 +90,7 @@ function isValidSourceFile(config, files, source) {
     }
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
-      log(config, "debug", validation)
+      log(config, "debug", validation);
       log(
         config,
         "debug",
@@ -164,7 +164,7 @@ function parseTests(config, files) {
       }
       const validation = validate("spec_v2", content);
       if (!validation.valid) {
-        log(config, "debug", validation)
+        log(config, "debug", validation);
         log(
           config,
           "debug",
@@ -251,9 +251,25 @@ function parseTests(config, files) {
           id = `${uuid.v4()}`;
         } else {
           // Test for markup/dynamically generate tests
+
+          // Find test with `id`
+          test = spec.tests.find((test) => test.id === id);
+          // If test doesn't exist, create it
+          if (!test) {
+            test = { id, file, steps: [] };
+            spec.tests.push(test);
+            test = spec.tests.find((test) => test.id === id);
+          }
+          // If `detectSteps` is false, skip
+          if (
+            config.runTests?.detectSteps === false ||
+            test.detectSteps === false
+          )
+            continue;
+
           fileType.markup.forEach((markup) => {
             // Test for markup
-            regex = new RegExp(markup.regex,"g");
+            regex = new RegExp(markup.regex, "g");
             matches = line.match(regex);
             if (!matches) return false;
             matches.forEach((match) => {
@@ -263,7 +279,7 @@ function parseTests(config, files) {
                   action = { name: action };
                 }
                 step = { action: action.name, ...action.params };
-                
+
                 // Per action `match` insertion
                 switch (step.action) {
                   case "find":
@@ -289,24 +305,18 @@ function parseTests(config, files) {
                   );
                   return false;
                 }
-                
-                // Find test with `id`
-                test = spec.tests.find((test) => test.id === id);
-                // If test doesn't exist, create it
-                if (!test) {
-                  test = { id, file, steps: [] };
-                  spec.tests.push(test);
-                  test = spec.tests.find((test) => test.id === id);
-                }
-                // If `detectSteps` is false, skip
-                if (test.detectSteps === false) return false;
+
                 // Push to test
                 test.steps.push(step);
               });
             });
-          })
+          });
         }
       }
+
+      // Remove tests with no steps
+      spec.tests = spec.tests.filter((test) => test.steps.length > 0);
+
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
       if (!validation.valid) {
