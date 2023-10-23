@@ -178,6 +178,7 @@ function parseTests(config, files) {
       let id = `${uuid.v4()}`;
       const spec = { id, file, tests: [] };
       content = content.split("\n");
+      let ignore = false;
       fileType = config.fileTypes.find((fileType) =>
         fileType.extensions.includes(extension)
       );
@@ -216,6 +217,8 @@ function parseTests(config, files) {
           if (!statementJson.file) {
             spec.tests.push(statementJson);
           }
+          // Set `ignore` to false
+          ignore = false;
         } else if (line.includes(fileType.stepStatementOpen)) {
           // Find step statement
           if (line.includes(fileType.stepStatementOpen)) {
@@ -246,10 +249,15 @@ function parseTests(config, files) {
             // Push to test
             test.steps.push(statementJson);
           }
+        } else if (line.includes(fileType.testIgnoreStatement)) {
+          // Set `ignore` to true
+          ignore = true;
         } else if (line.includes(fileType.testEndStatement)) {
           // Set `id` to new UUID
           id = `${uuid.v4()}`;
-        } else {
+          // Set `ignore` to false
+          ignore = false;
+        } else if (!ignore) {
           // Test for markup/dynamically generate tests
 
           // Find test with `id`
