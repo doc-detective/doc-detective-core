@@ -17,6 +17,20 @@ async function checkLink(config, step) {
     return result;
   }
 
+  // If `origin` is set, prepend `url` with `origin`
+  if (step.origin) {
+    // If `url` doesn't begin with '/', add it
+    if (!step.url.startsWith("/")) step.url = "/" + step.url;
+    step.url = step.origin + step.url;
+    // Validate step payload
+    isValidStep = validate("checkLink_v2", step);
+    if (!isValidStep.valid) {
+      result.status = "FAIL";
+      result.description = `Invalid 'origin' and 'url' combination: ${isValidStep.errors}`;
+      return result;
+    }
+  }
+
   // Perform request
   let req = await axios
     .get(step.url)
