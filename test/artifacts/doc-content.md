@@ -1,6 +1,6 @@
 # Doc Detective documentation overview
 
-[comment]: # (test start {"id":"search-kittens"})
+[comment]: # (test start {"id":"search-kittens", "detectSteps":false})
 
 [Doc Detective documentation](https://doc-detective.com) is split into a few key sections:
 
