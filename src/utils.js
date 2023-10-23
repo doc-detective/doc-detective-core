@@ -185,6 +185,7 @@ function parseTests(config, files) {
         // console.log(line);
         if (line.includes(fileType.testStartStatementOpen)) {
           // Test start statement
+          id = `${uuid.v4()}`;
           startStatementOpen =
             line.indexOf(fileType.testStartStatementOpen) +
             fileType.testStartStatementOpen.length;
@@ -205,13 +206,15 @@ function parseTests(config, files) {
           statementJson.file = file;
           // Add `steps` array
           statementJson.steps = [];
-          // Push to spec if `file` isn't set
-          if (!statementJson.file) {
-            spec.tests.push(statementJson);
-          }
           // Set id if `id` is set
           if (statementJson.id) {
             id = statementJson.id;
+          } else {
+            statementJson.id = id;
+          }
+          // Push to spec if `file` isn't set
+          if (!statementJson.file) {
+            spec.tests.push(statementJson);
           }
         } else if (line.includes(fileType.stepStatementOpen)) {
           // Find step statement
