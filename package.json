@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.3.1-hostname.4",
+  "version": "2.4.0",
   "description": "The documentation testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -34,7 +34,7 @@
     "appium-geckodriver": "^1.2.5",
     "axios": "^1.5.1",
     "chromedriver": "^118.0.1",
-    "doc-detective-common": "1.6.0-hostname.2",
+    "doc-detective-common": "^1.7.0",
     "dotenv": "^16.3.1",
     "geckodriver": "^4.2.1",
     "node-jq": "^4.2.0",
@@ -42,7 +42,7 @@
     "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
     "uuid": "^9.0.1",
-    "webdriverio": "^8.20.0"
+    "webdriverio": "^8.20.3"
   },
   "devDependencies": {
     "@appium/images-plugin": "^2.1.6",
