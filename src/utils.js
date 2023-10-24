@@ -213,10 +213,8 @@ function parseTests(config, files) {
           } else {
             statementJson.id = id;
           }
-          // Push to spec if `file` isn't set
-          if (!statementJson.file) {
-            spec.tests.push(statementJson);
-          }
+          // Push to spec
+          spec.tests.push(statementJson);
           // Set `ignore` to false
           ignore = false;
         } else if (line.includes(fileType.stepStatementOpen)) {
