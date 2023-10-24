@@ -6,6 +6,13 @@ exports.checkLink = checkLink;
 async function checkLink(config, step) {
   let result = { status: "", description: "" };
 
+  // If `origin` is set, prepend `url` with `origin`
+  if (step.origin) {
+    // If `url` doesn't begin with '/', add it
+    if (!step.url.startsWith("/")) step.url = "/" + step.url;
+    step.url = step.origin + step.url;
+  }
+  
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
 
@@ -15,20 +22,6 @@ async function checkLink(config, step) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
-  }
-
-  // If `origin` is set, prepend `url` with `origin`
-  if (step.origin) {
-    // If `url` doesn't begin with '/', add it
-    if (!step.url.startsWith("/")) step.url = "/" + step.url;
-    step.url = step.origin + step.url;
-    // Validate step payload
-    isValidStep = validate("checkLink_v2", step);
-    if (!isValidStep.valid) {
-      result.status = "FAIL";
-      result.description = `Invalid 'origin' and 'url' combination: ${isValidStep.errors}`;
-      return result;
-    }
   }
 
   // Perform request
