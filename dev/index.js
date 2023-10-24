@@ -81,12 +81,22 @@ async function main() {
           {
             name: "Hyperlink",
             regex: ["(?<=(?<!!)\\[.*?\\]\\().*?(?=\\))"],
-            actions: ["checkLink"],
+            actions: [{
+              "name": "checkLink",
+              "params": {
+                "origin": "https://doc-detective.com"
+              }
+            }],
           },
           {
             name: "Navigation link",
             regex: ["(?<=([O|o]pen|[C|c]lick) (?<!!)\\[.*?\\]\\().*?(?=\\))"],
-            actions: ["goTo"],
+            actions: [{
+              "name": "goTo",
+              "params": {
+                "origin": "https://doc-detective.com"
+              }
+            }],
           },
           {
             name: "Onscreen text",
