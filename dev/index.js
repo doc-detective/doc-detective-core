@@ -81,22 +81,38 @@ async function main() {
           {
             name: "Hyperlink",
             regex: ["(?<=(?<!!)\\[.*?\\]\\().*?(?=\\))"],
-            actions: [{
-              "name": "checkLink",
-              "params": {
-                "origin": "https://doc-detective.com"
-              }
-            }],
+            actions: [
+              {
+                name: "checkLink",
+                params: {
+                  origin: "https://doc-detective.com",
+                },
+              },
+            ],
+          },
+          {
+            name: "Image",
+            regex: ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+            actions: [
+              {
+                name: "saveScreenshot",
+                params: {
+                  directory: "dev"
+                }
+              },
+            ],
           },
           {
             name: "Navigation link",
             regex: ["(?<=([O|o]pen|[C|c]lick) (?<!!)\\[.*?\\]\\().*?(?=\\))"],
-            actions: [{
-              "name": "goTo",
-              "params": {
-                "origin": "https://doc-detective.com"
-              }
-            }],
+            actions: [
+              {
+                name: "goTo",
+                params: {
+                  origin: "https://doc-detective.com",
+                },
+              },
+            ],
           },
           {
             name: "Onscreen text",
