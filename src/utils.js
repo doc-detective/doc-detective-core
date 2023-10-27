@@ -298,6 +298,9 @@ function parseTests(config, files) {
                   case "typeKeys":
                     step.keys = match;
                     break;
+                  case "saveScreenshot":
+                    step.path = match;
+                    break;
                   default:
                     break;
                 }

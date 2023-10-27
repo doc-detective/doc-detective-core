@@ -1,5 +1,6 @@
 const { validate } = require("doc-detective-common");
 const path = require("path");
+const fs = require("fs");
 
 exports.saveScreenshot = saveScreenshot;
 
@@ -17,15 +18,24 @@ async function saveScreenshot(config, step, driver) {
     return result;
   }
 
-  // Set filePath
-  if (!step.path) {
-    // Set path directory
-    const dir = config.runTests.mediaDirectory || config.runTests.output || config.output;
-    step.path = path.join(dir, `${step.id}.png`);
+  // Set file name
+  step.path = step.path || `${step.id}.png`;
+
+  // Set path directory
+  const dir =
+    step.directory ||
+    config.runTests?.mediaDirectory ||
+    config.runTests?.output ||
+    config.output;
+  // If `dir` doesn't exist, create it
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
+  // Set filePath
+  filePath = path.join(dir, step.path);
 
   try {
-    await driver.saveScreenshot(step.path);
+    await driver.saveScreenshot(filePath);
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
