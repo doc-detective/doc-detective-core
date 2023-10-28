@@ -34,7 +34,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/doc-content copy.md",
+      input: "dev/doc-content.md",
       output: ".",
       setup: "",
       cleanup: "",
@@ -97,7 +97,9 @@ async function main() {
               {
                 name: "saveScreenshot",
                 params: {
-                  directory: "dev"
+                  directory: "dev",
+                  maxVariation: 5,
+                  overwrite: "byVariation",
                 }
               },
             ],

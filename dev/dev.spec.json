@@ -5,8 +5,14 @@
       "id": "simple",
       "steps": [
         {
-          "action": "setVariables",
-          "path": ".env"
+          "action": "goTo",
+          "url": "http://www.duckduckgo.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "path": "google.png",
+          "overwrite": "byVariation",
+          "maxVariation": 5
         }
       ]
     }

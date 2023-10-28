@@ -1,6 +1,6 @@
 # Doc Detective documentation overview
 
-[comment]: # (test start {"id":"search-kittens"})
+[comment]: # (test start {"id":"search-kittens", "detectSteps":false})
 
 [Doc Detective documentation](http://doc-detective.com) is split into a few key sections:
 [comment]: # (step {"action":"goTo", "url":"http://doc-detective.com"})
@@ -14,5 +14,8 @@
     [comment]: # (step {"action":"find", "selector":"h2#description", "matchText":"Description"})
     [comment]: # (step {"action":"find", "selector":"h2#fields", "matchText":"Fields"})
     [comment]: # (step {"action":"find", "selector":"h2#examples", "matchText":"Examples"})
+
+![](reference.png)
+[comment]: # (step {"action":"saveScreenshot", "path":"reference.png", "directory":"dev", "maxVariation":5, "overwrite":"byVariation"})
 
 [comment]: # (test end)
