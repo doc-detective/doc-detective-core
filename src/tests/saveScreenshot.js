@@ -1,6 +1,9 @@
 const { validate } = require("doc-detective-common");
+const { log } = require("../utils");
 const path = require("path");
 const fs = require("fs");
+const pixelmatch = require("pixelmatch");
+const PNG = require("pngjs").PNG;
 
 exports.saveScreenshot = saveScreenshot;
 
@@ -34,6 +37,21 @@ async function saveScreenshot(config, step, driver) {
   // Set filePath
   filePath = path.join(dir, step.path);
 
+  // Check if file already exists
+  let existFilePath;
+  if (fs.existsSync(filePath)) {
+    if (step.overwrite == "false") {
+      // File already exists
+      result.status = "SKIP";
+      result.description = `File already exists: ${filePath}`;
+      return result;
+    } else {
+      // Set temp file path
+      existFilePath = filePath;
+      filePath = path.join(dir, `${step.id}_${Date.now()}.png`);
+    }
+  }
+
   try {
     await driver.saveScreenshot(filePath);
   } catch (error) {
@@ -41,6 +59,60 @@ async function saveScreenshot(config, step, driver) {
     result.status = "FAIL";
     result.description = `Couldn't save screenshot. ${error}`;
     return result;
+  }
+
+  // If file already exists
+  // If overwrite is true, replace old file with new file
+  // If overwrite is byVariance, compare files and replace if variance is greater than threshold
+  if (existFilePath) {
+    let percentDiff;
+
+    // Perform numerical pixel diff with pixelmatch
+    if (step.maxVariation) {
+      const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
+      const img2 = PNG.sync.read(fs.readFileSync(filePath));
+
+      // Compare wight and height of images
+      if (img1.height !== img2.height || img1.width !== img2.width) {
+        result.status = "FAIL";
+        result.description = `Couldn't compare images. Images are not the same size.`;
+        return result;
+      }
+
+      const { width, height } = img1;
+      const numDiffPixels = pixelmatch(
+        img1.data,
+        img2.data,
+        null,
+        width,
+        height,
+        { threshold: 0.005 }
+      );
+      percentDiff = (numDiffPixels / (width * height)) * 100;
+
+      log(config, "debug", {totalPixels: width * height, numDiffPixels, percentDiff})
+
+      if (percentDiff > step.maxVariation) {
+        if (step.overwrite == "byVariation") {
+          // Replace old file with new file
+          // TODO: Not working
+          fs.unlinkSync(existFilePath);
+          fs.renameSync(filePath, existFilePath);
+        }
+        result.status = "FAIL";
+        result.description = `Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(2)}%.`;
+        return result;
+      } else {
+        result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(2)}%.`;
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    if (step.overwrite == "true") {
+      // Replace old file with new file
+      fs.unlinkSync(existFilePath);
+      fs.renameSync(filePath, existFilePath);
+    }
   }
 
   // PASS
