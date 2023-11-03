@@ -213,6 +213,14 @@ function parseTests(config, files) {
           } else {
             statementJson.id = id;
           }
+          // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
+          if (statementJson.setup) {
+            const setupContent = fs
+              .readFileSync(statementJson.setup)
+              .toString();
+            const setup = JSON.parse(setupContent);
+            statementJson.steps = setup.tests[0].steps.concat(test.steps);
+          }
           // Push to spec
           spec.tests.push(statementJson);
           // Set `ignore` to false
@@ -251,6 +259,14 @@ function parseTests(config, files) {
           // Set `ignore` to true
           ignore = true;
         } else if (line.includes(fileType.testEndStatement)) {
+          // Find test with `id`
+          test = spec.tests.find((test) => test.id === id);
+          // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
+          if (test.cleanup) {
+            const cleanupContent = fs.readFileSync(test.cleanup).toString();
+            const cleanup = JSON.parse(cleanupContent);
+            test.steps = test.steps.concat(cleanup.tests[0].steps);
+          }
           // Set `id` to new UUID
           id = `${uuid.v4()}`;
           // Set `ignore` to false
@@ -273,53 +289,75 @@ function parseTests(config, files) {
           )
             continue;
 
+          log(config, "debug", `line: ${line}`);
+          let steps = [];
+
           fileType.markup.forEach((markup) => {
             // Test for markup
             regex = new RegExp(markup.regex, "g");
             matches = line.match(regex);
             if (!matches) return false;
+            action = markup.actions[0];
+            log(config, "debug", `markup: ${markup.name}`);
+            log(config, "debug", `action: ${JSON.stringify(action, null, 2)}`);
+            // If `action` is string, convert to object
+            if (typeof action === "string") {
+              action = { name: action };
+            }
             matches.forEach((match) => {
-              markup.actions.forEach((action) => {
-                // If `action` is string, convert to object
-                if (typeof action === "string") {
-                  action = { name: action };
-                }
-                step = { action: action.name, ...action.params };
+              step = { action: action.name, ...action.params };
+              log(config, "debug", `match: ${match}`);
+              step.index = line.indexOf(match);
+              log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
 
-                // Per action `match` insertion
-                switch (step.action) {
-                  case "find":
-                    step.selector = `aria/${match}`;
-                    break;
-                  case "goTo":
-                  case "checkLink":
-                    step.url = match;
-                    break;
-                  case "typeKeys":
-                    step.keys = match;
-                    break;
-                  case "saveScreenshot":
-                    step.path = match;
-                    break;
-                  default:
-                    break;
-                }
-                // Validate step
-                const validation = validate(`${step.action}_v2`, step);
-                if (!validation.valid) {
-                  log(
-                    config,
-                    "warning",
-                    `Step ${step} isn't a valid step. Skipping.`
-                  );
-                  return false;
-                }
+              // Per action `match` insertion
+              switch (step.action) {
+                case "find":
+                  step.selector = `aria/${match}`;
+                  break;
+                case "goTo":
+                case "checkLink":
+                  step.url = match;
+                  break;
+                case "typeKeys":
+                  step.keys = match;
+                  break;
+                case "saveScreenshot":
+                  step.path = match;
+                  break;
+                default:
+                  break;
+              }
 
-                // Push to test
-                test.steps.push(step);
-              });
+              // Push to steps
+              steps.push(step);
             });
           });
+          log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
+          // Order steps by step.index
+          steps.sort((a, b) => a.index - b.index);
+          // Remove step.index
+          steps.forEach((step) => delete step.index);
+          log(
+            config,
+            "debug",
+            `cleaned steps: ${JSON.stringify(steps, null, 2)}`
+          );
+          // Filter out steps that don't pass validation
+          steps = steps.filter((step) => {
+            const validation = validate(`${step.action}_v2`, step);
+            if (!validation.valid) {
+              log(
+                config,
+                "warning",
+                `Step ${step} isn't a valid step. Skipping.`
+              );
+              return false;
+            }
+            return true;
+          });
+          // Push steps to test
+          test.steps.push(...steps);
         }
       }
 
