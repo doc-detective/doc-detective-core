@@ -34,7 +34,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/doc-content.md",
+      input: "dev/doc-content copy.md",
       output: ".",
       setup: "",
       cleanup: "",
@@ -106,7 +106,7 @@ async function main() {
           },
           {
             name: "Navigation link",
-            regex: ["(?<=([O|o]pen|[C|c]lick) (?<!!)\\[.*?\\]\\().*?(?=\\))"],
+            regex: ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]*\\]\\().*?(?=\\))"],
             actions: [
               {
                 name: "goTo",
