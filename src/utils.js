@@ -294,47 +294,53 @@ function parseTests(config, files) {
             regex = new RegExp(markup.regex, "g");
             matches = line.match(regex);
             if (!matches) return false;
+            const steps = [];
+            action = markup.actions[0];
+            // If `action` is string, convert to object
+            if (typeof action === "string") {
+              action = { name: action };
+            }
+            step = { action: action.name, ...action.params };
             matches.forEach((match) => {
-              markup.actions.forEach((action) => {
-                // If `action` is string, convert to object
-                if (typeof action === "string") {
-                  action = { name: action };
-                }
-                step = { action: action.name, ...action.params };
+              step.index = line.indexOf(match);
+              // Per action `match` insertion
+              switch (step.action) {
+                case "find":
+                  step.selector = `aria/${match}`;
+                  break;
+                case "goTo":
+                case "checkLink":
+                  step.url = match;
+                  break;
+                case "typeKeys":
+                  step.keys = match;
+                  break;
+                case "saveScreenshot":
+                  step.path = match;
+                  break;
+                default:
+                  break;
+              }
+              // Validate step
+              const validation = validate(`${step.action}_v2`, step);
+              if (!validation.valid) {
+                log(
+                  config,
+                  "warning",
+                  `Step ${step} isn't a valid step. Skipping.`
+                );
+                return false;
+              }
 
-                // Per action `match` insertion
-                switch (step.action) {
-                  case "find":
-                    step.selector = `aria/${match}`;
-                    break;
-                  case "goTo":
-                  case "checkLink":
-                    step.url = match;
-                    break;
-                  case "typeKeys":
-                    step.keys = match;
-                    break;
-                  case "saveScreenshot":
-                    step.path = match;
-                    break;
-                  default:
-                    break;
-                }
-                // Validate step
-                const validation = validate(`${step.action}_v2`, step);
-                if (!validation.valid) {
-                  log(
-                    config,
-                    "warning",
-                    `Step ${step} isn't a valid step. Skipping.`
-                  );
-                  return false;
-                }
-
-                // Push to test
-                test.steps.push(step);
-              });
+              // Push to steps
+              steps.push(step);
             });
+            // Order steps by step.index
+            steps.sort((a, b) => a.index - b.index);
+            // Remove step.index
+            steps.forEach((step) => delete step.index);
+            // Push steps to test
+            test.steps.push(...steps);
           });
         }
       }
