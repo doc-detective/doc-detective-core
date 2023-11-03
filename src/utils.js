@@ -289,20 +289,27 @@ function parseTests(config, files) {
           )
             continue;
 
+          log(config, "debug", `line: ${line}`);
+          let steps = [];
+
           fileType.markup.forEach((markup) => {
             // Test for markup
             regex = new RegExp(markup.regex, "g");
             matches = line.match(regex);
             if (!matches) return false;
-            const steps = [];
             action = markup.actions[0];
+            log(config, "debug", `markup: ${markup.name}`);
+            log(config, "debug", `action: ${JSON.stringify(action, null, 2)}`);
             // If `action` is string, convert to object
             if (typeof action === "string") {
               action = { name: action };
             }
-            step = { action: action.name, ...action.params };
             matches.forEach((match) => {
+              step = { action: action.name, ...action.params };
+              log(config, "debug", `match: ${match}`);
               step.index = line.indexOf(match);
+              log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+
               // Per action `match` insertion
               switch (step.action) {
                 case "find":
@@ -321,27 +328,36 @@ function parseTests(config, files) {
                 default:
                   break;
               }
-              // Validate step
-              const validation = validate(`${step.action}_v2`, step);
-              if (!validation.valid) {
-                log(
-                  config,
-                  "warning",
-                  `Step ${step} isn't a valid step. Skipping.`
-                );
-                return false;
-              }
 
               // Push to steps
               steps.push(step);
             });
-            // Order steps by step.index
-            steps.sort((a, b) => a.index - b.index);
-            // Remove step.index
-            steps.forEach((step) => delete step.index);
-            // Push steps to test
-            test.steps.push(...steps);
           });
+          log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
+          // Order steps by step.index
+          steps.sort((a, b) => a.index - b.index);
+          // Remove step.index
+          steps.forEach((step) => delete step.index);
+          log(
+            config,
+            "debug",
+            `cleaned steps: ${JSON.stringify(steps, null, 2)}`
+          );
+          // Filter out steps that don't pass validation
+          steps = steps.filter((step) => {
+            const validation = validate(`${step.action}_v2`, step);
+            if (!validation.valid) {
+              log(
+                config,
+                "warning",
+                `Step ${step} isn't a valid step. Skipping.`
+              );
+              return false;
+            }
+            return true;
+          });
+          // Push steps to test
+          test.steps.push(...steps);
         }
       }
 
