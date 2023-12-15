@@ -1,7 +1,7 @@
 {
   "name": "doc-detective-core",
-  "version": "2.6.1",
-  "description": "The documentation testing framework.",
+  "version": "2.7.0-dev.0",
+  "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
@@ -27,27 +27,26 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
-    "@eyeo/get-browser-binary": "^0.14.0",
+    "@eyeo/get-browser-binary": "^0.15.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "appium": "^2.2.1",
-    "appium-chromium-driver": "^1.2.32",
-    "appium-geckodriver": "^1.2.7",
-    "axios": "^1.6.0",
-    "chromedriver": "^119.0.0",
-    "doc-detective-common": "^1.9.0",
+    "appium": "^2.2.3",
+    "appium-chromium-driver": "^1.2.62",
+    "appium-geckodriver": "^1.2.10",
+    "axios": "^1.6.2",
+    "chromedriver": "^120.0.0",
+    "doc-detective-common": "1.11.0-dev",
     "dotenv": "^16.3.1",
-    "geckodriver": "^4.2.1",
+    "geckodriver": "^4.3.0",
     "node-jq": "^4.2.2",
-    "obs-websocket-js": "^5.0.3",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
     "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
     "uuid": "^9.0.1",
-    "webdriverio": "^8.21.0"
+    "webdriverio": "^8.26.1"
   },
   "devDependencies": {
-    "@appium/images-plugin": "^2.1.6",
+    "@appium/images-plugin": "^2.1.8",
     "depcheck": "^1.4.7",
     "mocha": "^10.2.0"
   }
