@@ -1,13 +1,12 @@
 const { validate } = require("doc-detective-common");
 const path = require("path");
-const { exit } = require("process");
 
 exports.stopRecording = stopRecording;
 
 async function stopRecording(config, step, driver) {
   let result = {
     status: "PASS",
-    description: "Started recording.",
+    description: "Stopped recording.",
   };
 
   // Validate step payload
@@ -18,18 +17,13 @@ async function stopRecording(config, step, driver) {
     return result;
   }
 
-  // Set filePath
-  if (!step.filePath) {
-    step.filePath = path.join(config.mediaDirectory, `${step.id}.mp4`);
-  }
-
-  exit();
   try {
+    config.recording.stdin.write("q");
     // await driver.startRecording(step.filePath);
   } catch (error) {
-    // Couldn't save screenshot
+    // Couldn't stop recording
     result.status = "FAIL";
-    result.description = `Couldn't save screenshot. ${error}`;
+    result.description = `Couldn't stop recording. ${error}`;
     return result;
   }
 

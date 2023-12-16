@@ -1,6 +1,9 @@
 const { validate } = require("doc-detective-common");
 const path = require("path");
-const OBSWebSocket = require("obs-websocket-js").default;
+const { spawn } = require("child_process");
+const ffmpeg = require("fluent-ffmpeg");
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 exports.startRecording = startRecording;
 
@@ -20,35 +23,101 @@ async function startRecording(config, step, driver) {
 
   // Set filePath
   if (!step.filePath) {
-    step.filePath = path.join(config.mediaDirectory, `${step.id}.mp4`);
+    step.filePath = path.join(
+      config.runTests?.mediaDirectory,
+      step.path || `${step.id}.mp4`
+    );
   }
 
-  try {
-    // TODO: JS-based in-browser recording
-    //   await driver.setTimeout({ script: 5000 })
-    //   const execResult = await driver.execute((a, b, c, d) => {
-    //     return 15
-    // }, 1, 2, 3, 4)
-    //   console.log(execResult);
-    // TODO: OBS-based native app recording
-    const obs = new OBSWebSocket();
-    // TODO: Set password from config
-    const { obsWebSocketVersion, negotiatedRpcVersion } = await obs.connect(
-      "ws://127.0.0.1:4455",
-      "doc-detective"
-    );
-    log(
-      config,
-      "debug",
-      `Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`
-    );
+  const dimensions = await driver.execute(() => {
+    return {
+      outerHeight: window.outerHeight,
+      outerWidth: window.outerWidth,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      screenX: window.screenX,
+      screenY: window.screenY,
+    };
+  });
 
-    // TODO: Appium-based mobile recording
-    // await driver.startRecording(step.filePath);
+  // compute width of borders
+  const borderWidth = (dimensions.outerWidth - dimensions.innerWidth) / 2;
+  // compute absolute page position
+  const innerScreenX = dimensions.screenX + borderWidth;
+  const innerScreenY = (dimensions.outerHeight - dimensions.innerHeight - borderWidth) + dimensions.screenY;
+
+  const recordingSettings = {
+    width: dimensions.innerWidth,
+    height: dimensions.innerHeight,
+    x: innerScreenX,
+    y: innerScreenY,
+    fps: step.fps,
+  };
+
+  try {
+    // Start FFMPEG-based recording
+    const args = {
+      windows: [
+        "-y",
+        "-f",
+        "gdigrab",
+        "-i",
+        "desktop",
+        "-framerate",
+        recordingSettings.fps,
+        "-vf",
+        `crop=${recordingSettings.width}:${recordingSettings.height}:${recordingSettings.x}:${recordingSettings.y}`,
+        step.filePath,
+      ],
+      mac: [
+        "-y",
+        "-f",
+        "avfoundation",
+        "-framerate",
+        recordingSettings.fps,
+        "-i",
+        "1",
+        "-vf",
+        `crop=${recordingSettings.width}:${recordingSettings.height}:${recordingSettings.x}:${recordingSettings.y}`,
+        step.filePath,
+      ],
+      linux: [
+        "-y",
+        "-f",
+        "x11grab",
+        "-framerate",
+        recordingSettings.fps,
+        "-video_size",
+        `${recordingSettings.width}x${recordingSettings.height}`,
+        "-i",
+        `:0.0+${recordingSettings.x},${recordingSettings.y}`,
+        step.filePath,
+      ],
+    };
+
+    const ffmpegProcess = spawn(ffmpegPath, args[config.environment.platform]);
+    ffmpegProcess.stdin.setEncoding("utf8");
+    // Output stdout, stderr, and exit code
+    // ffmpegProcess.stdout.on("data", (data) => {
+    //   console.log(`stdout: ${data}`);
+    // });
+    // ffmpegProcess.stderr.on("data", (data) => {
+    //   console.log(`stderr: ${data}`);
+    // });
+    // ffmpegProcess.on("close", (code) => {
+    //   console.log(`child process exited with code ${code}`);
+    // });
+
+    // setTimeout(() => {
+    //   ffmpegProcess.stdin.setEncoding("utf8");
+    //   ffmpegProcess.stdin.write("q");
+    // }, 5000);
+
+    result.recording = ffmpegProcess;
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
-    result.description = `Couldn't save screenshot. ${error}`;
+    result.description = `Couldn't start recording. ${error}`;
     return result;
   }
 
