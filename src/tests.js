@@ -9,8 +9,8 @@ const { checkLink } = require("./tests/checkLink");
 const { typeKeys } = require("./tests/typeKeys");
 const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
-// const { startRecording } = require("./tests/startRecording");
-// const { stopRecording } = require("./tests/stopRecording");
+const { startRecording } = require("./tests/startRecording");
+const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
 const { httpRequest } = require("./tests/httpRequest");
 const fs = require("fs");
@@ -389,7 +389,7 @@ async function runSpecs(config, specs) {
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP: ${step.id}`);
 
-          const stepResult = await runStep(config, step, driver);
+          const stepResult = await runStep(config, context, step, driver);
           log(
             config,
             "debug",
@@ -492,7 +492,7 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep(config, step, driver) {
+async function runStep(config, context, step, driver) {
   let actionResult;
   // Load values from environment variables
   step = loadEnvs(step);
@@ -509,12 +509,14 @@ async function runStep(config, step, driver) {
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
       break;
-    // case "startRecording":
-    //   actionResult = await startRecording(config, step, driver);
-    //   break;
-    // case "stopRecording":
-    //   actionResult = await stopRecording(config, step, driver);
-    //   break;
+    case "startRecording":
+      actionResult = await startRecording(config, context, step, driver);
+      config.recording = actionResult.recording;
+      break;
+    case "stopRecording":
+      actionResult = await stopRecording(config, step, driver);
+      delete config.recording;
+      break;
     case "wait":
       actionResult = await wait(config, step);
       break;
