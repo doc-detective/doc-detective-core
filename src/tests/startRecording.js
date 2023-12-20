@@ -19,6 +19,13 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
+  // Skip if context is Chrome
+  if (context.app.name === "chrome") {
+    result.status = "SKIP";
+    result.description = `Recording is not supported for Chrome.`;
+    return result;
+  }
+
   // Set filePath
   if (!step.filePath) {
     step.filePath = path.join(
@@ -36,51 +43,47 @@ async function startRecording(config, context, step, driver) {
       screenX: window.screenX,
       screenY: window.screenY,
       devicePixelRatio: window.devicePixelRatio,
+      mozInnerScreenX: window.mozInnerScreenX,
+      mozInnerScreenY: window.mozInnerScreenY,
     };
   });
 
-  // Computer screen dimensions with scaling
-  dimensions.scaledScreenX = Math.round(
-    dimensions.screenX * dimensions.devicePixelRatio
-  );
-  dimensions.scaledScreenY = Math.round(
-    dimensions.screenY * dimensions.devicePixelRatio
-  );
-  dimensions.scaledOuterWidth = Math.round(
-    dimensions.outerWidth * dimensions.devicePixelRatio
-  );
-  dimensions.scaledOuterHeight = Math.round(
-    dimensions.outerHeight * dimensions.devicePixelRatio
-  );
-  dimensions.scaledInnerWidth = Math.round(
-    dimensions.innerWidth * dimensions.devicePixelRatio
-  );
-  dimensions.scaledInnerHeight = Math.round(
-    dimensions.innerHeight * dimensions.devicePixelRatio
-  );
-
-  // Adjust rounded values to the nearest even numbers
-  dimensions.scaledOuterWidth += dimensions.scaledOuterWidth % 2;
-  dimensions.scaledOuterHeight += dimensions.scaledOuterHeight % 2;
-  dimensions.scaledInnerWidth += dimensions.scaledInnerWidth % 2;
-  dimensions.scaledInnerHeight += dimensions.scaledInnerHeight % 2;
+  // Browser offsets
+  const browserOffsets = {
+    windows: {
+      firefox: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      },
+      chrome: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      },
+    },
+  };
 
   // compute width of borders
-  dimensions.borderWidth = (dimensions.outerWidth - dimensions.innerWidth) / 2;
+  dimensions.borderWidthX = (dimensions.outerWidth - dimensions.innerWidth) / 2;
   // compute absolute page position
-  dimensions.innerScreenX = dimensions.screenX + dimensions.borderWidth;
+  dimensions.innerScreenX =
+    dimensions.mozInnerScreenX || dimensions.screenX + dimensions.borderWidthX;
   dimensions.innerScreenY =
-    dimensions.outerHeight -
-    dimensions.innerHeight -
-    dimensions.borderWidth +
-    dimensions.screenY;
+    dimensions.mozInnerScreenY ||
+    dimensions.screenY +
+      (dimensions.outerHeight - dimensions.innerHeight) -
+      dimensions.borderWidthX;
 
   console.log(dimensions);
   const recordingSettings = {
-    width: dimensions.scaledOuterWidth, //dimensions.innerWidth,
-    height: dimensions.scaledOuterHeight, //dimensions.innerHeight,
-    x: dimensions.scaledScreenX, //innerScreenX,
-    y: dimensions.scaledScreenY, //innerScreenY,
+    scale: dimensions.devicePixelRatio,
+    width: dimensions.mozInnerScreenX ? dimensions.innerWidth : dimensions.innerWidth - dimensions.borderWidthX, //dimensions.innerWidth,
+    height: dimensions.mozInnerScreenY ? dimensions.innerHeight : dimensions.innerHeight - 2, //dimensions.innerHeight,
+    x: dimensions.innerScreenX, //innerScreenX,
+    y: dimensions.innerScreenY, //innerScreenY,
     fps: step.fps,
   };
 
@@ -97,7 +100,7 @@ async function startRecording(config, context, step, driver) {
       "-framerate",
       recordingSettings.fps,
       "-vf",
-      `crop=out_w=${recordingSettings.width}:out_h=${recordingSettings.height}:x=${recordingSettings.x}:y=${recordingSettings.y},format=yuv420p`,
+      `scale=w=iw/${recordingSettings.scale}:h=-1,crop=out_w=${recordingSettings.width}:out_h=${recordingSettings.height}:x=${recordingSettings.x}:y=${recordingSettings.y},format=yuv420p`,
       step.filePath,
     ];
 

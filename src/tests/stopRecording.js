@@ -17,6 +17,13 @@ async function stopRecording(config, step, driver) {
     return result;
   }
 
+  // Skip if recording is not started
+  if (!config.recording) {
+    result.status = "SKIP";
+    result.description = `Recording is not started.`;
+    return result;
+  }
+
   try {
     config.recording.stdin.write("q");
     // await driver.startRecording(step.filePath);
