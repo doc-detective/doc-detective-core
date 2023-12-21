@@ -1,5 +1,6 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
+const { moveTo } = require("./moveTo");
 
 exports.findElement = findElement;
 
@@ -44,9 +45,16 @@ async function findElement(config, step, driver) {
   }
 
   // Move to element
-  if (step.moveTo) {
-    // TODO: Add offset options. https://webdriver.io/docs/api/element/moveTo
-    await element.moveTo();
+  if (step.moveTo && config.recording) {
+    const moveToStep = {
+      action: "moveTo",
+      selector: step.selector,
+    };
+    if (typeof step.moveTo === "object") {
+      moveToStep = { ...moveToStep,  ...step.moveTo };
+    }
+
+    await moveTo(config, moveToStep, driver);
     result.description = result.description + " Moved to element.";
   }
 
@@ -66,7 +74,7 @@ async function findElement(config, step, driver) {
 
   // Type keys
   if (step.typeKeys) {
-    typeStep = {
+    const typeStep = {
       action: "typeKeys",
       keys: step.typeKeys.keys || step.typeKeys,
     };
