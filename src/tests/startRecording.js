@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { instantiateCursor } = require("./moveTo");
 const path = require("path");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
@@ -48,23 +49,6 @@ async function startRecording(config, context, step, driver) {
     };
   });
 
-  // Browser offsets
-  const browserOffsets = {
-    windows: {
-      firefox: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      },
-      chrome: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      },
-    },
-  };
 
   // compute width of borders
   dimensions.borderWidthX = (dimensions.outerWidth - dimensions.innerWidth) / 2;
@@ -77,7 +61,6 @@ async function startRecording(config, context, step, driver) {
       (dimensions.outerHeight - dimensions.innerHeight) -
       dimensions.borderWidthX;
 
-  console.log(dimensions);
   const recordingSettings = {
     scale: dimensions.devicePixelRatio,
     width: dimensions.mozInnerScreenX ? dimensions.innerWidth : dimensions.innerWidth - dimensions.borderWidthX, //dimensions.innerWidth,
@@ -88,8 +71,6 @@ async function startRecording(config, context, step, driver) {
   };
 
   try {
-    // Start FFMPEG-based recording
-
     // Build args
     const args = [
       "-y",
@@ -144,24 +125,24 @@ async function startRecording(config, context, step, driver) {
     //   ],
     // };
 
-    console.log(args);
+
+    // Instantiate cursor
+    await instantiateCursor(driver);
+
+    // Start recording
     const ffmpegProcess = spawn(ffmpegPath, args);
     ffmpegProcess.stdin.setEncoding("utf8");
-    // Output stdout, stderr, and exit code
-    ffmpegProcess.stdout.on("data", (data) => {
-      console.log(`stdout: ${data}`);
-    });
-    ffmpegProcess.stderr.on("data", (data) => {
-      console.log(`stderr: ${data}`);
-    });
-    ffmpegProcess.on("close", (code) => {
-      console.log(`child process exited with code ${code}`);
-    });
 
-    // setTimeout(() => {
-    //   ffmpegProcess.stdin.setEncoding("utf8");
-    //   ffmpegProcess.stdin.write("q");
-    // }, 5000);
+    // // Output stdout, stderr, and exit code
+    // ffmpegProcess.stdout.on("data", (data) => {
+    //   console.log(`stdout: ${data}`);
+    // });
+    // ffmpegProcess.stderr.on("data", (data) => {
+    //   console.log(`stderr: ${data}`);
+    // });
+    // ffmpegProcess.on("close", (code) => {
+    //   console.log(`child process exited with code ${code}`);
+    // });
 
     result.recording = ffmpegProcess;
   } catch (error) {

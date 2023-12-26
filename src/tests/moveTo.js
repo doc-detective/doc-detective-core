@@ -1,22 +1,29 @@
+const { validate } = require("doc-detective-common");
+
 exports.moveTo = moveTo;
+exports.instantiateCursor = instantiateCursor;
 
-// Move mouse.
-async function moveTo(config, step, driver) {
-  let result = {
-    status: "PASS",
-    description: "Moved mouse.",
-  };
+async function instantiateCursor(driver) {
+  // Detect if cursor is instantiated
+  const cursor = await driver.$("dd-mouse-pointer");
 
-  // Validate step payload
-  // TODO: Add validation
+  if (!cursor.elementId) {
+    // Get viewport size
+    const viewportSize = await driver.execute(() => {
+      return {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+      };
+    });
+    viewportSize.centerX = Math.round(viewportSize.innerWidth / 2);
+    viewportSize.centerY = Math.round(viewportSize.innerHeight / 2);
 
-  // Instantiate cursor
-  await driver.execute(() => {
-    if (document.querySelector("mouse-pointer")) return;
-    const cursor = document.createElement("mouse-pointer");
-    const styleElement = document.createElement("style");
-    styleElement.innerHTML = `
-      mouse-pointer {
+    // Instantiate cursor
+    await driver.execute(() => {
+      const cursor = document.createElement("dd-mouse-pointer");
+      const styleElement = document.createElement("style");
+      styleElement.innerHTML = `
+      dd-mouse-pointer {
         pointer-events: none;
         position: absolute;
         top: 0;
@@ -31,116 +38,143 @@ async function moveTo(config, step, driver) {
         padding: 0;
         transition: background .2s, border-radius .2s, border-color .2s;
       }
-      mouse-pointer.button-1 {
+      dd-mouse-pointer.click {
         transition: none;
         background: #fff;
       }
-      mouse-pointer.button-2 {
-        transition: none;
-        border-color: #fff;
-      }
-      mouse-pointer.button-3 {
-        transition: none;
-        border-radius: 4px;
-      }
-      mouse-pointer.button-4 {
-        transition: none;
-        border-color: #fff;
-      }
-      mouse-pointer.button-5 {
-        transition: none;
-        border-color: #fff;
-      }
     `;
-    document.head.appendChild(styleElement);
-    document.body.appendChild(cursor);
-    document.addEventListener("mousedown", (e) => {
-      cursor.classList.add("button-" + e.which);
-    }, false);
-    document.addEventListener("mouseup", (e) => {
-      cursor.classList.remove("button-" + e.which);
-    }, false);
-    document.addEventListener("mousemove", (e) => {
-      cursor.style.left = e.pageX + "px";
-      cursor.style.top = e.pageY + "px";
-      document.elementFromPoint(e.pageX - window.scrollX, e.pageY - window.scrollY).click();
-    }, false);
-  });
-
-  try {
-    // Set cursor style
-    await driver.execute(() => {
-      document.body.style.cursor = "default";
-    });
-    // Execute add event listener for mousemove
-    await driver.execute(() => {
+      document.head.appendChild(styleElement);
+      document.body.appendChild(cursor);
+      document.addEventListener(
+        "mousedown",
+        (e) => {
+          cursor.classList.add("click");
+        },
+        false
+      );
+      document.addEventListener(
+        "mouseup",
+        (e) => {
+          cursor.classList.remove("click");
+        },
+        false
+      );
+      document.addEventListener(
+        "mousemove",
+        (e) => {
+          cursor.style.left = e.pageX + "px";
+          cursor.style.top = e.pageY + "px";
+          document
+            .elementFromPoint(
+              e.pageX - window.scrollX,
+              e.pageY - window.scrollY
+            )
+            .click();
+        },
+        false
+      );
       document.addEventListener("mousemove", (e) => {
         window.mouseX = e.clientX;
         window.mouseY = e.clientY;
       });
     });
-    await driver.action("pointer").move({x: 100, y: 100, origin: "pointer", duration: 500}).perform();
-    const position  = await driver.execute(() => {
-      return {
-        x: window.mouseX,
-        y: window.mouseY,
-      };
-    });
-    // Calc coordinates
-    // const bounds = await elementHandle.boundingBox();
-    // let x = bounds.x;
-    // if (action.offsetX) x = x + Number(action.offsetX);
-    // if (action.alignH) {
-    //   if (action.alignH === "left") {
-    //     alignHOffset = 10;
-    //   } else if (action.alignH === "center") {
-    //     alignHOffset = bounds.width / 2;
-    //   } else if (action.alignH === "right") {
-    //     alignHOffset = bounds.width - 10;
-    //   } else {
-    //     // FAIL
-    //     status = "FAIL";
-    //     description = `Invalid 'alignH' value.`;
-    //     result = { status, description };
-    //     return { result };
-    //   }
-    //   x = x + alignHOffset;
-    // }
-    // let y = bounds.y;
-    // if (action.offsetY) y = y + Number(action.offsetY);
-    // if (action.alignV) {
-    //   if (action.alignV === "top") {
-    //     alignVOffset = 10;
-    //   } else if (action.alignV === "center") {
-    //     alignVOffset = bounds.height / 2;
-    //   } else if (action.alignV === "bottom") {
-    //     alignVOffset = bounds.height - 10;
-    //   } else {
-    //     // FAIL
-    //     status = "FAIL";
-    //     description = `Invalid 'alignV' value.`;
-    //     result = { status, description };
-    //     return { result };
-    //   }
-    //   y = y + alignVOffset;
-    // }
-    // // Move
-    // await page.mouse.move(x, y, { steps: 25 });
-    // // Display mouse cursor
-    // await page.$eval(
-    //   "puppeteer-mouse-pointer",
-    //   (e) => (e.style.display = "block")
-    // );
-    // // PASS
-    // status = "PASS";
-    // description = `Moved mouse to element.`;
-    // result = { status, description };
-    // return { result };
-  } catch {
-    // // FAIL
-    // status = "FAIL";
-    // description = `Couldn't move mouse to element.`;
-    // result = { status, description };
-    // return { result };
+
+    // Move cursor to center of viewport
+    await driver.performActions([
+      {
+        type: "pointer",
+        id: "mouse",
+        parameters: { pointerType: "mouse" },
+        actions: [
+          {
+            type: "pointerMove",
+            duration: 0,
+            x: viewportSize.centerX,
+            y: viewportSize.centerY,
+          },
+        ],
+      },
+    ]);
   }
+}
+
+// Move mouse.
+async function moveTo(config, step, driver) {
+  let result = {
+    status: "PASS",
+    description: "Moved mouse.",
+  };
+
+  // Validate step payload
+  isValidStep = validate("moveTo_v2", step);
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    return result;
+  }
+
+  // Calculate target coordinates based on selector, alignments, and offsets
+  const element = await driver.$(step.selector);
+  const size = await element.getSize();
+  const location = await element.getLocation();
+  const dimensions = {
+    width: size.width,
+    height: size.height,
+    x: location.x,
+    y: location.y,
+  };
+
+  const coordinates = {};
+  switch (step.alignment) {
+    case "center":
+      coordinates.x = dimensions.x + dimensions.width / 2;
+      coordinates.y = dimensions.y + dimensions.height / 2;
+      break;
+    case "top":
+      coordinates.x = dimensions.x + dimensions.width / 2;
+      coordinates.y = dimensions.y;
+      break;
+    case "bottom":
+      coordinates.x = dimensions.x + dimensions.width / 2;
+      coordinates.y = dimensions.y + dimensions.height;
+      break;
+    case "left":
+      coordinates.x = dimensions.x;
+      coordinates.y = dimensions.y + dimensions.height / 2;
+      break;
+    case "right":
+      coordinates.x = dimensions.x + dimensions.width;
+      coordinates.y = dimensions.y + dimensions.height / 2;
+      break;
+    default:
+      break;
+  }
+
+  // Add offsets
+  coordinates.x = coordinates.x + step.offset.x;
+  coordinates.y = coordinates.y + step.offset.y;
+
+  // Instantiate cursor
+  await instantiateCursor(driver);
+
+  try {
+    // Move mouse
+    await driver
+      .action("pointer")
+      .move({
+        x: coordinates.x,
+        y: coordinates.y,
+        origin: "pointer",
+        duration: step.duration,
+      })
+      .perform();
+  } catch {
+    // FAIL
+    result.status = "FAIL";
+    result.description = `Couldn't move mouse.`;
+    return result;
+  }
+
+  // PASS
+  return result;
 }

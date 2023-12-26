@@ -2,6 +2,7 @@ const kill = require("tree-kill");
 const wdio = require("webdriverio");
 const { log, loadEnvs } = require("./utils");
 const axios = require("axios");
+const { instantiateCursor } = require("./tests/moveTo");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
@@ -536,6 +537,17 @@ async function runStep(config, context, step, driver) {
       actionResult = { status: "FAIL", description: "Unsupported action." };
       break;
   }
+  // // If recording, wait until browser is loaded, then instantiate cursor
+  // if (config.recording) {
+  //   await driver.waitUntil(
+  //     async () => {
+  //       const readyState = await driver.execute(() => document.readyState);
+  //       return readyState === "complete";
+  //     },
+  //     { timeout: 10000, interval: 100 }
+  //   );
+  //   await instantiateCursor(driver);
+  // }
   return actionResult;
 }
 

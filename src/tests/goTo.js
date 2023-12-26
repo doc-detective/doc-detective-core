@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { instantiateCursor } = require("./moveTo");
 
 exports.goTo = goTo;
 
@@ -27,6 +28,8 @@ async function goTo(config, step, driver) {
   // Run action
   try {
     await driver.url(step.url);
+    // If recording, instantiate cursor
+    // if (config.recording) await instantiateCursor(driver);
   } catch {
     // FAIL: Error opening URL
     result.status = "FAIL";

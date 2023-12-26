@@ -1,6 +1,6 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
-const { moveTo } = require("./moveTo");
+const { moveTo, instantiateCursor } = require("./moveTo");
 
 exports.findElement = findElement;
 
@@ -35,7 +35,7 @@ async function findElement(config, step, driver) {
 
   // Match text
   if (step.matchText) {
-    const text = await element.getText() || await element.getValue();
+    const text = (await element.getText()) || (await element.getValue());
     if (text !== step.matchText) {
       result.status = "FAIL";
       result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
@@ -51,7 +51,7 @@ async function findElement(config, step, driver) {
       selector: step.selector,
     };
     if (typeof step.moveTo === "object") {
-      moveToStep = { ...moveToStep,  ...step.moveTo };
+      moveToStep = { ...moveToStep, ...step.moveTo };
     }
 
     await moveTo(config, moveToStep, driver);
@@ -87,6 +87,10 @@ async function findElement(config, step, driver) {
     }
   }
 
+  // If recording, wait until page is loaded and instantiate cursor
+  // if (config.recording) {
+  //   await instantiateCursor(driver);
+  // }
   // PASS
   return result;
 }
