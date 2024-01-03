@@ -38,8 +38,6 @@ const driverActions = [
 function getDriverCapabilities(config, name, options) {
   let capabilities = {};
   let args = [];
-  let downloadDirectory = config.runTests?.downloadDirectory || config.runTests?.output || config.output;
-  downloadDirectory = path.resolve(downloadDirectory);
 
   // Set Firefox capabilities
   switch (name) {
@@ -96,7 +94,7 @@ function getDriverCapabilities(config, name, options) {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              "download.default_directory": downloadDirectory,
+              "download.default_directory": config.runTests.downloadDirectory,
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
