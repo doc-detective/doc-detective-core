@@ -25,8 +25,28 @@ async function stopRecording(config, step, driver) {
   }
 
   try {
-    config.recording.stdin.write("q");
-    // await driver.startRecording(step.filePath);
+    if (config.recording.type === "MediaRecorder") {
+      // MediaRecorder
+
+      // Get current tab
+      const currentTab = await driver.getWindowHandle();
+      // Switch to recording tab
+      await driver.switchToWindow(config.recording.tab);
+      // Stop recording
+      await driver.execute(() => {
+        window.recorder.stop();
+      });
+      // Wait for download to finish
+      await driver.pause(5000);
+      // Close recording tab
+      await driver.closeWindow();
+      await driver.switchToWindow(currentTab);
+    } else {
+      // FFMPEG
+
+      config.recording.stdin.write("q");
+      // await driver.startRecording(step.filePath);
+    }
   } catch (error) {
     // Couldn't stop recording
     result.status = "FAIL";

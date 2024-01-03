@@ -38,6 +38,8 @@ const driverActions = [
 function getDriverCapabilities(config, name, options) {
   let capabilities = {};
   let args = [];
+  let downloadDirectory = config.runTests?.downloadDirectory || config.runTests?.output || config.output;
+  downloadDirectory = path.resolve(downloadDirectory);
 
   // Set Firefox capabilities
   switch (name) {
@@ -56,6 +58,12 @@ function getDriverCapabilities(config, name, options) {
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
           args,
+          // If recording, make bottom corners pointed
+          profile:
+            "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
+          prefs: {
+            "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+          },
           binary: options.path || firefox.path,
         },
       };
@@ -75,6 +83,8 @@ function getDriverCapabilities(config, name, options) {
         }
         // Set args
         args.push(`--window-size=${options.width},${options.height}`);
+        args.push(`--enable-chrome-browser-cloud-management`);
+        args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         if (options.headless) args.push("--headless", "--disable-gpu");
         // Set capabilities
         capabilities = {
@@ -85,6 +95,11 @@ function getDriverCapabilities(config, name, options) {
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
+            prefs: {
+              "download.default_directory": downloadDirectory,
+              "download.prompt_for_download": false,
+              "download.directory_upgrade": true,
+            },
             binary: options.path || chrome.path,
           },
         };
