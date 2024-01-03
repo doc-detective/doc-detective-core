@@ -1,6 +1,7 @@
 const { validate } = require("doc-detective-common");
 const { instantiateCursor } = require("./moveTo");
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
@@ -20,16 +21,31 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  // Set filePath
-  if (!step.filePath) {
-    step.filePath = path.join(
-      config.runTests?.mediaDirectory,
-      step.path || `${step.id}.mp4`
-    );
+  // Set file name
+  step.path = step.path || `${step.id}.webm`;
+  const baseName = path.basename(step.path, path.extname(step.path));
+
+  // Set path directory
+  const dir =
+    step.directory ||
+    config.runTests?.mediaDirectory ||
+    config.runTests?.output ||
+    config.output;
+  // If `dir` doesn't exist, create it
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-  // Set fileName
-  step.fileName = path.basename(step.filePath, path.extname(step.filePath));
-  
+  // Set filePath
+  filePath = path.join(dir, step.path);
+
+  // Check if file already exists
+  if (fs.existsSync(filePath) && step.overwrite == "false") {
+    // File already exists
+    result.status = "SKIP";
+    result.description = `File already exists: ${filePath}`;
+    return result;
+  }
+
   if (context.app.name === "chrome") {
     config.recording = {};
     // Chrome
@@ -100,7 +116,7 @@ async function startRecording(config, context, step, driver) {
         let a = document.createElement("a");
         a.style.display = "none";
         a.href = url;
-        a.download = `${fileName}.webm`;
+        a.download = `${baseName}.webm`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -108,20 +124,8 @@ async function startRecording(config, context, step, driver) {
           window.URL.revokeObjectURL(url);
         }, 100);
       }
-      function stopMediaTracks(stream) {
-        stream.getTracks().forEach((track) => {
-          track.stop();
-        });
-      }
-      function stopRecordingAndTracks() {
-        if (recorder && recorder.state === "recording") {
-          recorder.stop(); // this will trigger the onstop event in recordStream
-        }
-        // Assuming you have the stream variable accessible here
-        stopMediaTracks(stream);
-      }
       captureAndDownload();
-    }, step.fileName);
+    }, baseName);
     // Switch to original tab
     await driver.switchToWindow(originalTab);
     // Set document title back to original
@@ -129,7 +133,17 @@ async function startRecording(config, context, step, driver) {
       document.title = documentTitle;
     }, documentTitle);
     // Set recorder
-    result.recording = { type: "MediaRecorder", tab: recorderTab.handle };
+    result.recording = {
+      type: "MediaRecorder",
+      tab: recorderTab.handle,
+      height: context.app.options.height,
+      width: context.app.options.width,
+      downloadPath: path.join(
+        config.runTests.downloadDirectory,
+        `${baseName}.webm`
+      ), // Where the recording will be downloaded.
+      targetPath: filePath, // Where the recording will be saved.
+    };
   } else if (context.app.name === "firefox") {
     // Firefox
 
@@ -189,7 +203,7 @@ async function startRecording(config, context, step, driver) {
         recordingSettings.fps,
         "-vf",
         `scale=w=iw/${recordingSettings.scale}:h=-1,crop=out_w=${recordingSettings.width}:out_h=${recordingSettings.height}:x=${recordingSettings.x}:y=${recordingSettings.y},format=yuv420p`,
-        step.filePath,
+        step.path,
       ];
 
       // const args = {
@@ -204,7 +218,7 @@ async function startRecording(config, context, step, driver) {
       //     "-vf",
       //     `crop=out_w=${recordingSettings.width}:out_h=${recordingSettings.height}:x=${recordingSettings.x}:y=${recordingSettings.y}`,
       //     // `crop=${recordingSettings.width}:${recordingSettings.height}:${recordingSettings.x}:${recordingSettings.y}`,
-      //     step.filePath,
+      //     step.path,
       //   ],
       //   mac: [
       //     "-y",
@@ -216,7 +230,7 @@ async function startRecording(config, context, step, driver) {
       //     "1",
       //     "-vf",
       //     `crop=${recordingSettings.width}:${recordingSettings.height}:${recordingSettings.x}:${recordingSettings.y}`,
-      //     step.filePath,
+      //     step.path,
       //   ],
       //   linux: [
       //     "-y",
@@ -228,7 +242,7 @@ async function startRecording(config, context, step, driver) {
       //     `${recordingSettings.width}x${recordingSettings.height}`,
       //     "-i",
       //     `:0.0+${recordingSettings.x},${recordingSettings.y}`,
-      //     step.filePath,
+      //     step.path,
       //   ],
       // };
 
