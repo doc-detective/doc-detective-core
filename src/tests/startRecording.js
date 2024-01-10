@@ -54,6 +54,8 @@ async function startRecording(config, context, step, driver) {
     const originalTab = await driver.getWindowHandle();
     // Set document title to "RECORD_ME"
     await driver.execute(() => (document.title = "RECORD_ME"));
+    // Instantiate cursor
+    await instantiateCursor(driver, { position: "center" });
     // Create new tab
     const recorderTab = await driver.createWindow("tab");
     // Switch to new tab
