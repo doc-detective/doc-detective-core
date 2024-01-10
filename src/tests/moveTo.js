@@ -3,24 +3,49 @@ const { validate } = require("doc-detective-common");
 exports.moveTo = moveTo;
 exports.instantiateCursor = instantiateCursor;
 
-async function instantiateCursor(driver) {
+async function instantiateCursor(driver, options = { position: "current" }) {
+
+  try {
+  // Wait for page to load
+  await driver.waitUntil(
+    async () => {
+      const readyState = await driver.execute(() => {
+        return document.readyState;
+      });
+      return readyState === "complete";
+    },
+    { timeout: 10000 }
+  );
+  } catch {
+    // FAIL
+    result.status = "FAIL";
+    result.description = `Couldn't wait for page to load.`;
+    return result;
+  }
+
   // Detect if cursor is instantiated
   const cursor = await driver.$("dd-mouse-pointer");
 
+  // Instantiate cursor if not already instantiated
   if (!cursor.elementId) {
-    // Get viewport size
-    const viewportSize = await driver.execute(() => {
-      return {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-      };
-    });
-    viewportSize.centerX = Math.round(viewportSize.innerWidth / 2);
-    viewportSize.centerY = Math.round(viewportSize.innerHeight / 2);
+    if (options.position === "center" || driver.state.x === null) {
+      // Get viewport size
+      const viewport = await driver.execute(() => {
+        return {
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          mouseX: window.mouseX,
+          mouseY: window.mouseY,
+        };
+      });
+      driver.state.x = Math.round(viewport.innerWidth / 2);
+      driver.state.y = Math.round(viewport.innerHeight / 2);
+    }
 
-    // Instantiate cursor
+    // Add cursor to DOM
     await driver.execute(() => {
       const cursor = document.createElement("dd-mouse-pointer");
+      cursor.style.display = "none";
       const styleElement = document.createElement("style");
       styleElement.innerHTML = `
       dd-mouse-pointer {
@@ -62,24 +87,16 @@ async function instantiateCursor(driver) {
       document.addEventListener(
         "mousemove",
         (e) => {
-          cursor.style.left = e.pageX + "px";
-          cursor.style.top = e.pageY + "px";
-          document
-            .elementFromPoint(
-              e.pageX - window.scrollX,
-              e.pageY - window.scrollY
-            )
-            .click();
+          cursor.style.left = e.clientX + "px";
+          cursor.style.top = e.clientY + "px";
+          window.mouseX = e.clientX;
+          window.mouseY = e.clientY;
         },
         false
       );
-      document.addEventListener("mousemove", (e) => {
-        window.mouseX = e.clientX;
-        window.mouseY = e.clientY;
-      });
     });
 
-    // Move cursor to center of viewport
+    // Move cursor
     await driver.performActions([
       {
         type: "pointer",
@@ -89,12 +106,16 @@ async function instantiateCursor(driver) {
           {
             type: "pointerMove",
             duration: 0,
-            x: viewportSize.centerX,
-            y: viewportSize.centerY,
+            x: driver.state.x,
+            y: driver.state.y,
           },
         ],
       },
     ]);
+    // Update display style
+    await driver.execute(() => {
+      document.querySelector("dd-mouse-pointer").style.display = "block";
+    });
   }
 }
 
@@ -151,19 +172,16 @@ async function moveTo(config, step, driver) {
   }
 
   // Add offsets
-  coordinates.x = coordinates.x + step.offset.x;
-  coordinates.y = coordinates.y + step.offset.y;
-
-  // Instantiate cursor
-  await instantiateCursor(driver);
+  driver.state.x = Math.round(coordinates.x + step.offset.x);
+  driver.state.y = Math.round(coordinates.y + step.offset.y);
 
   try {
     // Move mouse
     await driver
       .action("pointer")
       .move({
-        x: coordinates.x,
-        y: coordinates.y,
+        x: driver.state.x,
+        y: driver.state.y,
         origin: "pointer",
         duration: step.duration,
       })
