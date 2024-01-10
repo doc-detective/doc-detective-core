@@ -550,17 +550,14 @@ async function runStep(config, context, step, driver) {
       actionResult = { status: "FAIL", description: "Unsupported action." };
       break;
   }
-  // // If recording, wait until browser is loaded, then instantiate cursor
-  // if (config.recording) {
-  //   await driver.waitUntil(
-  //     async () => {
-  //       const readyState = await driver.execute(() => document.readyState);
-  //       return readyState === "complete";
-  //     },
-  //     { timeout: 10000, interval: 100 }
-  //   );
-  //   await instantiateCursor(driver);
-  // }
+  // If recording, wait until browser is loaded, then instantiate cursor
+  if (config.recording) {
+    const currentUrl = await driver.getUrl();
+    if (currentUrl !== driver.state.url) {
+      driver.state.url = currentUrl;
+      await instantiateCursor(driver);
+    }
+  }
   return actionResult;
 }
 
@@ -589,5 +586,6 @@ async function driverStart(capabilities) {
     path: "/",
     capabilities,
   });
+  driver.state = {url: "", x: null, y: null};
   return driver;
 }
