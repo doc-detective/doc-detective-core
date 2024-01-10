@@ -53,7 +53,20 @@ async function saveScreenshot(config, step, driver) {
   }
 
   try {
+    // If recording is true, hide cursor
+    if (config.recording) {
+      await driver.execute(() => {
+        document.querySelector("dd-mouse-pointer").style.display = "none";
+      });
+    }
+    // Save screenshot
     await driver.saveScreenshot(filePath);
+    // If recording is true, show cursor
+    if (config.recording) {
+      await driver.execute(() => {
+        document.querySelector("dd-mouse-pointer").style.display = "block";
+      });
+    }
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
@@ -90,7 +103,11 @@ async function saveScreenshot(config, step, driver) {
       );
       percentDiff = (numDiffPixels / (width * height)) * 100;
 
-      log(config, "debug", {totalPixels: width * height, numDiffPixels, percentDiff})
+      log(config, "debug", {
+        totalPixels: width * height,
+        numDiffPixels,
+        percentDiff,
+      });
 
       if (percentDiff > step.maxVariation) {
         if (step.overwrite == "byVariation") {
@@ -100,10 +117,14 @@ async function saveScreenshot(config, step, driver) {
           fs.renameSync(filePath, existFilePath);
         }
         result.status = "FAIL";
-        result.description = `Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(2)}%.`;
+        result.description = `Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
+          2
+        )}%.`;
         return result;
       } else {
-        result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(2)}%.`;
+        result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
+          2
+        )}%.`;
         fs.unlinkSync(filePath);
       }
     }
