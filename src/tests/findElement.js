@@ -1,6 +1,7 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
 const { moveTo, instantiateCursor } = require("./moveTo");
+const { wait } = require("./wait");
 
 exports.findElement = findElement;
 
@@ -88,9 +89,9 @@ async function findElement(config, step, driver) {
   }
 
   // If recording, wait until page is loaded and instantiate cursor
-  // if (config.recording) {
-  //   await instantiateCursor(driver);
-  // }
+  if (config.recording) {
+    await wait(config, { action: "wait", duration: 2000 }, driver);
+  }
   // PASS
   return result;
 }
