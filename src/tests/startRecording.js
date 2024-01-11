@@ -21,6 +21,13 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
+  // If headless is true, skip recording
+  if (context.app.options.headless) {
+    result.status = "SKIPPED";
+    result.description = `Recording isn't supported in headless mode.`;
+    return result;
+  }
+
   // Set file name
   step.path = step.path || `${step.id}.webm`;
   const baseName = path.basename(step.path, path.extname(step.path));
