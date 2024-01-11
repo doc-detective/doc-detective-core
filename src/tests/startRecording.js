@@ -24,7 +24,7 @@ async function startRecording(config, context, step, driver) {
   // Set file name
   step.path = step.path || `${step.id}.webm`;
   const baseName = path.basename(step.path, path.extname(step.path));
-
+ 
   // Set path directory
   const dir =
     step.directory ||
@@ -65,7 +65,7 @@ async function startRecording(config, context, step, driver) {
     config.recording.tab = await driver.getWindowHandle();
 
     // Start recording
-    const recorder = await driver.execute((fileName) => {
+    const recorder = await driver.execute((baseName) => {
       let stream;
       let recorder;
       const displayMediaOptions = {
