@@ -9,10 +9,21 @@
           "url": "http://www.duckduckgo.com"
         },
         {
-          "action": "saveScreenshot",
-          "path": "google.png",
-          "overwrite": "byVariation",
-          "maxVariation": 5
+          "action": "startRecording",
+          "path": "simple.mp4",
+          "overwrite": true
+        },
+        {
+          "action": "find",
+          "selector": "#searchbox_input",
+          "moveTo": true,
+          "click": true,
+          "typeKeys": {
+            "keys": ["doc-detective","$ENTER$"]
+          } 
+        },
+        {
+          "action": "stopRecording"
         }
       ]
     }
