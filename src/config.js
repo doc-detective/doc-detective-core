@@ -72,9 +72,9 @@ async function setConfig(config) {
   }
   // Set download/media directories
   config.runTests.downloadDirectory = config.runTests?.downloadDirectory || config.runTests?.output || config.output;
-  downloadDirectory = path.resolve(config.runTests.downloadDirectory);
+  config.runTests.downloadDirectory = path.resolve(config.runTests.downloadDirectory);
   config.runTests.mediaDirectory = config.runTests?.mediaDirectory || config.runTests?.output || config.output;
-  mediaDirectory = path.resolve(config.runTests.mediaDirectory);
+  config.runTests.mediaDirectory = path.resolve(config.runTests.mediaDirectory);
 
   // Detect current environment.
   config.environment = getEnvironment();
