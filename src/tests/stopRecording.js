@@ -51,13 +51,14 @@ async function stopRecording(config, step, driver) {
       const downloadPath = `${config.recording.downloadPath}`;
       ffmpeg(`${config.recording.downloadPath}`)
         .output(`${config.recording.targetPath}`)
+        .outputOptions(["-pix_fmt", "yuv420p"])
         .on("end", () => {
           // Delete the downloaded file
           fs.unlinkSync(downloadPath);
-          log(config, 'debug', endMessage);
+          log(config, "debug", endMessage);
         })
         .on("error", (err) => {
-          log(config, 'error', err);
+          log(config, "error", err);
         })
         // TODO: Specify output options based on file type
         // .outputOptions(() => {
