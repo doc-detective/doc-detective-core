@@ -157,7 +157,7 @@ async function startRecording(config, context, step, driver) {
     // Firefox
 
     result.status = "SKIP";
-    result.description = `Recording is not supported for Chrome.`;
+    result.description = `Recording is not supported for Firefox.`;
     return result;
 
     const dimensions = await driver.execute(() => {
