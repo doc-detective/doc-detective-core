@@ -22,7 +22,7 @@ async function startRecording(config, context, step, driver) {
   }
 
   // If headless is true, skip recording
-  if (context.app.options.headless) {
+  if (context.app?.options?.headless) {
     result.status = "SKIPPED";
     result.description = `Recording isn't supported in headless mode.`;
     return result;
