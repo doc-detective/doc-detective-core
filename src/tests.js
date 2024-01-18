@@ -299,12 +299,12 @@ async function runSpecs(config, specs) {
         appium = spawn("npm", ["run", "appium"]);
       }
     }
-    // appium.stdout.on("data", (data) => {
+    appium.stdout.on("data", (data) => {
     //   console.log(`stdout: ${data}`);
-    // });
-    // appium.stderr.on("data", (data) => {
+    });
+    appium.stderr.on("data", (data) => {
     //   console.error(`stderr: ${data}`);
-    // });
+    });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
   }
