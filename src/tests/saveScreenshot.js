@@ -42,7 +42,7 @@ async function saveScreenshot(config, step, driver) {
   if (fs.existsSync(filePath)) {
     if (step.overwrite == "false") {
       // File already exists
-      result.status = "SKIP";
+      result.status = "SKIPPED";
       result.description = `File already exists: ${filePath}`;
       return result;
     } else {
