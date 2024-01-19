@@ -60,13 +60,11 @@ const specialKeyMap = {
   $F11$: Key.F11,
   $F12$: Key.F12,
   $COMMAND$: Key.Command,
-  $ZANKAKU_HANDKAKU$: Key.ZenkakuHankaku
+  $ZANKAKU_HANDKAKU$: Key.ZenkakuHankaku,
 };
 
 // Type a sequence of keys in the active element.
 async function typeKeys(config, step, driver) {
-  // TODO: Add optional delay between keystrokes
-
   let result = { status: "PASS", description: "Typed keys." };
 
   // Validate step payload
@@ -80,14 +78,41 @@ async function typeKeys(config, step, driver) {
   // Convert string to array for consistency
   if (typeof step.keys === "string") step.keys = [step.keys];
 
+  // Split into array of strings, each containing a single key
+  if (config.recording) {
+    let keys = [];
+    step.keys.forEach((key) => {
+      if (key.startsWith("$") && key.endsWith("$")) {
+        // Just push special keys
+        keys.push(key);
+      } else {
+        // Split into array of chars
+        let chars = key.split("");
+        keys = keys.concat(chars);
+      }
+    });
+    step.keys = keys;
+  }
+
   // Substitute special keys
   // 1. For each key, identify if it following the escape pattern of `$...$`.
   // 2. If it does, replace it with the corresponding `Key` object from `specialKeyMap`.
-  step.keys = step.keys.map((key) => key.replace(/^\$.+\$$/gm, specialKeyMap[key]));
+  step.keys = step.keys.map((key) =>
+    key.replace(/^\$.+\$$/gm, specialKeyMap[key])
+  );
 
   // Run action
   try {
-    await driver.keys(step.keys);
+    if (config.recording) {
+      // Type keys one at a time
+      for (let i = 0; i < step.keys.length; i++) {
+        await driver.keys(step.keys[i]);
+        await new Promise((resolve) => setTimeout(resolve, step.delay)); // Add a 1-second delay between keystrokes
+      }
+    } else {
+      // Type all keys at once
+      await driver.keys(step.keys);
+    }
   } catch {
     // FAIL: Error opening URL
     result.status = "FAIL";

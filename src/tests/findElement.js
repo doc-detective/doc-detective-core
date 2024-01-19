@@ -1,5 +1,7 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
+const { moveTo, instantiateCursor } = require("./moveTo");
+const { wait } = require("./wait");
 
 exports.findElement = findElement;
 
@@ -34,7 +36,7 @@ async function findElement(config, step, driver) {
 
   // Match text
   if (step.matchText) {
-    const text = await element.getText() || await element.getValue();
+    const text = (await element.getText()) || (await element.getValue());
     if (text !== step.matchText) {
       result.status = "FAIL";
       result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
@@ -44,9 +46,16 @@ async function findElement(config, step, driver) {
   }
 
   // Move to element
-  if (step.moveTo) {
-    // TODO: Add offset options. https://webdriver.io/docs/api/element/moveTo
-    await element.moveTo();
+  if (step.moveTo && config.recording) {
+    const moveToStep = {
+      action: "moveTo",
+      selector: step.selector,
+    };
+    if (typeof step.moveTo === "object") {
+      moveToStep = { ...moveToStep, ...step.moveTo };
+    }
+
+    await moveTo(config, moveToStep, driver);
     result.description = result.description + " Moved to element.";
   }
 
@@ -66,7 +75,7 @@ async function findElement(config, step, driver) {
 
   // Type keys
   if (step.typeKeys) {
-    typeStep = {
+    const typeStep = {
       action: "typeKeys",
       keys: step.typeKeys.keys || step.typeKeys,
     };
@@ -79,6 +88,10 @@ async function findElement(config, step, driver) {
     }
   }
 
+  // If recording, wait until page is loaded and instantiate cursor
+  if (config.recording) {
+    await wait(config, { action: "wait", duration: 2000 }, driver);
+  }
   // PASS
   return result;
 }

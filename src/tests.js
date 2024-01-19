@@ -2,6 +2,7 @@ const kill = require("tree-kill");
 const wdio = require("webdriverio");
 const { log, loadEnvs } = require("./utils");
 const axios = require("axios");
+const { instantiateCursor } = require("./tests/moveTo");
 const { goTo } = require("./tests/goTo");
 const { findElement } = require("./tests/findElement");
 const { runShell } = require("./tests/runShell");
@@ -9,8 +10,8 @@ const { checkLink } = require("./tests/checkLink");
 const { typeKeys } = require("./tests/typeKeys");
 const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
-// const { startRecording } = require("./tests/startRecording");
-// const { stopRecording } = require("./tests/stopRecording");
+const { startRecording } = require("./tests/startRecording");
+const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
 const { httpRequest } = require("./tests/httpRequest");
 const fs = require("fs");
@@ -55,6 +56,12 @@ function getDriverCapabilities(config, name, options) {
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
           args,
+          // If recording, make bottom corners pointed
+          profile:
+            "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
+          prefs: {
+            "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+          },
           binary: options.path || firefox.path,
         },
       };
@@ -74,6 +81,8 @@ function getDriverCapabilities(config, name, options) {
         }
         // Set args
         args.push(`--window-size=${options.width},${options.height}`);
+        args.push(`--enable-chrome-browser-cloud-management`);
+        args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         if (options.headless) args.push("--headless", "--disable-gpu");
         // Set capabilities
         capabilities = {
@@ -84,6 +93,11 @@ function getDriverCapabilities(config, name, options) {
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
+            prefs: {
+              "download.default_directory": config.runTests.downloadDirectory,
+              "download.prompt_for_download": false,
+              "download.directory_upgrade": true,
+            },
             binary: options.path || chrome.path,
           },
         };
@@ -285,12 +299,12 @@ async function runSpecs(config, specs) {
         appium = spawn("npm", ["run", "appium"]);
       }
     }
-    // appium.stdout.on("data", (data) => {
+    appium.stdout.on("data", (data) => {
     //   console.log(`stdout: ${data}`);
-    // });
-    // appium.stderr.on("data", (data) => {
+    });
+    appium.stderr.on("data", (data) => {
     //   console.error(`stderr: ${data}`);
-    // });
+    });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
   }
@@ -389,7 +403,7 @@ async function runSpecs(config, specs) {
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP: ${step.id}`);
 
-          const stepResult = await runStep(config, step, driver);
+          const stepResult = await runStep(config, context, step, driver);
           log(
             config,
             "debug",
@@ -492,7 +506,7 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep(config, step, driver) {
+async function runStep(config, context, step, driver) {
   let actionResult;
   // Load values from environment variables
   step = loadEnvs(step);
@@ -509,12 +523,14 @@ async function runStep(config, step, driver) {
     case "saveScreenshot":
       actionResult = await saveScreenshot(config, step, driver);
       break;
-    // case "startRecording":
-    //   actionResult = await startRecording(config, step, driver);
-    //   break;
-    // case "stopRecording":
-    //   actionResult = await stopRecording(config, step, driver);
-    //   break;
+    case "startRecording":
+      actionResult = await startRecording(config, context, step, driver);
+      config.recording = actionResult.recording;
+      break;
+    case "stopRecording":
+      actionResult = await stopRecording(config, step, driver);
+      delete config.recording;
+      break;
     case "wait":
       actionResult = await wait(config, step);
       break;
@@ -533,6 +549,14 @@ async function runStep(config, step, driver) {
     default:
       actionResult = { status: "FAIL", description: "Unsupported action." };
       break;
+  }
+  // If recording, wait until browser is loaded, then instantiate cursor
+  if (config.recording) {
+    const currentUrl = await driver.getUrl();
+    if (currentUrl !== driver.state.url) {
+      driver.state.url = currentUrl;
+      await instantiateCursor(driver);
+    }
   }
   return actionResult;
 }
@@ -562,5 +586,6 @@ async function driverStart(capabilities) {
     path: "/",
     capabilities,
   });
+  driver.state = {url: "", x: null, y: null};
   return driver;
 }

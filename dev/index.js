@@ -34,14 +34,14 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/doc-content copy.md",
+      input: "dev/dev.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
       contexts: [
         {
           app: {
-            name: "firefox",
+            name: "chrome",
             options: {
               height: 900,
               width: 1300,

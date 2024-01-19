@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { instantiateCursor } = require("./moveTo");
 
 exports.goTo = goTo;
 
