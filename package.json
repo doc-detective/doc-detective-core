@@ -30,7 +30,7 @@
     "@eyeo/get-browser-binary": "^0.15.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "appium": "^2.4.1",
-    "appium-chromium-driver": "1.2.68",
+    "appium-chromium-driver": "1.3.6",
     "appium-geckodriver": "^1.2.11",
     "axios": "^1.6.5",
     "chromedriver": "^120.0.2",
