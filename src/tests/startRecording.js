@@ -145,19 +145,17 @@ async function startRecording(config, context, step, driver) {
     result.recording = {
       type: "MediaRecorder",
       tab: recorderTab.handle,
-      height: context.app.options.height,
-      width: context.app.options.width,
       downloadPath: path.join(
         config.runTests.downloadDirectory,
         `${baseName}.webm`
       ), // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.
     };
-  } else if (context.app.name === "firefox") {
-    // Firefox
+  } else {
+    // Other context
 
     result.status = "SKIP";
-    result.description = `Recording is not supported for Firefox.`;
+    result.description = `Recording is not supported for this context.`;
     return result;
 
     const dimensions = await driver.execute(() => {
