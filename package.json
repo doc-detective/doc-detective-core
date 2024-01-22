@@ -32,6 +32,7 @@
     "appium": "^2.4.1",
     "appium-chromium-driver": "1.2.68",
     "appium-geckodriver": "^1.2.11",
+    "appium-safari-driver": "^3.5.10",
     "axios": "^1.6.5",
     "chromedriver": "^120.0.2",
     "doc-detective-common": "1.11.0",

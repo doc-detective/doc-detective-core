@@ -71,9 +71,15 @@ async function setConfig(config) {
     config.runTests = {};
   }
   // Set download/media directories
-  config.runTests.downloadDirectory = config.runTests?.downloadDirectory || config.runTests?.output || config.output;
-  config.runTests.downloadDirectory = path.resolve(config.runTests.downloadDirectory);
-  config.runTests.mediaDirectory = config.runTests?.mediaDirectory || config.runTests?.output || config.output;
+  config.runTests.downloadDirectory =
+    config.runTests?.downloadDirectory ||
+    config.runTests?.output ||
+    config.output;
+  config.runTests.downloadDirectory = path.resolve(
+    config.runTests.downloadDirectory
+  );
+  config.runTests.mediaDirectory =
+    config.runTests?.mediaDirectory || config.runTests?.output || config.output;
   config.runTests.mediaDirectory = path.resolve(config.runTests.mediaDirectory);
 
   // Detect current environment.
@@ -96,7 +102,7 @@ function getEnvironment() {
 // Detect available apps.
 async function getAvailableApps(config) {
   cwd = process.cwd();
-  process.chdir(path.join(__dirname, ".."))
+  process.chdir(path.join(__dirname, ".."));
   const { BROWSERS } = await import("@eyeo/get-browser-binary");
   const apps = [];
 
@@ -114,8 +120,11 @@ async function getAvailableApps(config) {
       defaultAppIDs.chromium[config.environment.platform]
     );
     if (chromePath) {
-      chromeVersion = await spawnCommand(`${chromePath} --version`)
-      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
+      chromeVersion = await spawnCommand(`${chromePath} --version`);
+      chromeVersion = chromeVersion.stdout.substring(
+        str.indexOf(" ") + 1,
+        str.indexOf(".", str.indexOf(".") + 1)
+      );
     }
   }
   if (!chromePath) {
@@ -161,12 +170,26 @@ async function getAvailableApps(config) {
   }
   if (firefox) apps.push({ name: "firefox", path: firefox });
 
+
+  // Detect Safari
+  // If running on mac, get Safari version
+  if (config.environment.platform === "mac") {
+    const safariVersion = await spawnCommand(
+      "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+    );
+
+    if (safariVersion.exitCode === 0) {
+      // Get just the major number
+      const version = safariVersion.stdout.split(".")[0];
+      apps.push({ name: "safari", version, path: "" });
+    }
+  }
+
   // Return to original working directory after finishing with `BROWSERS`
   process.chdir(cwd);
 
   // TODO
   // Detect Edge
-  // Detect Safari
   // Detect Android Studio
   // Detect iOS Simulator
   // Detect OBS

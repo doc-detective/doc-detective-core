@@ -46,7 +46,6 @@ function getDriverCapabilities(config, name, options) {
       if (!firefox) break;
       // Set args
       // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
-      args.push(`--width=${options.width}`, `--height=${options.height}`);
       if (options.headless) args.push("--headless");
       // Set capabilities
       capabilities = {
@@ -66,6 +65,19 @@ function getDriverCapabilities(config, name, options) {
         },
       };
       break;
+    case "safari":
+      // Set Safari capabilities
+      if (config.environment.apps.find((app) => app.name === "safari")) {
+        safari = config.environment.apps.find((app) => app.name === "safari");
+        if (!safari) break;
+        // Set capabilities
+        capabilities = {
+          platformName: "Mac",
+          "appium:automationName": "Safari",
+          browserName: "Safari",
+        };
+      }
+      break;
     case "chrome":
       // Set Chrome(ium) capabilities
       if (config.environment.apps.find((app) => app.name === "chrome")) {
@@ -80,7 +92,6 @@ function getDriverCapabilities(config, name, options) {
           chromePlatform = config.environment.platform;
         }
         // Set args
-        args.push(`--window-size=${options.width},${options.height}`);
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         if (options.headless) args.push("--headless", "--disable-gpu");
@@ -194,9 +205,7 @@ function isSupportedContext(context, apps, platform) {
   // Check apps
   let isSupportedApp = true;
   if (context.app.name)
-    isSupportedApp = apps.find(
-      (app) => app.name === context.app.name && app.path
-    );
+    isSupportedApp = apps.find((app) => app.name === context.app.name);
   // Check path
   let isSupportedPath = true;
   if (context.app.path) isSupportedPath = fs.existsSync(context.app.path);
@@ -227,7 +236,7 @@ function getDefaultContexts(config) {
   }
   // If no contexts are defined in config, or if none are supported, use fallback strategy
   if (contexts.length === 0) {
-    const fallback = ["chrome", "firefox"];
+    const fallback = ["chromium", "chrome", "firefox", "safari"];
     for (const browser of fallback) {
       const app = apps.find((app) => app.name === browser);
       if (app) {
@@ -300,10 +309,10 @@ async function runSpecs(config, specs) {
       }
     }
     appium.stdout.on("data", (data) => {
-    //   console.log(`stdout: ${data}`);
+      //   console.log(`stdout: ${data}`);
     });
     appium.stderr.on("data", (data) => {
-    //   console.error(`stderr: ${data}`);
+      //   console.error(`stderr: ${data}`);
     });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
@@ -394,7 +403,30 @@ async function runSpecs(config, specs) {
           log(config, "debug", caps);
 
           // Instantiate driver
-          driver = await driverStart(caps);
+          try {
+            driver = await driverStart(caps);
+          } catch (error) {
+            let errorMessage = `Failed to start context: '${context.app?.name}' on '${platform}'.`
+            if (context.app?.name === "safari") errorMessage = errorMessage + " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+            log(config, "error", errorMessage);
+            contextReport = {
+              result: { status: "SKIPPED", description: errorMessage },
+              ...contextReport,
+            };
+            report.summary.contexts.skipped++;
+            testReport.contexts.push(contextReport);
+            continue;
+          }
+
+          if (context.app?.options?.width || context.app?.options?.height) {
+            // Get driver window size
+            const windowSize = await driver.getWindowSize();
+            // Resize window if necessary
+            await driver.setWindowSize(
+              context.app?.options?.width || windowSize.width,
+              context.app?.options?.height || windowSize.height
+            );
+          }
         }
 
         // Iterates steps
@@ -423,7 +455,7 @@ async function runSpecs(config, specs) {
         // Parse step results to calc context result
 
         // If any step fails, context fails
-        if (contextReport.steps.find((step) => step.result === "FAIL"))
+      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
           contextResult = "FAIL";
         // If any step warns, context warns
         else if (contextReport.steps.find((step) => step.result === "WARNING"))
@@ -445,24 +477,24 @@ async function runSpecs(config, specs) {
           // Close driver
           try {
             await driver.deleteSession();
-          } catch {}
+          } catch { }
         }
       }
 
       // Parse context results to calc test result
 
       // If any context fails, test fails
-      if (testReport.contexts.find((context) => context.result === "FAIL"))
+      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
         testResult = "FAIL";
       // If any context warns, test warns
       else if (
-        testReport.contexts.find((context) => context.result === "WARNING")
+        testReport.contexts.find((context) => context.result.status === "WARNING")
       )
         testResult = "WARNING";
       // If all contexts skipped, test skipped
       else if (
         testReport.contexts.length ===
-        testReport.contexts.filter((context) => context.result === "SKIPPED")
+        testReport.contexts.filter((context) => context.result.status === "SKIPPED")
           .length
       )
         testResult = "SKIPPED";
@@ -572,7 +604,7 @@ async function appiumIsReady() {
     try {
       let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
-    } catch {}
+    } catch { }
   }
   return isReady;
 }
@@ -586,6 +618,6 @@ async function driverStart(capabilities) {
     path: "/",
     capabilities,
   });
-  driver.state = {url: "", x: null, y: null};
+  driver.state = { url: "", x: null, y: null };
   return driver;
 }
