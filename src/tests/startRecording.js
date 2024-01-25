@@ -53,9 +53,9 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  if (context.app.name === "chrome") {
+  if (context.app.name === "chrome" || context.app.name === "chromium") {
     config.recording = {};
-    // Chrome
+    // Chrome and Chromium
     // Get document title
     const documentTitle = await driver.getTitle();
     const originalTab = await driver.getWindowHandle();

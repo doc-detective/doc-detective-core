@@ -79,13 +79,11 @@ function getDriverCapabilities(config, name, options) {
       }
       break;
     case "chrome":
+    case "chromium":
       // Set Chrome(ium) capabilities
       if (config.environment.apps.find((app) => app.name === "chrome")) {
         chrome = config.environment.apps.find((app) => app.name === "chrome");
         if (!chrome) break;
-        chromedriver = config.environment.apps.find(
-          (app) => app.name === "chromedriver"
-        );
         if (config.environment.platform === "mac") {
           chromePlatform = "macOS";
         } else {
@@ -99,8 +97,7 @@ function getDriverCapabilities(config, name, options) {
         capabilities = {
           platformName: chromePlatform,
           "appium:automationName": "Chromium",
-          "appium:executable": options.driverPath || chromedriver.path,
-          browserName: "chrome",
+          browserName: name,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,

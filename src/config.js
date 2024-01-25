@@ -1,8 +1,8 @@
 const os = require("os");
 const { validate } = require("doc-detective-common");
 const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
-const { exit } = require("process");
 const path = require("path");
+const browsers = require("@puppeteer/browsers");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -103,85 +103,35 @@ function getEnvironment() {
 async function getAvailableApps(config) {
   cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
-  const { BROWSERS } = await import("@eyeo/get-browser-binary");
   const apps = [];
 
-  // Detect Chrome/Chromium
-  try {
-    // Get internal dependency path
-    chrome = await BROWSERS.chromium.installBrowser("latest");
-    chromeVersion = chrome.versionNumber.split(".")[0];
-    chromePath = chrome.binary;
-  } catch { }
-  if (!chromePath) {
-    // Check external default install locations for Chromium
-    chromePath = await getInstallPath(
-      config,
-      defaultAppIDs.chromium[config.environment.platform]
-    );
-    if (chromePath) {
-      chromeVersion = await spawnCommand(`${chromePath} --version`);
-      chromeVersion = chromeVersion.stdout.substring(
-        str.indexOf(" ") + 1,
-        str.indexOf(".", str.indexOf(".") + 1)
-      );
-    }
+  const installedBrowsers = await browsers.getInstalledBrowsers({cacheDir: path.resolve("browser-snapshots")});
+
+  // Detect Chromium
+  const chromium = installedBrowsers.find((browser) => browser.browser === "chromium");
+  if (chromium) {
+    apps.push({ name: "chromium", version: chromium.buildId, path: chromium.executablePath });
   }
-  if (!chromePath) {
-    // Check external default install locations for Chrome
-    chromePath = await getInstallPath(
-      config,
-      defaultAppIDs.chromium[config.environment.platform]
-    );
-    if (chromePath) {
-      chromeVersion = await spawnCommand(`${chromePath} --version`)
-      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
-    }
-  }
-  if (chromePath) {
-    apps.push({ name: "chrome", path: chromePath });
-    if (__dirname.includes("node_modules")) {
-      // If running from node_modules
-      chromedriver = path.join(__dirname, "../../chromedriver/lib/chromedriver/chromedriver");
-    } else {
-      chromedriver = path.join(__dirname, "../node_modules/chromedriver/lib/chromedriver/chromedriver");
-    }
-    if (config.environment.platform === "windows") chromedriver += ".exe";
-    chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
-    if (!chromedriverVersion.stdout.includes(`${chromeVersion}.`)) {
-      await spawnCommand(`npm i chromedriver --chromedriver_version=${chromeVersion}`);
-    }
-    apps.push({ name: "chromedriver", path: chromedriver });
+
+  // Detect Chrome
+  const chrome = installedBrowsers.find((browser) => browser.browser === "chrome");
+  if (chrome) {
+    apps.push({ name: "chrome", version: chrome.buildId, path: chrome.executablePath });
   }
 
   // Detect Firefox
-  let firefox = "";
-  try {
-    // Get internal dependency path
-    firefox = await BROWSERS.firefox.installBrowser("latest");
-    firefox = firefox.binary;
-  } catch { }
-  if (!firefox) {
-    // Check external default install locations
-    firefox = await getInstallPath(
-      config,
-      defaultAppIDs.firefox[config.environment.platform]
-    );
+  const firefox = installedBrowsers.find((browser) => browser.browser === "firefox");
+  if (firefox) {
+    apps.push({ name: "firefox", version: firefox.buildId, path: firefox.executablePath });
   }
-  if (firefox) apps.push({ name: "firefox", path: firefox });
-
 
   // Detect Safari
-  // If running on mac, get Safari version
   if (config.environment.platform === "mac") {
     const safariVersion = await spawnCommand(
       "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
     );
-
     if (safariVersion.exitCode === 0) {
-      // Get just the major number
-      const version = safariVersion.stdout.split(".")[0];
-      apps.push({ name: "safari", version, path: "" });
+      apps.push({ name: "safari", version: safariVersion, path: "" });
     }
   }
 
