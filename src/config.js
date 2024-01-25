@@ -142,7 +142,6 @@ async function getAvailableApps(config) {
   // Detect Edge
   // Detect Android Studio
   // Detect iOS Simulator
-  // Detect OBS
 
   return apps;
 }

@@ -1,7 +1,6 @@
 // const axios = require("axios");
 // const { exit } = require("node:process");
 // const wdio = require("webdriverio");
-// const OBSWebSocket = require("obs-websocket-js").default;
 // const { spawnCommand } = require("./src/utils");
 const { runTests, runCoverage, suggestTests } = require("../src");
 const { validate, schemas } = require("doc-detective-common");
@@ -135,70 +134,9 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-// Primary execution function.
-async function main_old() {
-  // Check if running
-  switch (process.platform) {
-    case "linux":
-      const commandResult = await spawnCommand("pgrep", ["obs"]);
-      isRunning = Boolean(commandResult.stdout);
-      console.log(isRunning);
-      if (!isRunning) obsCommand = await spawnCommand("obs");
-      console.log(obsCommand.stdout);
-      break;
-    default:
-      break;
-  }
-  // appiumStart();
-  // // const obs = await obsConnect();
-  // await appiumIsReady();
-  // await runTests();
-  // // await obsDisconnect(obs);
-  exit();
-}
-
 // Start the Appium server asynchronously.
 async function appiumStart() {
   appium.main();
-}
-
-// Connect to OBS
-// Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
-async function obsConnect() {
-  const obs = new OBSWebSocket();
-  try {
-    const { obsWebSocketVersion, negotiatedRpcVersion } = await obs.connect(
-      "ws://127.0.0.1:4455",
-      "T3AUEXrjK3xrPegG"
-    );
-    console.log(
-      `Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`
-    );
-    // If doesn't already exist, create scene
-    // Set active scene
-    // Create input
-    // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
-    // Configure input
-    // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
-    console.log(
-      await obs.call("SetInputSettings", {
-        inputName: "Window Capture",
-        inputSettings: {
-          window:
-            "obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe",
-        },
-      })
-    );
-    // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
-    return obs;
-  } catch (error) {
-    console.error("Failed to connect", error.code, error.message);
-  }
-}
-
-// Disconnect from OBS
-async function obsDisconnect(obs) {
-  await obs.disconnect();
 }
 
 // Delay execution until Appium server is available.
