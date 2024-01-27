@@ -53,7 +53,7 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  if (context.app.name === "chrome" || context.app.name === "chromium") {
+  if (context.app.name === "chrome" || context.app.name === "chromium" || context.app.name === "edge") {
     config.recording = {};
     // Chrome and Chromium
     // Get document title
@@ -67,7 +67,7 @@ async function startRecording(config, context, step, driver) {
     const recorderTab = await driver.createWindow("tab");
     // Switch to new tab
     await driver.switchToWindow(recorderTab.handle);
-    await driver.url("chrome://new-tab-page");
+    await driver.url("data:,");
     await driver.execute(() => (document.title = "RECORDER"));
     config.recording.tab = await driver.getWindowHandle();
 

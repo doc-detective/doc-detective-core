@@ -2,6 +2,7 @@ const os = require("os");
 const { validate } = require("doc-detective-common");
 const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
 const path = require("path");
+const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
 
 exports.setConfig = setConfig;
@@ -50,7 +51,7 @@ async function setConfig(config) {
       "error",
       `Invalid config object: ${validityCheck.errors}. Exiting.`
     );
-    exit(1);
+    process.exit(1);
   }
 
   // Standardize value formats
@@ -105,24 +106,56 @@ async function getAvailableApps(config) {
   process.chdir(path.join(__dirname, ".."));
   const apps = [];
 
-  const installedBrowsers = await browsers.getInstalledBrowsers({cacheDir: path.resolve("browser-snapshots")});
+  const installedBrowsers = await browsers.getInstalledBrowsers({
+    cacheDir: path.resolve("browser-snapshots"),
+  });
 
   // Detect Chromium
-  const chromium = installedBrowsers.find((browser) => browser.browser === "chromium");
+  const chromium = installedBrowsers.find(
+    (browser) => browser.browser === "chromium"
+  );
+  const chromiumVersion = await getChromiumVersion(chromium.executablePath);
   if (chromium) {
-    apps.push({ name: "chromium", version: chromium.buildId, path: chromium.executablePath });
+    apps.push({
+      name: "chromium",
+      version: chromiumVersion,
+      path: chromium.executablePath,
+    });
   }
 
   // Detect Chrome
-  const chrome = installedBrowsers.find((browser) => browser.browser === "chrome");
+  const chrome = installedBrowsers.find(
+    (browser) => browser.browser === "chrome"
+  );
+  const chromeVersion = await getChromiumVersion(chrome.executablePath);
   if (chrome) {
-    apps.push({ name: "chrome", version: chrome.buildId, path: chrome.executablePath });
+    apps.push({
+      name: "chrome",
+      version: chromeVersion,
+      path: chrome.executablePath,
+    });
   }
 
   // Detect Firefox
-  const firefox = installedBrowsers.find((browser) => browser.browser === "firefox");
+  const firefox = installedBrowsers.find(
+    (browser) => browser.browser === "firefox"
+  );
   if (firefox) {
-    apps.push({ name: "firefox", version: firefox.buildId, path: firefox.executablePath });
+    apps.push({
+      name: "firefox",
+      version: firefox.buildId,
+      path: firefox.executablePath,
+    });
+  }
+
+  // Detect Edge
+  if (config.environment.platform === "windows") {
+    const edgePath =
+      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+    const edgeVersion = await getChromiumVersion(edgePath);
+    if (fs.existsSync(edgePath)) {
+      apps.push({ name: "edge", version: edgeVersion, path: edgePath });
+    }
   }
 
   // Detect Safari
@@ -139,31 +172,31 @@ async function getAvailableApps(config) {
   process.chdir(cwd);
 
   // TODO
-  // Detect Edge
   // Detect Android Studio
   // Detect iOS Simulator
 
   return apps;
 }
 
-// Get path to installed app. For mac, `id` is the bundle identifier. For linux, `id` is the binary name. For windows, `id` is the binary name.
-async function getInstallPath(config, id) {
-  let installPath = "";
-  let command = "";
-  switch (config.environment.platform) {
-    case "mac":
-      command = "mdfind";
-      break;
-    case "linux":
-      command = "which";
-      break;
-    case "windows":
-      command = "where";
-      break;
+// Detect version of Chromium-based browser.
+const getChromiumVersion = async (browserPath = "") => {
+  if (!browserPath) return;
+  browserPath = path.resolve(browserPath);
+  let version;
+  // Windows
+  if (process.platform === "win32") {
+    const response = await spawnCommand(
+      `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`
+    );
+    version = response.stdout.trim();
   }
-  try {
-    const appPath = await spawnCommand(command, [id]);
-    if (appPath.exitCode === 0) installPath = appPath.stdout;
-  } catch { }
-  return installPath;
+  // Mac and Linux
+  else {
+    const response = await spawnCommand(
+      `${browserPath} --version`
+    );
+    version = response.stdout.trim().split(" ")[-1];
+  }
+
+  return version;
 }
