@@ -1,37 +1,26 @@
 const path = require("path");
 const { spawnCommand } = require("../src/utils");
 const browsers = require("@puppeteer/browsers");
-let geckodriver = require("geckodriver");
-
-main();
+const geckodriver = require("geckodriver");
 
 async function main() {
   await installBrowsers();
   await installAppiumDepencencies();
 }
 
+main();
+
 async function installBrowsers() {
   // Move to doc-detective-core directory to correctly set browser snapshot directory
   cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
 
-  // Check for installed browsers
+  // Meta
   const browser_platform = browsers.detectBrowserPlatform();
   const cacheDir = path.resolve("browser-snapshots");
-  console.log("Installing Chromium browser");
-  let browser = "chromium";
-  let buildId = await browsers.resolveBuildId(
-    browser,
-    browser_platform,
-    "latest"
-  );
-  const chromiumInstall = await browsers.install({
-    browser,
-    buildId,
-    cacheDir,
-  });
+
   console.log("Installing Chrome browser");
-  browser = "chrome";
+  let browser = "chrome";
   buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
   const chromeInstall = await browsers.install({
     browser,
@@ -42,6 +31,15 @@ async function installBrowsers() {
   browser = "firefox";
   buildId = await browsers.resolveBuildId(browser, browser_platform, "latest");
   const firefoxInstall = await browsers.install({
+    browser,
+    buildId,
+    cacheDir,
+  });
+  // Install ChromeDriver
+  console.log("Installing ChromeDriver binary");
+  browser = "chromedriver";
+  buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
+  const chromeDriverInstall = await browsers.install({
     browser,
     buildId,
     cacheDir,
@@ -70,7 +68,7 @@ async function installAppiumDepencencies() {
     appiumPath = path.join(__dirname, "../node_modules/appium");
   }
   // Install appium dependencies
-  console.log("Installing Chromium/Chrome driver");
+  console.log("Installing Chrome driver");
   chromiumInstall = await spawnCommand(
     `node ${appiumPath} driver install chromium`
   );

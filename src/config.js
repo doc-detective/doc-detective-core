@@ -110,19 +110,6 @@ async function getAvailableApps(config) {
     cacheDir: path.resolve("browser-snapshots"),
   });
 
-  // Detect Chromium
-  const chromium = installedBrowsers.find(
-    (browser) => browser.browser === "chromium"
-  );
-  const chromiumVersion = await getChromiumVersion(chromium.executablePath);
-  if (chromium) {
-    apps.push({
-      name: "chromium",
-      version: chromiumVersion,
-      path: chromium.executablePath,
-    });
-  }
-
   // Detect Chrome
   const chrome = installedBrowsers.find(
     (browser) => browser.browser === "chrome"
@@ -133,6 +120,18 @@ async function getAvailableApps(config) {
       name: "chrome",
       version: chromeVersion,
       path: chrome.executablePath,
+    });
+  }
+
+  // Detect ChromeDriver
+  const chromedriver = installedBrowsers.find(
+    (browser) => browser.browser === "chromedriver"
+  );
+  if (chromedriver) {
+    apps.push({
+      name: "chromedriver",
+      version: chromeVersion,
+      path: chromedriver.executablePath,
     });
   }
 
@@ -149,14 +148,15 @@ async function getAvailableApps(config) {
   }
 
   // Detect Edge
-  if (config.environment.platform === "windows") {
-    const edgePath =
-      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-    const edgeVersion = await getChromiumVersion(edgePath);
-    if (fs.existsSync(edgePath)) {
-      apps.push({ name: "edge", version: edgeVersion, path: edgePath });
-    }
-  }
+  // TODO: Need EdgeDriver: https://www.npmjs.com/package/edgedriver
+  // if (config.environment.platform === "windows") {
+  //   const edgePath =
+  //     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+  //   const edgeVersion = await getChromiumVersion(edgePath);
+  //   if (fs.existsSync(edgePath)) {
+  //     apps.push({ name: "edge", version: edgeVersion, path: edgePath });
+  //   }
+  // }
 
   // Detect Safari
   if (config.environment.platform === "mac") {

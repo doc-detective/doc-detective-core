@@ -67,7 +67,7 @@ async function startRecording(config, context, step, driver) {
     const recorderTab = await driver.createWindow("tab");
     // Switch to new tab
     await driver.switchToWindow(recorderTab.handle);
-    await driver.url("data:,");
+    await driver.url("chrome://new-tab-page");
     await driver.execute(() => (document.title = "RECORDER"));
     config.recording.tab = await driver.getWindowHandle();
 
