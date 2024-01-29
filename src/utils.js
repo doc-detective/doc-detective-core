@@ -225,6 +225,19 @@ function parseTests(config, files) {
           spec.tests.push(statementJson);
           // Set `ignore` to false
           ignore = false;
+        } else if (line.includes(fileType.testEndStatement)) {
+          // Find test with `id`
+          test = spec.tests.find((test) => test.id === id);
+          // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
+          if (test.cleanup) {
+            const cleanupContent = fs.readFileSync(test.cleanup).toString();
+            const cleanup = JSON.parse(cleanupContent);
+            test.steps = test.steps.concat(cleanup.tests[0].steps);
+          }
+          // Set `id` to new UUID
+          id = `${uuid.v4()}`;
+          // Set `ignore` to false
+          ignore = false;
         } else if (line.includes(fileType.stepStatementOpen)) {
           // Find step statement
           if (line.includes(fileType.stepStatementOpen)) {
@@ -258,19 +271,6 @@ function parseTests(config, files) {
         } else if (line.includes(fileType.testIgnoreStatement)) {
           // Set `ignore` to true
           ignore = true;
-        } else if (line.includes(fileType.testEndStatement)) {
-          // Find test with `id`
-          test = spec.tests.find((test) => test.id === id);
-          // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
-          if (test.cleanup) {
-            const cleanupContent = fs.readFileSync(test.cleanup).toString();
-            const cleanup = JSON.parse(cleanupContent);
-            test.steps = test.steps.concat(cleanup.tests[0].steps);
-          }
-          // Set `id` to new UUID
-          id = `${uuid.v4()}`;
-          // Set `ignore` to false
-          ignore = false;
         } else if (!ignore) {
           // Test for markup/dynamically generate tests
 
