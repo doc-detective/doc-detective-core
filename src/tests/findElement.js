@@ -47,7 +47,7 @@ async function findElement(config, step, driver) {
 
   // Move to element
   if (step.moveTo && config.recording) {
-    const moveToStep = {
+    let moveToStep = {
       action: "moveTo",
       selector: step.selector,
     };
