@@ -1,6 +1,7 @@
 const os = require("os");
 const { validate } = require("doc-detective-common");
 const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
+const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
@@ -185,18 +186,28 @@ const getChromiumVersion = async (browserPath = "") => {
   let version;
   // Windows
   if (process.platform === "win32") {
-    const response = await spawnCommand(
-      `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`
-    );
-    version = response.stdout.trim();
+    const command = `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${command}`);
+        console.error(stderr);
+        return;
+      }
+      version = stdout.trim();
+    });
   }
   // Mac and Linux
   else {
-    const response = await spawnCommand(
-      `${browserPath} --version`
-    );
-    version = response.stdout.trim().split(" ")[-1];
+    const command = `${browserPath} --version`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${command}`);
+        console.error(stderr);
+        return;
+      }
+      version = stdout.trim().split(" ")[-1];
+    });
   }
 
   return version;
-}
+};
