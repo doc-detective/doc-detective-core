@@ -46,7 +46,6 @@ function getDriverCapabilities(config, name, options) {
       if (!firefox) break;
       // Set args
       // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
-      args.push(`--width=${options.width}`, `--height=${options.height}`);
       if (options.headless) args.push("--headless");
       // Set capabilities
       capabilities = {
@@ -66,30 +65,48 @@ function getDriverCapabilities(config, name, options) {
         },
       };
       break;
+    case "safari":
+      // Set Safari capabilities
+      if (config.environment.apps.find((app) => app.name === "safari")) {
+        safari = config.environment.apps.find((app) => app.name === "safari");
+        if (!safari) break;
+        // Set capabilities
+        capabilities = {
+          platformName: "Mac",
+          "appium:automationName": "Safari",
+          browserName: "Safari",
+        };
+      }
+      break;
     case "chrome":
+    // case "edge":
       // Set Chrome(ium) capabilities
-      if (config.environment.apps.find((app) => app.name === "chrome")) {
-        chrome = config.environment.apps.find((app) => app.name === "chrome");
-        if (!chrome) break;
-        chromedriver = config.environment.apps.find(
+      if (config.environment.apps.find((app) => app.name === name)) {
+        const chromium = config.environment.apps.find((app) => app.name === name);
+        if (!chromium) break;
+        
+        // Get ChromeDriver
+        const chromedriver = config.environment.apps.find(
           (app) => app.name === "chromedriver"
         );
+
         if (config.environment.platform === "mac") {
-          chromePlatform = "macOS";
+          chromiumPlatform = "macOS";
         } else {
-          chromePlatform = config.environment.platform;
+          chromiumPlatform = config.environment.platform;
         }
+        browserName = name === "edge" ? "MicrosoftEdge" : "Chromium";
         // Set args
-        args.push(`--window-size=${options.width},${options.height}`);
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
+        // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
         // Set capabilities
         capabilities = {
-          platformName: chromePlatform,
+          platformName: chromiumPlatform,
           "appium:automationName": "Chromium",
           "appium:executable": options.driverPath || chromedriver.path,
-          browserName: "chrome",
+          browserName,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
@@ -98,7 +115,7 @@ function getDriverCapabilities(config, name, options) {
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
-            binary: options.path || chrome.path,
+            binary: options.path || chromium.path,
           },
         };
       }
@@ -140,63 +157,12 @@ function isDriverRequired(appiumRequired, test) {
   return driverRequired;
 }
 
-// Check if any specs/tests/steps require OBS.
-function isObsRequired(specs) {
-  let obsRequired = false;
-  specs.forEach((spec) => {
-    // Check if contexts are defined at the spec level.
-    spec.tests.forEach((test) => {
-      // Check if contexts are defined at the test level.
-      test.steps.forEach((step) => {
-        // Check if test includes actions that require a driver.
-        // TODO: When supporting more recording options than OBS, enhance this check based on recording conditions
-        if (step.action === "startRecording") obsRequired = true;
-      });
-    });
-  });
-  return obsRequired;
-}
-
-// // TODO: Finish
-// // Check if OBS is running. If not, start it.
-// async function obsStart() {
-//   await exec("pgrep obs");
-// }
-
-// // TODO: Finish
-// // Connect to OBS
-// // Reference: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
-// async function obsConnect() {
-//   obsStart();
-//   const obs = new OBSWebSocket();
-//   try {
-//       const {
-//           obsWebSocketVersion,
-//           negotiatedRpcVersion
-//       } = await obs.connect('ws://127.0.0.1:4455', 'T3AUEXrjK3xrPegG');
-//       console.log(`Connected to server ${obsWebSocketVersion} (using RPC ${negotiatedRpcVersion})`)
-//       // If doesn't already exist, create scene
-//       // Set active scene
-//       // Create input
-//       // const inputID = await obs.call("CreateInput",{sceneName: "Doc Detective",inputName:"Doc Detective Capture",inputSettings:{ }});
-//       // Configure input
-//       // console.log(await obs.call("GetInputDefaultSettings",{inputKind:"window_capture"}))
-//       console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
-//       // console.log(await obs.call("SetInputSettings", { inputName: "Window Capture", inputSettings: { window: 'obs-websocket/protocol.md at master · obsproject/obs-websocket - Google Chrome:Chrome_WidgetWin_1:chrome.exe' } }));
-//       return obs;
-//   } catch (error) {
-//       console.error('Failed to connect', error.code, error.message);
-//   }
-// }
-
 // Check if context is supported by current platform and available apps
 function isSupportedContext(context, apps, platform) {
   // Check apps
   let isSupportedApp = true;
   if (context.app.name)
-    isSupportedApp = apps.find(
-      (app) => app.name === context.app.name && app.path
-    );
+    isSupportedApp = apps.find((app) => app.name === context.app.name);
   // Check path
   let isSupportedPath = true;
   if (context.app.path) isSupportedPath = fs.existsSync(context.app.path);
@@ -227,7 +193,7 @@ function getDefaultContexts(config) {
   }
   // If no contexts are defined in config, or if none are supported, use fallback strategy
   if (contexts.length === 0) {
-    const fallback = ["chrome", "firefox"];
+    const fallback = ["chromium", "chrome", "firefox", "safari"];
     for (const browser of fallback) {
       const app = apps.find((app) => app.name === browser);
       if (app) {
@@ -280,7 +246,6 @@ async function runSpecs(config, specs) {
 
   // Determine which apps are required
   const appiumRequired = isAppiumRequired(specs);
-  const obsRequired = isObsRequired(specs);
 
   // Warm up Appium
   if (appiumRequired) {
@@ -300,20 +265,14 @@ async function runSpecs(config, specs) {
       }
     }
     appium.stdout.on("data", (data) => {
-    //   console.log(`stdout: ${data}`);
+      //   console.log(`stdout: ${data}`);
     });
     appium.stderr.on("data", (data) => {
-    //   console.error(`stderr: ${data}`);
+      //   console.error(`stderr: ${data}`);
     });
     await appiumIsReady();
     log(config, "debug", "Appium is ready.");
   }
-
-  // Warm up OBS
-  // TODO: OBS support
-  // if (obsRequired) {
-  //   const obs = obsConnect();
-  // }
 
   // Iterate specs
   log(config, "info", "Running test specs.");
@@ -394,7 +353,30 @@ async function runSpecs(config, specs) {
           log(config, "debug", caps);
 
           // Instantiate driver
-          driver = await driverStart(caps);
+          try {
+            driver = await driverStart(caps);
+          } catch (error) {
+            let errorMessage = `Failed to start context: '${context.app?.name}' on '${platform}'.`
+            if (context.app?.name === "safari") errorMessage = errorMessage + " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+            log(config, "error", errorMessage);
+            contextReport = {
+              result: { status: "SKIPPED", description: errorMessage },
+              ...contextReport,
+            };
+            report.summary.contexts.skipped++;
+            testReport.contexts.push(contextReport);
+            continue;
+          }
+
+          if (context.app?.options?.width || context.app?.options?.height) {
+            // Get driver window size
+            const windowSize = await driver.getWindowSize();
+            // Resize window if necessary
+            await driver.setWindowSize(
+              context.app?.options?.width || windowSize.width,
+              context.app?.options?.height || windowSize.height
+            );
+          }
         }
 
         // Iterates steps
@@ -423,7 +405,7 @@ async function runSpecs(config, specs) {
         // Parse step results to calc context result
 
         // If any step fails, context fails
-        if (contextReport.steps.find((step) => step.result === "FAIL"))
+      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
           contextResult = "FAIL";
         // If any step warns, context warns
         else if (contextReport.steps.find((step) => step.result === "WARNING"))
@@ -445,24 +427,24 @@ async function runSpecs(config, specs) {
           // Close driver
           try {
             await driver.deleteSession();
-          } catch {}
+          } catch { }
         }
       }
 
       // Parse context results to calc test result
 
       // If any context fails, test fails
-      if (testReport.contexts.find((context) => context.result === "FAIL"))
+      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
         testResult = "FAIL";
       // If any context warns, test warns
       else if (
-        testReport.contexts.find((context) => context.result === "WARNING")
+        testReport.contexts.find((context) => context.result.status === "WARNING")
       )
         testResult = "WARNING";
       // If all contexts skipped, test skipped
       else if (
         testReport.contexts.length ===
-        testReport.contexts.filter((context) => context.result === "SKIPPED")
+        testReport.contexts.filter((context) => context.result.status === "SKIPPED")
           .length
       )
         testResult = "SKIPPED";
@@ -572,7 +554,7 @@ async function appiumIsReady() {
     try {
       let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
-    } catch {}
+    } catch { }
   }
   return isReady;
 }
@@ -586,6 +568,6 @@ async function driverStart(capabilities) {
     path: "/",
     capabilities,
   });
-  driver.state = {url: "", x: null, y: null};
+  driver.state = { url: "", x: null, y: null };
   return driver;
 }

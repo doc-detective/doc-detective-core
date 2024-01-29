@@ -1,45 +1,59 @@
 const path = require("path");
 const { spawnCommand } = require("../src/utils");
-let geckodriver = require("geckodriver");
-
-main();
+const browsers = require("@puppeteer/browsers");
+const geckodriver = require("geckodriver");
 
 async function main() {
   await installBrowsers();
   await installAppiumDepencencies();
 }
 
+main();
+
 async function installBrowsers() {
   // Move to doc-detective-core directory to correctly set browser snapshot directory
   cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
 
-  const { BROWSERS } = await import("@eyeo/get-browser-binary");
+  // Meta
+  const browser_platform = browsers.detectBrowserPlatform();
+  const cacheDir = path.resolve("browser-snapshots");
 
-  // Install Chromium
-  console.log("Installing Chromium");
-  let chromium = await BROWSERS.chromium.installBrowser("latest");
-  console.log("Installing Chromedriver");
-  let chromedriverInstall = await spawnCommand(
-    `npm i chromedriver --chromedriver_version="${chromium.versionNumber}"`
-  );
-  // Install Firefox
-  console.log("Installing Firefox");
-  let firefox = await BROWSERS.firefox.installBrowser("latest");
-  console.log("Installing Geckodriver");
+  console.log("Installing Chrome browser");
+  let browser = "chrome";
+  buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
+  const chromeInstall = await browsers.install({
+    browser,
+    buildId,
+    cacheDir,
+  });
+  console.log("Installing Firefox browser");
+  browser = "firefox";
+  buildId = await browsers.resolveBuildId(browser, browser_platform, "latest");
+  const firefoxInstall = await browsers.install({
+    browser,
+    buildId,
+    cacheDir,
+  });
+  // Install ChromeDriver
+  console.log("Installing ChromeDriver binary");
+  browser = "chromedriver";
+  buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
+  const chromeDriverInstall = await browsers.install({
+    browser,
+    buildId,
+    cacheDir,
+  });
+  // Install Geckodriver
+  console.log("Installing Geckodriver binary");
   if (__dirname.includes("node_modules")) {
     // If running from node_modules
     binPath = path.join(__dirname, "../../.bin");
   } else {
     binPath = path.join(__dirname, "../node_modules/.bin");
   }
-
   process.env.GECKODRIVER_CACHE_DIR = binPath;
-  gecko = await geckodriver.download();
-  // TODO: Installing Edge requires superuser privileges on Linux
-  // console.log("Installing Edge");
-  // let edge = await BROWSERS.edge.installBrowser("latest");
-  // TODO: Catch misc install errors
+  const geckoInstall = await geckodriver.download();
 
   // Move back to original directory
   process.chdir(cwd);
@@ -53,34 +67,18 @@ async function installAppiumDepencencies() {
   } else {
     appiumPath = path.join(__dirname, "../node_modules/appium");
   }
-  appiumDriverList = await spawnCommand(
-    `node "${appiumPath}" driver list --installed`
+  // Install appium dependencies
+  console.log("Installing Chrome driver");
+  chromiumInstall = await spawnCommand(
+    `node ${appiumPath} driver install chromium`
   );
-  appiumPluginsList = await spawnCommand(
-    `node "${appiumPath}" plugin list --installed`
-  );
-  await appiumDriverList;
-  await appiumPluginsList;
-  // Install gecko and chromium drivers if not already installed
-  if (!appiumDriverList.stderr.includes("gecko")) {
-    geckoInstall = await spawnCommand(
-      `node ${appiumPath} driver install gecko`
+  console.log("Installing Firefox driver");
+  geckoInstall = await spawnCommand(`node ${appiumPath} driver install gecko`);
+  // macOS-only
+  if (process.platform == "darwin") {
+    console.log("Installing Safari driver");
+    safariInstall = await spawnCommand(
+      `node ${appiumPath} driver install safari`
     );
-    if (geckoInstall.stderr.includes("successfully installed"))
-      console.log("Installed Gecko driver.");
-  }
-  if (!appiumDriverList.stderr.includes("chromium")) {
-    chromiumInstall = await spawnCommand(
-      `node ${appiumPath} driver install chromium`
-    );
-    if (chromiumInstall.stderr.includes("successfully installed"))
-      console.log("Installed Chromium driver.");
-  }
-  if (!appiumPluginsList.stderr.includes("images")) {
-    imagesInstall = await spawnCommand(
-      `node ${appiumPath} plugin install images`
-    );
-    if (imagesInstall.stderr.includes("successfully installed"))
-      console.log("Installed Image plugin.");
   }
 }

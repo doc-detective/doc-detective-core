@@ -1,10 +1,9 @@
 const { validate } = require("doc-detective-common");
 const { log } = require("../utils");
+const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegPath);
 
 exports.stopRecording = stopRecording;
 
@@ -49,26 +48,17 @@ async function stopRecording(config, step, driver) {
       // Convert the file into the target format/location
       const endMessage = `Finished processing file: ${config.recording.targetPath}`;
       const downloadPath = `${config.recording.downloadPath}`;
-      ffmpeg(`${config.recording.downloadPath}`)
-        .output(`${config.recording.targetPath}`)
-        .outputOptions(["-pix_fmt", "yuv420p"])
-        .on("end", () => {
-          // Delete the downloaded file
-          fs.unlinkSync(downloadPath);
-          log(config, "debug", endMessage);
-        })
-        .on("error", (err) => {
-          log(config, "error", err);
-        })
-        // TODO: Specify output options based on file type
-        // .outputOptions(() => {
-        //   if (path.extname(config.recording.targetPath) === ".gif") {
-        //     return ["-vf", "scale=320:-1:flags=lanczos"];
-        //   } else {
-        //     return [];
-        //   }
-        // })
-        .run();
+      const ffmpeg = exec(
+        `${ffmpegPath} -y -i ${downloadPath} -pix_fmt yuv420p ${
+          path.extname(config.recording.targetPath) === ".gif"
+            ? `-vf scale=iw:-1:flags=lanczos`
+            : ""
+        } ${config.recording.targetPath}`,
+      ).on("close", () => {
+        // Delete the downloaded file
+        fs.unlinkSync(downloadPath);
+        log(config, "debug", endMessage);
+      });
     } else {
       // FFMPEG
       // config.recording.stdin.write("q");

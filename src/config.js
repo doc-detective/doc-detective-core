@@ -1,8 +1,10 @@
 const os = require("os");
 const { validate } = require("doc-detective-common");
 const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
-const { exit } = require("process");
+const { exec } = require("child_process");
 const path = require("path");
+const fs = require("fs");
+const browsers = require("@puppeteer/browsers");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -50,7 +52,7 @@ async function setConfig(config) {
       "error",
       `Invalid config object: ${validityCheck.errors}. Exiting.`
     );
-    exit(1);
+    process.exit(1);
   }
 
   // Standardize value formats
@@ -71,9 +73,15 @@ async function setConfig(config) {
     config.runTests = {};
   }
   // Set download/media directories
-  config.runTests.downloadDirectory = config.runTests?.downloadDirectory || config.runTests?.output || config.output;
-  config.runTests.downloadDirectory = path.resolve(config.runTests.downloadDirectory);
-  config.runTests.mediaDirectory = config.runTests?.mediaDirectory || config.runTests?.output || config.output;
+  config.runTests.downloadDirectory =
+    config.runTests?.downloadDirectory ||
+    config.runTests?.output ||
+    config.output;
+  config.runTests.downloadDirectory = path.resolve(
+    config.runTests.downloadDirectory
+  );
+  config.runTests.mediaDirectory =
+    config.runTests?.mediaDirectory || config.runTests?.output || config.output;
   config.runTests.mediaDirectory = path.resolve(config.runTests.mediaDirectory);
 
   // Detect current environment.
@@ -96,102 +104,110 @@ function getEnvironment() {
 // Detect available apps.
 async function getAvailableApps(config) {
   cwd = process.cwd();
-  process.chdir(path.join(__dirname, ".."))
-  const { BROWSERS } = await import("@eyeo/get-browser-binary");
+  process.chdir(path.join(__dirname, ".."));
   const apps = [];
 
-  // Detect Chrome/Chromium
-  try {
-    // Get internal dependency path
-    chrome = await BROWSERS.chromium.installBrowser("latest");
-    chromeVersion = chrome.versionNumber.split(".")[0];
-    chromePath = chrome.binary;
-  } catch { }
-  if (!chromePath) {
-    // Check external default install locations for Chromium
-    chromePath = await getInstallPath(
-      config,
-      defaultAppIDs.chromium[config.environment.platform]
-    );
-    if (chromePath) {
-      chromeVersion = await spawnCommand(`${chromePath} --version`)
-      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
-    }
+  const installedBrowsers = await browsers.getInstalledBrowsers({
+    cacheDir: path.resolve("browser-snapshots"),
+  });
+
+  // Detect Chrome
+  const chrome = installedBrowsers.find(
+    (browser) => browser.browser === "chrome"
+  );
+  const chromeVersion = await getChromiumVersion(chrome.executablePath);
+  if (chrome) {
+    apps.push({
+      name: "chrome",
+      version: chromeVersion,
+      path: chrome.executablePath,
+    });
   }
-  if (!chromePath) {
-    // Check external default install locations for Chrome
-    chromePath = await getInstallPath(
-      config,
-      defaultAppIDs.chromium[config.environment.platform]
-    );
-    if (chromePath) {
-      chromeVersion = await spawnCommand(`${chromePath} --version`)
-      chromeVersion = chromeVersion.stdout.substring(str.indexOf(" ") + 1, str.indexOf(".", str.indexOf(".") + 1));
-    }
-  }
-  if (chromePath) {
-    apps.push({ name: "chrome", path: chromePath });
-    if (__dirname.includes("node_modules")) {
-      // If running from node_modules
-      chromedriver = path.join(__dirname, "../../chromedriver/lib/chromedriver/chromedriver");
-    } else {
-      chromedriver = path.join(__dirname, "../node_modules/chromedriver/lib/chromedriver/chromedriver");
-    }
-    if (config.environment.platform === "windows") chromedriver += ".exe";
-    chromedriverVersion = await spawnCommand(`${chromedriver} --version`)
-    if (!chromedriverVersion.stdout.includes(`${chromeVersion}.`)) {
-      await spawnCommand(`npm i chromedriver --chromedriver_version=${chromeVersion}`);
-    }
-    apps.push({ name: "chromedriver", path: chromedriver });
+
+  // Detect ChromeDriver
+  const chromedriver = installedBrowsers.find(
+    (browser) => browser.browser === "chromedriver"
+  );
+  if (chromedriver) {
+    apps.push({
+      name: "chromedriver",
+      version: chromeVersion,
+      path: chromedriver.executablePath,
+    });
   }
 
   // Detect Firefox
-  let firefox = "";
-  try {
-    // Get internal dependency path
-    firefox = await BROWSERS.firefox.installBrowser("latest");
-    firefox = firefox.binary;
-  } catch { }
-  if (!firefox) {
-    // Check external default install locations
-    firefox = await getInstallPath(
-      config,
-      defaultAppIDs.firefox[config.environment.platform]
-    );
+  const firefox = installedBrowsers.find(
+    (browser) => browser.browser === "firefox"
+  );
+  if (firefox) {
+    apps.push({
+      name: "firefox",
+      version: firefox.buildId,
+      path: firefox.executablePath,
+    });
   }
-  if (firefox) apps.push({ name: "firefox", path: firefox });
+
+  // Detect Edge
+  // TODO: Need EdgeDriver: https://www.npmjs.com/package/edgedriver
+  // if (config.environment.platform === "windows") {
+  //   const edgePath =
+  //     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+  //   const edgeVersion = await getChromiumVersion(edgePath);
+  //   if (fs.existsSync(edgePath)) {
+  //     apps.push({ name: "edge", version: edgeVersion, path: edgePath });
+  //   }
+  // }
+
+  // Detect Safari
+  if (config.environment.platform === "mac") {
+    const safariVersion = await spawnCommand(
+      "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+    );
+    if (safariVersion.exitCode === 0) {
+      apps.push({ name: "safari", version: safariVersion, path: "" });
+    }
+  }
 
   // Return to original working directory after finishing with `BROWSERS`
   process.chdir(cwd);
 
   // TODO
-  // Detect Edge
-  // Detect Safari
   // Detect Android Studio
   // Detect iOS Simulator
-  // Detect OBS
 
   return apps;
 }
 
-// Get path to installed app. For mac, `id` is the bundle identifier. For linux, `id` is the binary name. For windows, `id` is the binary name.
-async function getInstallPath(config, id) {
-  let installPath = "";
-  let command = "";
-  switch (config.environment.platform) {
-    case "mac":
-      command = "mdfind";
-      break;
-    case "linux":
-      command = "which";
-      break;
-    case "windows":
-      command = "where";
-      break;
+// Detect version of Chromium-based browser.
+const getChromiumVersion = async (browserPath = "") => {
+  if (!browserPath) return;
+  browserPath = path.resolve(browserPath);
+  let version;
+  // Windows
+  if (process.platform === "win32") {
+    const command = `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${command}`);
+        console.error(stderr);
+        return;
+      }
+      version = stdout.trim();
+    });
   }
-  try {
-    const appPath = await spawnCommand(command, [id]);
-    if (appPath.exitCode === 0) installPath = appPath.stdout;
-  } catch { }
-  return installPath;
-}
+  // Mac and Linux
+  else {
+    const command = `${browserPath} --version`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${command}`);
+        console.error(stderr);
+        return;
+      }
+      version = stdout.trim().split(" ")[-1];
+    });
+  }
+
+  return version;
+};
