@@ -154,7 +154,7 @@ async function startRecording(config, context, step, driver) {
   } else {
     // Other context
 
-    result.status = "SKIP";
+    result.status = "SKIPPED";
     result.description = `Recording is not supported for this context.`;
     return result;
 
