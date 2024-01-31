@@ -34,8 +34,9 @@
     "appium-geckodriver": "^1.2.11",
     "appium-safari-driver": "^3.5.10",
     "axios": "^1.6.7",
-    "doc-detective-common": "1.12.0",
+    "doc-detective-common": "1.13.0-dev.0",
     "dotenv": "^16.4.1",
+    "edgedriver": "^5.3.9",
     "geckodriver": "^4.3.1",
     "node-jq": "^4.3.0",
     "pixelmatch": "^5.3.0",
@@ -43,7 +44,7 @@
     "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
     "uuid": "^9.0.1",
-    "webdriverio": "^8.29.1"
+    "webdriverio": "^8.29.3"
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
