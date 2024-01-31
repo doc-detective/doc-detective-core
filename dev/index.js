@@ -40,7 +40,7 @@ async function main() {
       contexts: [
         {
           app: {
-            name: "chrome",
+            name: "edge",
             options: {
               height: 900,
               width: 1300,
