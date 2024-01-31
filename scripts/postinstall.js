@@ -2,6 +2,7 @@ const path = require("path");
 const { spawnCommand } = require("../src/utils");
 const browsers = require("@puppeteer/browsers");
 const geckodriver = require("geckodriver");
+const edgedriver = require("edgedriver");
 
 async function main() {
   await installBrowsers();
@@ -44,6 +45,9 @@ async function installBrowsers() {
     buildId,
     cacheDir,
   });
+  // Install EdgeDriver
+  console.log("Installing EdgeDriver binary");
+  const edgeDriverPath = await edgedriver.download();
   // Install Geckodriver
   console.log("Installing Geckodriver binary");
   if (__dirname.includes("node_modules")) {
@@ -68,7 +72,7 @@ async function installAppiumDepencencies() {
     appiumPath = path.join(__dirname, "../node_modules/appium");
   }
   // Install appium dependencies
-  console.log("Installing Chrome driver");
+  console.log("Installing Chrome/Edge driver");
   chromiumInstall = await spawnCommand(
     `node ${appiumPath} driver install chromium`
   );

@@ -53,7 +53,7 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  if (context.app.name === "chrome" || context.app.name === "chromium" || context.app.name === "edge") {
+  if (context.app.name === "chrome") {
     config.recording = {};
     // Chrome and Chromium
     // Get document title

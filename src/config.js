@@ -5,6 +5,7 @@ const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
+const edgedriver = require("edgedriver");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -116,23 +117,16 @@ async function getAvailableApps(config) {
     (browser) => browser.browser === "chrome"
   );
   const chromeVersion = await getChromiumVersion(chrome.executablePath);
+  const chromedriver = installedBrowsers.find(
+    (browser) => browser.browser === "chromedriver"
+  );
+
   if (chrome) {
     apps.push({
       name: "chrome",
       version: chromeVersion,
       path: chrome.executablePath,
-    });
-  }
-
-  // Detect ChromeDriver
-  const chromedriver = installedBrowsers.find(
-    (browser) => browser.browser === "chromedriver"
-  );
-  if (chromedriver) {
-    apps.push({
-      name: "chromedriver",
-      version: chromeVersion,
-      path: chromedriver.executablePath,
+      driver: chromedriver.executablePath,
     });
   }
 
@@ -149,15 +143,13 @@ async function getAvailableApps(config) {
   }
 
   // Detect Edge
-  // TODO: Need EdgeDriver: https://www.npmjs.com/package/edgedriver
-  // if (config.environment.platform === "windows") {
-  //   const edgePath =
-  //     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-  //   const edgeVersion = await getChromiumVersion(edgePath);
-  //   if (fs.existsSync(edgePath)) {
-  //     apps.push({ name: "edge", version: edgeVersion, path: edgePath });
-  //   }
-  // }
+  let edgeDriverPath;
+  try {
+    edgeDriverPath = await edgedriver.download();
+    apps.push({ name: "edge", version: "", path: "", driver: edgeDriverPath });
+  } catch {
+    // Edge not available
+  }
 
   // Detect Safari
   if (config.environment.platform === "mac") {

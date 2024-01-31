@@ -79,23 +79,18 @@ function getDriverCapabilities(config, name, options) {
       }
       break;
     case "chrome":
-    // case "edge":
+    case "edge":
       // Set Chrome(ium) capabilities
       if (config.environment.apps.find((app) => app.name === name)) {
         const chromium = config.environment.apps.find((app) => app.name === name);
         if (!chromium) break;
         
-        // Get ChromeDriver
-        const chromedriver = config.environment.apps.find(
-          (app) => app.name === "chromedriver"
-        );
-
         if (config.environment.platform === "mac") {
           chromiumPlatform = "macOS";
         } else {
           chromiumPlatform = config.environment.platform;
         }
-        browserName = name === "edge" ? "MicrosoftEdge" : "Chromium";
+        browserName = name === "edge" ? "msedge" : "Chromium";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
@@ -105,7 +100,7 @@ function getDriverCapabilities(config, name, options) {
         capabilities = {
           platformName: chromiumPlatform,
           "appium:automationName": "Chromium",
-          "appium:executable": options.driverPath || chromedriver.path,
+          "appium:executable": options.driverPath || chromium.driver,
           browserName,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
