@@ -47,7 +47,11 @@ async function installBrowsers() {
   });
   // Install EdgeDriver
   console.log("Installing EdgeDriver binary");
+  try {
   const edgeDriverPath = await edgedriver.download();
+  } catch (e) {
+    console.log("Edge not available");
+  }
   // Install Geckodriver
   console.log("Installing Geckodriver binary");
   if (__dirname.includes("node_modules")) {
