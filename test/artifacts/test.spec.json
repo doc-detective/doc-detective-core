@@ -1,13 +1,5 @@
 {
   "id": "Do all the things! - Spec",
-  "contexts": [
-    {
-      "app": {
-        "name": "firefox"
-      },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
   "tests": [
     {
       "id": "Do all the things! - Test",
@@ -46,6 +38,9 @@
           "action": "goTo",
           "url": "https://www.google.com"
         },
+        { 
+          "action": "startRecording"
+        },
         {
           "action": "find",
           "selector": "[title=Search]",
@@ -55,6 +50,9 @@
           "typeKeys": {
             "keys": ["shorthair cat", "$ENTER$"]
           }
+        },
+        {
+          "action": "stopRecording"
         }
       ]
     }
