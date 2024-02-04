@@ -565,4 +565,23 @@ async function driverStart(capabilities) {
   });
   driver.state = { url: "", x: null, y: null };
   return driver;
+
+  // Add WebKitGTK
+  // path: '/', // Default path for WebDriver
+  // port: 4444, // Default port for WebKitWebDriver
+  // capabilities: {
+  //     browserName: 'Epiphany',
+  //     browserVersion: '3.38.2',
+  //     'webkitgtk:browserOptions': {
+  //         args: [
+  //             '--automation-mode'
+  //         ],
+  //         binary: 'epiphany'
+  //     }
+  // },
+}
+
+// Start the WebKitWebDriver server.
+async function WebKitWebDriverStart() {
+  // BASH: `WebKitWebDriver --port=4444 --host=0.0.0.0`
 }
