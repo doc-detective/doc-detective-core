@@ -387,20 +387,24 @@ async function runSpecs(config, specs) {
             `RESULT: ${stepResult.status}, ${stepResult.description}`
           );
 
+          stepResult.result = stepResult.status;
+          stepResult.resultDescription = stepResult.description;
+          delete stepResult.status;
+          delete stepResult.description;
+
           // Add step result to report
-          stepReport = {
-            result: stepResult.status,
-            resultDescription: stepResult.description,
+          const stepReport = {
+            ...stepResult,
             ...step,
           };
           contextReport.steps.push(stepReport);
-          report.summary.steps[stepResult.status.toLowerCase()]++;
+          report.summary.steps[stepReport.result.toLowerCase()]++;
         }
 
         // Parse step results to calc context result
 
         // If any step fails, context fails
-      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
+      if (contextReport.steps.find((step) => step.result === "FAIL"))
           contextResult = "FAIL";
         // If any step warns, context warns
         else if (contextReport.steps.find((step) => step.result === "WARNING"))
