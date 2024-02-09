@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -28,8 +28,8 @@
   "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@puppeteer/browsers": "^1.9.1",
-    "appium": "^2.4.1",
+    "@puppeteer/browsers": "^2.0.0",
+    "appium": "^2.5.0",
     "appium-chromium-driver": "1.2.68",
     "appium-geckodriver": "^1.2.11",
     "appium-safari-driver": "^3.5.10",
@@ -44,10 +44,10 @@
     "prompt-sync": "^4.2.0",
     "tree-kill": "^1.2.2",
     "uuid": "^9.0.1",
-    "webdriverio": "^8.29.7"
+    "webdriverio": "^8.31.1"
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
-    "mocha": "^10.2.0"
+    "mocha": "^10.3.0"
   }
 }
