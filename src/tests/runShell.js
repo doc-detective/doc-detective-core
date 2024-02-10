@@ -29,7 +29,7 @@ async function runShell(config, step) {
   result.exitCode = commandResult.exitCode;
 
   // Evaluate result
-  if (result.exitCode || result.stderr) {
+  if (result.exitCode) {
     result.status = "FAIL";
     result.description = `Error during execution.`;
   } else {
