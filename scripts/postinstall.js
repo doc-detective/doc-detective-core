@@ -20,49 +20,82 @@ async function installBrowsers() {
   const browser_platform = browsers.detectBrowserPlatform();
   const cacheDir = path.resolve("browser-snapshots");
 
-  console.log("Installing Chrome browser");
-  let browser = "chrome";
-  buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
-  const chromeInstall = await browsers.install({
-    browser,
-    buildId,
-    cacheDir,
-  });
-  console.log("Installing Firefox browser");
-  browser = "firefox";
-  buildId = await browsers.resolveBuildId(browser, browser_platform, "latest");
-  const firefoxInstall = await browsers.install({
-    browser,
-    buildId,
-    cacheDir,
-  });
-  // Install ChromeDriver
-  console.log("Installing ChromeDriver binary");
-  browser = "chromedriver";
-  buildId = await browsers.resolveBuildId(browser, browser_platform, "stable");
-  const chromeDriverInstall = await browsers.install({
-    browser,
-    buildId,
-    cacheDir,
-  });
-  // Install EdgeDriver
-  console.log("Installing EdgeDriver binary");
+  // Install Chrome
   try {
-  const edgeDriverPath = await edgedriver.download();
+    console.log("Installing Chrome browser");
+    let browser = "chrome";
+    buildId = await browsers.resolveBuildId(
+      browser,
+      browser_platform,
+      "stable"
+    );
+    const chromeInstall = await browsers.install({
+      browser,
+      buildId,
+      cacheDir,
+    });
   } catch (e) {
-    console.log("Edge not available");
+    console.log("Chrome download not available.");
   }
-  // Install Geckodriver
-  console.log("Installing Geckodriver binary");
-  if (__dirname.includes("node_modules")) {
-    // If running from node_modules
-    binPath = path.join(__dirname, "../../.bin");
-  } else {
-    binPath = path.join(__dirname, "../node_modules/.bin");
-  }
-  process.env.GECKODRIVER_CACHE_DIR = binPath;
-  const geckoInstall = await geckodriver.download();
 
+  // Install Firefox
+  try {
+    console.log("Installing Firefox browser");
+    browser = "firefox";
+    buildId = await browsers.resolveBuildId(
+      browser,
+      browser_platform,
+      "latest"
+    );
+    const firefoxInstall = await browsers.install({
+      browser,
+      buildId,
+      cacheDir,
+    });
+  } catch (e) {
+    console.log("Firefox download not available.");
+  }
+
+  // Install ChromeDriver
+  try {
+    console.log("Installing ChromeDriver binary");
+    browser = "chromedriver";
+    buildId = await browsers.resolveBuildId(
+      browser,
+      browser_platform,
+      "stable"
+    );
+    const chromeDriverInstall = await browsers.install({
+      browser,
+      buildId,
+      cacheDir,
+    });
+  } catch (e) {
+    console.log("ChromeDriver download not available.");
+  }
+
+  // Install EdgeDriver
+  try {
+    console.log("Installing EdgeDriver binary");
+    const edgeDriverPath = await edgedriver.download();
+  } catch (e) {
+    console.log("Edge browser not available.");
+  }
+
+  // Install Geckodriver
+  try {
+    console.log("Installing Geckodriver binary");
+    if (__dirname.includes("node_modules")) {
+      // If running from node_modules
+      binPath = path.join(__dirname, "../../.bin");
+    } else {
+      binPath = path.join(__dirname, "../node_modules/.bin");
+    }
+    process.env.GECKODRIVER_CACHE_DIR = binPath;
+    const geckoInstall = await geckodriver.download();
+  } catch (e) {
+    console.log("Geckodriver download not available.");
+  }
   // Move back to original directory
   process.chdir(cwd);
 }
@@ -76,17 +109,31 @@ async function installAppiumDepencencies() {
     appiumPath = path.join(__dirname, "../node_modules/appium");
   }
   // Install appium dependencies
-  console.log("Installing Chrome/Edge driver");
-  chromiumInstall = await spawnCommand(
-    `node ${appiumPath} driver install chromium`
-  );
-  console.log("Installing Firefox driver");
-  geckoInstall = await spawnCommand(`node ${appiumPath} driver install gecko`);
+  try {
+    console.log("Installing Chrome/Edge driver");
+    chromiumInstall = await spawnCommand(
+      `node ${appiumPath} driver install chromium`
+    );
+  } catch (e) {
+    console.log("Chrome/Edge driver not available.");
+  }
+  try {
+    console.log("Installing Firefox driver");
+    geckoInstall = await spawnCommand(
+      `node ${appiumPath} driver install gecko`
+    );
+  } catch (e) {
+    console.log("Firefox driver not available.");
+  }
   // macOS-only
   if (process.platform == "darwin") {
-    console.log("Installing Safari driver");
-    safariInstall = await spawnCommand(
-      `node ${appiumPath} driver install safari`
-    );
+    try {
+      console.log("Installing Safari driver");
+      safariInstall = await spawnCommand(
+        `node ${appiumPath} driver install safari`
+      );
+    } catch (e) {
+      console.log("Safari driver not available.");
+    }
   }
 }
