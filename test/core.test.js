@@ -17,7 +17,7 @@ describe("Analyze coverage sucessfully", function() {
   });
 });
 
-describe("Run tests sucessfully", function() {
+describe("Run tests successfully", function() {
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
