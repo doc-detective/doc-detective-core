@@ -433,17 +433,17 @@ async function runSpecs(config, specs) {
       // Parse context results to calc test result
 
       // If any context fails, test fails
-      if (testReport.contexts.find((context) => context.result.status === "FAIL"))
+      if (testReport.contexts.find((context) => context.result === "FAIL"))
         testResult = "FAIL";
       // If any context warns, test warns
       else if (
-        testReport.contexts.find((context) => context.result.status === "WARNING")
+        testReport.contexts.find((context) => context.result === "WARNING")
       )
         testResult = "WARNING";
       // If all contexts skipped, test skipped
       else if (
         testReport.contexts.length ===
-        testReport.contexts.filter((context) => context.result.status === "SKIPPED")
+        testReport.contexts.filter((context) => context.result === "SKIPPED")
           .length
       )
         testResult = "SKIPPED";
