@@ -190,7 +190,7 @@ const getChromiumVersion = async (browserPath = "") => {
   }
   // Mac and Linux
   else {
-    const command = `${browserPath} --version`;
+    const command = `"${browserPath}" --version`;
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error executing command: ${command}`);

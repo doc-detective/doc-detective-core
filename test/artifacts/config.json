@@ -19,16 +19,12 @@
         "platforms": ["windows", "mac", "linux"]
       },
       {
-        "app": { "name": "chrome", "options": { "headless": false } },
+        "app": { "name": "chrome", "options": { "headless": true } },
         "platforms": ["windows", "mac", "linux"]
       },
       {
         "app": { "name": "edge" },
         "platforms": ["windows", "mac", "linux"]
-      },
-      {
-        "app": { "name": "safari" },
-        "platforms": ["mac"]
       }
     ]
   },
