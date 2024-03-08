@@ -25,10 +25,6 @@
       {
         "app": { "name": "edge" },
         "platforms": ["windows", "mac", "linux"]
-      },
-      {
-        "app": { "name": "safari" },
-        "platforms": ["mac"]
       }
     ]
   },
