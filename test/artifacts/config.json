@@ -19,7 +19,7 @@
         "platforms": ["windows", "mac", "linux"]
       },
       {
-        "app": { "name": "chrome", "options": { "headless": false } },
+        "app": { "name": "chrome" },
         "platforms": ["windows", "mac", "linux"]
       },
       {
