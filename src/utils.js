@@ -215,11 +215,14 @@ function parseTests(config, files) {
           }
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
-            const setupContent = fs
-              .readFileSync(statementJson.setup)
-              .toString();
+            // Load setup steps
+            const setupContent = fs.readFileSync(statementJson.setup).toString();
             const setup = JSON.parse(setupContent);
-            statementJson.steps = setup.tests[0].steps.concat(test.steps);
+            if (setup && setup.tests && setup.tests[0] && setup.tests[0].steps) {
+              statementJson.steps = setup.tests[0].steps.concat(statementJson.steps);
+            } else {
+              console.error("Setup file does not contain valid steps.");
+            }
           }
           // Push to spec
           spec.tests.push(statementJson);
