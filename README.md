@@ -38,10 +38,6 @@ Analyze test coverage in documentation source files. Returns a coverage report o
 
 Dynamically built tests to address uncovered markup in documentation source files. Returns a suggested test specification. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input.
 
-## Future updates
+## Contributions
 
-Future updates may include support for the following items:
-
-- Actions: startRecording, stopRecording
-- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
-- Platforms: iOS, Android
+Looking to help out? See our [contributions guide](https://github.com/doc-detective/doc-detective-core/blob/main/CONTRIBUTIONS.md) for more info. If you can't contribute code, you can still help by reporting issues, suggesting new features, improving the documentation, or sponsoring the project.
