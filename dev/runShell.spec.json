@@ -1,0 +1,16 @@
+{
+  "id": "setup",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["setup"],
+          "exitCodes": [0],
+          "output": "/.*?/"
+        }
+      ]
+    }
+  ]
+}
