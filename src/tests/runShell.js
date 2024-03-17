@@ -51,8 +51,5 @@ async function runShell(config, step) {
     }
   }
 
-  console.log(result)
-  process.exit()
-
   return result;
 }
