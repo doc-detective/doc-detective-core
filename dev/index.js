@@ -33,7 +33,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/dev.spec.json",
+      input: "dev/runShell.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
