@@ -38,16 +38,21 @@ async function runShell(config, step) {
 
   // Evaluate stdout and stderr
   // If step.output starts and ends with `/`, treat it as a regex
-  if (step.output.startsWith("/") && step.output.endsWith("/")) {
-    const regex = new RegExp(step.output.slice(1, -1));
-    if (!regex.test(result.stdout) && !regex.test(result.stderr)) {
-      result.status = "FAIL";
-      result.description = `Couldn't find expected output (${step.output}) in actual output (stdout or stderr).`;
-    }
-  } else {
-    if (!result.stdout.includes(step.output) && !result.stderr.includes(step.output)) {
-      result.status = "FAIL";
-      result.description = `Couldn't find expected output (${step.output}) in actual output (stdout or stderr).`;
+  if (step.output) {
+    if (step.output.startsWith("/") && step.output.endsWith("/")) {
+      const regex = new RegExp(step.output.slice(1, -1));
+      if (!regex.test(result.stdout) && !regex.test(result.stderr)) {
+        result.status = "FAIL";
+        result.description = `Couldn't find expected output (${step.output}) in actual output (stdout or stderr).`;
+      }
+    } else {
+      if (
+        !result.stdout.includes(step.output) &&
+        !result.stderr.includes(step.output)
+      ) {
+        result.status = "FAIL";
+        result.description = `Couldn't find expected output (${step.output}) in actual output (stdout or stderr).`;
+      }
     }
   }
 
