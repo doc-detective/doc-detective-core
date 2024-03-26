@@ -8,7 +8,6 @@ exports.setFiles = setFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
-exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
@@ -216,10 +215,19 @@ function parseTests(config, files) {
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
             // Load setup steps
-            const setupContent = fs.readFileSync(statementJson.setup).toString();
+            const setupContent = fs
+              .readFileSync(statementJson.setup)
+              .toString();
             const setup = JSON.parse(setupContent);
-            if (setup && setup.tests && setup.tests[0] && setup.tests[0].steps) {
-              statementJson.steps = setup.tests[0].steps.concat(statementJson.steps);
+            if (
+              setup &&
+              setup.tests &&
+              setup.tests[0] &&
+              setup.tests[0].steps
+            ) {
+              statementJson.steps = setup.tests[0].steps.concat(
+                statementJson.steps
+              );
             } else {
               console.error("Setup file does not contain valid steps.");
             }
@@ -442,59 +450,43 @@ async function log(config, level, message) {
 
 function loadEnvs(stringOrObject) {
   if (!stringOrObject) return stringOrObject;
-  // Try to convert string to object
-  try {
-    if (
-      typeof stringOrObject === "string" &&
-      typeof JSON.parse(stringOrObject) === "object"
-    ) {
-      stringOrObject = JSON.parse(stringOrObject);
-    }
-  } catch {}
   if (typeof stringOrObject === "object") {
-    // Load for object
-    stringOrObject = loadEnvsForObject(stringOrObject);
+    // Iterate through object and recursively resolve variables
+    Object.keys(stringOrObject).forEach((key) => {
+      // Resolve all variables in key value
+      stringOrObject[key] = loadEnvs(stringOrObject[key]);
+    });
   } else if (typeof stringOrObject === "string") {
-    // Load for string
-    stringOrObject = loadEnvsForString(stringOrObject);
+    // Load variable from string
+    variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    matches = stringOrObject.match(variableRegex);
+    // If no matches, return string
+    if (!matches) return stringOrObject;
+    // Iterate matches
+    matches.forEach((match) => {
+      // Check if is declared variable
+      value = process.env[match.substring(1)];
+      if (value) {
+        // If match is the entire string instead of just being a substring, try to convert value to object
+        try {
+          if (match.length === stringOrObject.length && typeof JSON.parse(stringOrObject) === "object") {
+            value = JSON.parse(value);
+          }
+        } catch {}
+        // Attempt to load additional variables in value
+        value = loadEnvs(value);
+        // Replace match with variable value
+        if (typeof value === "string") {
+          // Replace match with value. Supports whole- and sub-string matches.
+          stringOrObject = stringOrObject.replace(match, value);
+        } else if (typeof value === "object") {
+          // If value is an object, replace match with object
+          stringOrObject = value;
+        }
+      }
+    });
   }
-  // Try to convert resolved string to object
-  try {
-    if (typeof JSON.parse(stringOrObject) === "object") {
-      stringOrObject = JSON.parse(stringOrObject);
-    }
-  } catch {}
   return stringOrObject;
-}
-
-function loadEnvsForString(string) {
-  // Find all variables
-  variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
-  matches = string.match(variableRegex);
-  // If no matches, return
-  if (!matches) return string;
-  // Iterate matches
-  matches.forEach((match) => {
-    // Check if is declared variable
-    value = process.env[match.substring(1)];
-    if (value) {
-      // If variable value might have a nested variable, recurse to try to resolve
-      if (value.includes("$")) value = loadEnvs(value);
-      // Convert to string in case value was a substring of the greater string
-      if (typeof value === "object") value = JSON.stringify(value);
-      // Replace match with variable value
-      string = string.replace(match, value);
-    }
-  });
-  return string;
-}
-
-function loadEnvsForObject(object) {
-  Object.keys(object).forEach((key) => {
-    // Resolve all variables in key value
-    object[key] = loadEnvs(object[key]);
-  });
-  return object;
 }
 
 function timestamp() {
