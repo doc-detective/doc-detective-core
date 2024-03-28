@@ -11,7 +11,7 @@ async function main() {
       {
         role: "user",
         content:
-          "Evaluate the following string, which is part of a procedure, and identify each action the string it instructs the user to complete. Adapt the following string to a Doc Detective test: Go to [Google](www.google.com). Type 'American shorthair kittens', then press Enter.",
+          "Evaluate the following string, which is part of a procedure, and identify each action that the string instructs the user to complete. Adapt the following string to a Doc Detective test: Go to [Google](www.google.com). Type 'American shorthair kittens', then press Enter.",
       },
     ],
     model: "gpt-3.5-turbo",
