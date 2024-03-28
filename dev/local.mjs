@@ -1,16 +1,25 @@
 import {fileURLToPath} from "url";
 import path from "path";
-import {getLlama, LlamaChatSession, defineChatSessionFunction} from "node-llama-cpp";
+import {getLlama, LlamaChatSession, LlamaJsonSchemaGrammar, defineChatSessionFunction} from "node-llama-cpp";
+import { schemas } from "doc-detective-common";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const schema = {
+    type: "object",
+    properties: {
+        steps: schemas.test_v2.properties.steps
+    }
+};
 
 const llama = await getLlama();
 const model = await llama.loadModel({
-    modelPath: path.join(__dirname, "functionary-small-v2.2.q4_0.gguf")
+    modelPath: path.join(__dirname, "functionary-small-v2.2.q4_0.gguf"),
+    gpuLayers: 30
 });
 const context = await model.createContext({
     contextSize: Math.min(4096, model.trainContextSize)
 });
+const grammar = new LlamaJsonSchemaGrammar(llama, schema);
 const functions = {
     getDate: defineChatSessionFunction({
         description: "Retrieve the current date",
@@ -18,18 +27,11 @@ const functions = {
             return new Date().toLocaleDateString();
         }
     }),
-    getNthWord: defineChatSessionFunction({
-        description: "Get an n-th word",
-        params: {
-            type: "object",
-            properties: {
-                n: {
-                    enum: [1, 2, 3, 4]
-                }
-            }
-        },
+    createTest: defineChatSessionFunction({
+        description: "Create a Doc Detective test to validate procedure content.",
+        params: schema,
         handler(params) {
-            return ["very", "secret", "this", "hello"][params.n - 1];
+            return params;
         }
     })
 };
@@ -38,15 +40,8 @@ const session = new LlamaChatSession({
 });
 
 
-const q1 = "What is the second word?";
+const q1 = "Evaluate the following procedure string, identify each action that the string instructs the user to complete, and adapt those actions to steps in a Doc Detective test: Go to [Google](www.google.com). Type 'American shorthair kittens', then press Enter.";
 console.log("User: " + q1);
 
-const a1 = await session.prompt(q1, {functions});
-console.log("AI: " + a1);
-
-
-const q2 = "What is the date? Also tell me the word I previously asked for";
-console.log("User: " + q2);
-
-const a2 = await session.prompt(q2, {functions});
-console.log("AI: " + a2);
+const a1 = await session.prompt(q1, {grammar});
+console.log(a1);
