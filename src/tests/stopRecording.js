@@ -55,7 +55,7 @@ async function stopRecording(config, step, driver) {
             : ""
         } ${config.recording.targetPath}`,
       ).on("close", () => {
-        if (config.recording.targetPath !== downloadPath) {
+        if (config.recording.targetPath !== config.recording.downloadPath) {
           // Delete the downloaded file
           fs.unlinkSync(downloadPath);
           log(config, "debug", endMessage);
