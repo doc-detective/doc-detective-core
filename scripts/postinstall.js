@@ -85,7 +85,10 @@ async function installBrowsers() {
   // Install Geckodriver
   try {
     console.log("Installing Geckodriver binary");
-    if (__dirname.includes("node_modules")) {
+    if (__dirname.includes("AppData\\Roaming\\")) {
+      // Running from global install on Windows
+      binPath = path.join(__dirname.split("node_modules")[0]);
+    } else if (__dirname.includes("node_modules")) {
       // If running from node_modules
       binPath = path.join(__dirname, "../../.bin");
     } else {
@@ -102,7 +105,7 @@ async function installBrowsers() {
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
 async function installAppiumDepencencies() {
-  if (__dirname.includes("node_modules")) {
+  if (__dirname.includes("node_modules") ) {
     // If running from node_modules
     appiumPath = path.join(__dirname, "../../appium");
   } else {
