@@ -46,16 +46,17 @@ async function stopRecording(config, step, driver) {
       await driver.closeWindow();
 
       // Convert the file into the target format/location
-      const endMessage = `Finished processing file: ${config.recording.targetPath}`;
+      const targetPath = `${config.recording.targetPath}`;
       const downloadPath = `${config.recording.downloadPath}`;
+      const endMessage = `Finished processing file: ${config.recording.targetPath}`;
       const ffmpeg = exec(
         `${ffmpegPath} -y -i ${downloadPath} -pix_fmt yuv420p ${
-          path.extname(config.recording.targetPath) === ".gif"
+          path.extname(targetPath) === ".gif"
             ? `-vf scale=iw:-1:flags=lanczos`
             : ""
-        } ${config.recording.targetPath}`,
+        } ${targetPath}`,
       ).on("close", () => {
-        if (config.recording.targetPath !== config.recording.downloadPath) {
+        if (targetPath !== downloadPath) {
           // Delete the downloaded file
           fs.unlinkSync(downloadPath);
           log(config, "debug", endMessage);
