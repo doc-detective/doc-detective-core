@@ -55,9 +55,11 @@ async function stopRecording(config, step, driver) {
             : ""
         } ${config.recording.targetPath}`,
       ).on("close", () => {
-        // Delete the downloaded file
-        fs.unlinkSync(downloadPath);
-        log(config, "debug", endMessage);
+        if (config.recording.targetPath !== downloadPath) {
+          // Delete the downloaded file
+          fs.unlinkSync(downloadPath);
+          log(config, "debug", endMessage);
+        }
       });
     } else {
       // FFMPEG
