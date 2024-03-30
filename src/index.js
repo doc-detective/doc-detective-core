@@ -8,6 +8,14 @@ exports.runTests = runTests;
 exports.runCoverage = runCoverage;
 exports.suggestTests = suggestTests;
 
+const supportMessage = `
+##########################################################################
+# Thanks for using Doc Detective! If this project was helpful to you,    #
+# please consider starring the repo on GitHub or sponsoring the project: #
+# - GitHub Sponsors: https://github.com/sponsors/doc-detective           #
+# - Open Collective: https://opencollective.com/doc-detective            #
+##########################################################################`;
+
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
   // Set config
@@ -31,6 +39,8 @@ async function runTests(config) {
   log(config, "info", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
 
+  log(config, "info", supportMessage);
+
   return results;
 }
 
@@ -53,6 +63,8 @@ async function runCoverage(config) {
   const markupCoverage = checkMarkupCoverage(config, testCoverage);
   log(config, "debug", "MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
+
+  log(config, "info", supportMessage);
 
   return markupCoverage;
 }
