@@ -3,6 +3,7 @@ const { setFiles, parseTests, log } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { getSuggestions } = require("./suggest");
+const { telemetryNotice, sendTelemetry } = require("./telem");
 
 exports.runTests = runTests;
 exports.runCoverage = runCoverage;
@@ -23,6 +24,9 @@ async function runTests(config) {
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 
+  // Telemetry notice
+  telemetryNotice(config);
+
   // Set files
   const files = setFiles(config);
   log(config, "debug", `FILES:`);
@@ -39,6 +43,8 @@ async function runTests(config) {
   log(config, "info", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
 
+  // Send telemetry
+  sendTelemetry(config, "runTests", results);
   log(config, "info", supportMessage);
 
   return results;
@@ -50,6 +56,9 @@ async function runCoverage(config) {
   config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
+
+  // Telemetry notice
+  telemetryNotice(config);
 
   // Set files
   const files = setFiles(config);
@@ -64,6 +73,8 @@ async function runCoverage(config) {
   log(config, "debug", "MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
 
+  // Send telemetry
+  sendTelemetry(config, "runCoverage", markupCoverage);
   log(config, "info", supportMessage);
 
   return markupCoverage;
