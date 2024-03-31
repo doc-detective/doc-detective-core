@@ -12,11 +12,11 @@ const platformMap = {
 function telemetryNotice(config) {
   if (config?.telemetry?.send === false) {
     log(config, "info",
-      "Telemetry is disabled. Basic, anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
+      "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
     );
   } else {
     log(config, "info",
-      "Doc Detective collects basic, anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
+      "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
     );
   }
 
