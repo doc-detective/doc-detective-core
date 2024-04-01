@@ -51,13 +51,21 @@ function sendTelemetry(config, command, results) {
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
   const package = require("../package.json");
+  telemetryData.distribution = telemetryData.distribution || "doc-detective-core";
+  telemetryData.dist_interface = telemetryData.dist_interface || "package";
   telemetryData.core_version = package.version;
-  telemetryData.core_platform = platformMap[os.platform()];
+  telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
+  telemetryData.core_platform = platformMap[os.platform()] || os.platform();
+  telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
   telemetryData.core_platform_version = os.release();
+  telemetryData.dist_platform_version = telemetryData.dist_platform_version || telemetryData.core_platform_version;
   telemetryData.core_platform_arch = os.arch();
+  telemetryData.dist_platform_arch = telemetryData.dist_platform_arch || telemetryData.core_platform_arch;
   telemetryData.core_deployment = telemetryData.core_deployment || "node";
+  telemetryData.dist_deployment = telemetryData.dist_deployment || telemetryData.core_deployment;
   telemetryData.core_deployment_version =
     telemetryData.core_deployment_version || process.version;
+  telemetryData.dist_deployment_version = telemetryData.dist_deployment_version || telemetryData.core_deployment_version;
   const distinctId = config?.telemetry?.userId || "anonymous";
 
   // parse results to assemble flat list of properties for runTests and runCoverage actions
