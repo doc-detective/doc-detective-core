@@ -3,10 +3,19 @@ const { setFiles, parseTests, log } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { getSuggestions } = require("./suggest");
+const { telemetryNotice, sendTelemetry } = require("./telem");
 
 exports.runTests = runTests;
 exports.runCoverage = runCoverage;
 exports.suggestTests = suggestTests;
+
+const supportMessage = `
+##########################################################################
+# Thanks for using Doc Detective! If this project was helpful to you,    #
+# please consider starring the repo on GitHub or sponsoring the project: #
+# - GitHub Sponsors: https://github.com/sponsors/doc-detective           #
+# - Open Collective: https://opencollective.com/doc-detective            #
+##########################################################################`;
 
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
@@ -14,6 +23,9 @@ async function runTests(config) {
   config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
+
+  // Telemetry notice
+  telemetryNotice(config);
 
   // Set files
   const files = setFiles(config);
@@ -31,6 +43,10 @@ async function runTests(config) {
   log(config, "info", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
 
+  // Send telemetry
+  sendTelemetry(config, "runTests", results);
+  log(config, "info", supportMessage);
+
   return results;
 }
 
@@ -40,6 +56,9 @@ async function runCoverage(config) {
   config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
+
+  // Telemetry notice
+  telemetryNotice(config);
 
   // Set files
   const files = setFiles(config);
@@ -53,6 +72,10 @@ async function runCoverage(config) {
   const markupCoverage = checkMarkupCoverage(config, testCoverage);
   log(config, "debug", "MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
+
+  // Send telemetry
+  sendTelemetry(config, "runCoverage", markupCoverage);
+  log(config, "info", supportMessage);
 
   return markupCoverage;
 }
