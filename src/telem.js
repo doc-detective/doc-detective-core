@@ -11,15 +11,18 @@ const platformMap = {
 // TODO: Add link to docs
 function telemetryNotice(config) {
   if (config?.telemetry?.send === false) {
-    log(config, "info",
+    log(
+      config,
+      "info",
       "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
     );
   } else {
-    log(config, "info",
+    log(
+      config,
+      "info",
       "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
     );
   }
-
 }
 
 // meta = {
@@ -49,13 +52,33 @@ function sendTelemetry(config, command, results) {
       : {};
   const package = require("../package.json");
   telemetryData.core_version = package.version;
-  telemetryData.core_platform = os.platform();
+  telemetryData.core_platform = platformMap[os.platform()];
   telemetryData.core_platform_version = os.release();
   telemetryData.core_platform_arch = os.arch();
   telemetryData.core_deployment = telemetryData.core_deployment || "node";
   telemetryData.core_deployment_version =
     telemetryData.core_deployment_version || process.version;
   const distinctId = config?.telemetry?.userId || "anonymous";
+
+  // parse results to assemble flat list of properties for runTests and runCoverage actions
+  if (command === "runTests" || command === "runCoverage") {
+    // Get summary data
+    Object.entries(results.summary).forEach(([parentKey, value]) => {
+      if (typeof value === "object") {
+        Object.entries(value).forEach(([key, value]) => {
+          if (typeof value === "object") {
+            Object.entries(value).forEach(([key2, value2]) => {
+              telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}_${key2.replace(" ","_")}`] = value2;
+            });
+          } else {
+            telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}`] = value;
+          }
+        });
+      } else {
+        telemetryData[parentKey.replace(" ","_")] = value;
+      }
+    });
+  }
 
   const event = { distinctId, event: command, properties: telemetryData };
 
