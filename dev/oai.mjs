@@ -5,13 +5,14 @@ const openai = new OpenAI({
   apiKey: process.env['OPENAI_API_KEY'], // This is the default and can be omitted
 });
 
-async function main() {
+async function main(string) {
   const chatCompletion = await openai.chat.completions.create({
+    temperature: 0,
     messages: [
       {
         role: "user",
         content:
-          "Evaluate the following string, which is part of a procedure, and identify each action that the string instructs the user to complete. Adapt the following string to a Doc Detective test: Go to [Google](www.google.com). Type 'American shorthair kittens', then press Enter.",
+          `Evaluate the following portion of a procedure, identify each instruction, and adapt each instruction to a step in a Doc Detective test:\n${string}`,
       },
     ],
     model: "gpt-3.5-turbo",
@@ -23,8 +24,8 @@ async function main() {
       },
     ],
   });
-  console.log(chatCompletion.choices[0].message.function_call.arguments);
   console.log(JSON.parse(chatCompletion.choices[0].message.function_call.arguments));
+  console.log(JSON.stringify(JSON.parse(chatCompletion.choices[0].message.function_call.arguments), null, 2));
 }
 
-main();
+main("Go to [Google](www.google.com). In the search bar, type 'American shorthair kittens', then press Enter.");
