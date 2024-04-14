@@ -20,7 +20,7 @@ async function main(string) {
       {
         name: "test",
         description: "A Doc Detective test to validate procedure content.",
-        parameters: { type: "object", properties: schemas.test_v2.properties },
+        parameters: { type: "object", properties: schemas.spec_v2.properties },
       },
     ],
   });
