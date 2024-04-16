@@ -29,8 +29,8 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@puppeteer/browsers": "^2.2.2",
-    "appium": "^2.5.2",
-    "appium-chromium-driver": "1.2.68",
+    "appium": "^2.5.3",
+    "appium-chromium-driver": "1.3.24",
     "appium-geckodriver": "^1.3.3",
     "appium-safari-driver": "^3.5.12",
     "axios": "^1.6.8",
