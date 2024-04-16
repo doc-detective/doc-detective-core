@@ -33,23 +33,10 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/runShell.spec.json",
+      input: "dev/dev.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
-      contexts: [
-        {
-          app: {
-            name: "edge",
-            options: {
-              height: 900,
-              width: 1300,
-              headless: false,
-            },
-          },
-          platforms: ["linux", "mac", "windows"],
-        },
-      ],
       recursive: true,
       mediaDirectory: ".",
       downloadDirectory: ".",
