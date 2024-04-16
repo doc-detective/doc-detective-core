@@ -187,9 +187,11 @@ function getDefaultContexts(config) {
     });
   }
   // If no contexts are defined in config, or if none are supported, use fallback strategy
+  // Select the first available app, in the following order: Firefox, Chrome, Safari, Edge
   if (contexts.length === 0) {
-    const fallback = ["chromium", "chrome", "firefox", "safari"];
+    const fallback = ["firefox", "chrome", "safari", "edge"];
     for (const browser of fallback) {
+      if (contexts.length != 0) continue;
       const app = apps.find((app) => app.name === browser);
       if (app) {
         contexts.push({
