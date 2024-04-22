@@ -90,7 +90,7 @@ function getDriverCapabilities(config, name, options) {
         } else {
           chromiumPlatform = config.environment.platform;
         }
-        browserName = name === "edge" ? "msedge" : "Chromium";
+        browserName = name === "edge" ? "MicrosoftEdge" : "chrome";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
