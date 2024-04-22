@@ -89,10 +89,10 @@ function isValidSourceFile(config, files, source) {
     }
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
-      log(config, "debug", validation);
+      log(config, "warning", validation);
       log(
         config,
-        "debug",
+        "warning",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;
@@ -163,10 +163,10 @@ function parseTests(config, files) {
       }
       const validation = validate("spec_v2", content);
       if (!validation.valid) {
-        log(config, "debug", validation);
+        log(config, "warning", validation);
         log(
           config,
-          "debug",
+          "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
         return false;
