@@ -85,11 +85,6 @@ function getDriverCapabilities(config, name, options) {
         const chromium = config.environment.apps.find((app) => app.name === name);
         if (!chromium) break;
         
-        if (config.environment.platform === "mac") {
-          chromiumPlatform = "macOS";
-        } else {
-          chromiumPlatform = config.environment.platform;
-        }
         browserName = name === "edge" ? "MicrosoftEdge" : "chrome";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
@@ -98,7 +93,7 @@ function getDriverCapabilities(config, name, options) {
         if (options.headless) args.push("--headless", "--disable-gpu");
         // Set capabilities
         capabilities = {
-          platformName: chromiumPlatform,
+          platformName: config.environment.platform,
           "appium:automationName": "Chromium",
           "appium:executable": options.driverPath || chromium.driver,
           browserName,
