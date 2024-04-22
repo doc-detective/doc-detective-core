@@ -105,17 +105,11 @@ async function installBrowsers() {
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
 async function installAppiumDepencencies() {
-  if (__dirname.includes("node_modules") ) {
-    // If running from node_modules
-    appiumPath = path.join(__dirname, "../../appium");
-  } else {
-    appiumPath = path.join(__dirname, "../node_modules/appium");
-  }
   // Install appium dependencies
   try {
     console.log("Installing Chrome/Edge driver");
     chromiumInstall = await spawnCommand(
-      `node ${appiumPath} driver install chromium`
+      `npx appium driver install chromium`
     );
   } catch (e) {
     console.log("Chrome/Edge driver not available.");
@@ -123,7 +117,7 @@ async function installAppiumDepencencies() {
   try {
     console.log("Installing Firefox driver");
     geckoInstall = await spawnCommand(
-      `node ${appiumPath} driver install gecko`
+      `npx appium driver install gecko`
     );
   } catch (e) {
     console.log("Firefox driver not available.");
@@ -133,7 +127,7 @@ async function installAppiumDepencencies() {
     try {
       console.log("Installing Safari driver");
       safariInstall = await spawnCommand(
-        `node ${appiumPath} driver install safari`
+        `npx appium driver install safari`
       );
     } catch (e) {
       console.log("Safari driver not available.");

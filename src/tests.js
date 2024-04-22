@@ -90,7 +90,7 @@ function getDriverCapabilities(config, name, options) {
         } else {
           chromiumPlatform = config.environment.platform;
         }
-        browserName = name === "edge" ? "msedge" : "Chromium";
+        browserName = name === "edge" ? "MicrosoftEdge" : "chrome";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
@@ -247,20 +247,7 @@ async function runSpecs(config, specs) {
   // Warm up Appium
   if (appiumRequired) {
     // Start Appium server
-    if (__dirname.includes("node_modules")) {
-      // If running from node_modules
-      appiumPath = path.join(__dirname, "../../appium");
-      appium = spawn("node", [appiumPath]);
-    } else {
-      // If running from source
-      // If Windows, run Appium server with Windows-specific command
-      if (platform === "windows") {
-        appiumPath = path.join(__dirname, "../node_modules/appium");
-        appium = spawn("node", [appiumPath]);
-      } else {
-        appium = spawn("npm", ["run", "appium"]);
-      }
-    }
+    appium = spawn("npx", ["appium"], { shell: true, windowsHide: true});
     appium.stdout.on("data", (data) => {
       //   console.log(`stdout: ${data}`);
     });
