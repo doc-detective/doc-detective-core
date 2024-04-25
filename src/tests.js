@@ -242,7 +242,7 @@ async function runSpecs(config, specs) {
   // Warm up Appium
   if (appiumRequired) {
     // Start Appium server
-    appium = spawn("npx", ["appium"], { shell: true, windowsHide: true});
+    appium = spawn("npx", ["appium"], { shell: true, windowsHide: true, cwd: path.join(__dirname, "..")});
     appium.stdout.on("data", (data) => {
       //   console.log(`stdout: ${data}`);
     });

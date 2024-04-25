@@ -105,20 +105,19 @@ async function installBrowsers() {
 
 // Run `appium` to install the Gecko driver, Chromium driver, and image plugin.
 async function installAppiumDepencencies() {
+  // Move to doc-detective-core directory to correctly set browser snapshot directory
+  cwd = process.cwd();
+  process.chdir(path.join(__dirname, ".."));
   // Install appium dependencies
   try {
     console.log("Installing Chrome/Edge driver");
-    chromiumInstall = await spawnCommand(
-      `npx appium driver install chromium`
-    );
+    chromiumInstall = await spawnCommand(`npx appium driver install chromium`);
   } catch (e) {
     console.log("Chrome/Edge driver not available.");
   }
   try {
     console.log("Installing Firefox driver");
-    geckoInstall = await spawnCommand(
-      `npx appium driver install gecko`
-    );
+    geckoInstall = await spawnCommand(`npx appium driver install gecko`);
   } catch (e) {
     console.log("Firefox driver not available.");
   }
@@ -126,11 +125,11 @@ async function installAppiumDepencencies() {
   if (process.platform == "darwin") {
     try {
       console.log("Installing Safari driver");
-      safariInstall = await spawnCommand(
-        `npx appium driver install safari`
-      );
+      safariInstall = await spawnCommand(`npx appium driver install safari`);
     } catch (e) {
       console.log("Safari driver not available.");
     }
   }
+  // Move back to original directory
+  process.chdir(cwd);
 }
