@@ -1,10 +1,10 @@
 {
   "name": "doc-detective-core",
-  "version": "2.11.3-rc.1",
+  "version": "2.11.3-rc.2",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
-    "postinstall": "node scripts/postinstall.js",
+    "postinstall": "node ./src/install.js",
     "test": "mocha test/*.test.js",
     "appium": "appium",
     "depcheck": "depcheck",

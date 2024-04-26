@@ -1,8 +1,7 @@
 {
-  "id": "Simple",
   "tests": [
     {
-      "id": "simple",
+      "contexts": [{"app": {"name": "chrome"},"platforms":["windows","mac","linux"]}],
       "steps": [
         {
           "action": "goTo",

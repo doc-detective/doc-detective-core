@@ -4,6 +4,7 @@ const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { getSuggestions } = require("./suggest");
 const { telemetryNotice, sendTelemetry } = require("./telem");
+const { installBrowsers, installAppiumDepencencies } = require("./deps");
 
 exports.runTests = runTests;
 exports.runCoverage = runCoverage;
@@ -23,6 +24,9 @@ async function runTests(config) {
   config = await setConfig(config);
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
+
+  // Install dependencies
+  await installDeps(config);
 
   // Telemetry notice
   telemetryNotice(config);
@@ -91,4 +95,21 @@ async function suggestTests(config) {
   log(config, "debug", suggestionReport);
 
   return suggestionReport;
+}
+
+// Install internal dependencies
+async function installDeps(config) {
+  // Check if browsers are installed
+  try {
+    await installBrowsers(config);
+  } catch (e) {
+    console.log("Error installing browsers.");
+  }
+
+  // Check if Appium dependencies are installed
+  try {
+    await installAppiumDepencencies(config);
+  } catch (e) {
+    console.log("Error installing Appium dependencies.");
+  }
 }

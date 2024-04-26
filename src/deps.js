@@ -1,15 +1,13 @@
 const path = require("path");
-const { spawnCommand } = require("../src/utils");
+const { spawnCommand, log } = require("./utils");
 const browsers = require("@puppeteer/browsers");
 const geckodriver = require("geckodriver");
 const edgedriver = require("edgedriver");
 
-async function main() {
-  await installBrowsers();
-  await installAppiumDepencencies();
-}
+exports.installBrowsers = installBrowsers;
+exports.installAppiumDepencencies = installAppiumDepencencies;
 
-main();
+// TODO: Make logging responsive to config
 
 async function installBrowsers() {
   // Move to doc-detective-core directory to correctly set browser snapshot directory
@@ -22,7 +20,7 @@ async function installBrowsers() {
 
   // Install Chrome
   try {
-    console.log("Installing Chrome browser");
+    console.log("Checking Chrome browser");
     let browser = "chrome";
     buildId = await browsers.resolveBuildId(
       browser,
@@ -40,7 +38,7 @@ async function installBrowsers() {
 
   // Install Firefox
   try {
-    console.log("Installing Firefox browser");
+    console.log("Checking Firefox browser");
     browser = "firefox";
     buildId = await browsers.resolveBuildId(
       browser,
@@ -58,7 +56,7 @@ async function installBrowsers() {
 
   // Install ChromeDriver
   try {
-    console.log("Installing ChromeDriver binary");
+    console.log("Checking ChromeDriver binary");
     browser = "chromedriver";
     buildId = await browsers.resolveBuildId(
       browser,
@@ -76,7 +74,7 @@ async function installBrowsers() {
 
   // Install EdgeDriver
   try {
-    console.log("Installing EdgeDriver binary");
+    console.log("Checking EdgeDriver binary");
     const edgeDriverPath = await edgedriver.download();
   } catch (e) {
     console.log("Edge browser not available.");
@@ -84,7 +82,7 @@ async function installBrowsers() {
 
   // Install Geckodriver
   try {
-    console.log("Installing Geckodriver binary");
+    console.log("Checking Geckodriver binary");
     if (__dirname.includes("AppData\\Roaming\\")) {
       // Running from global install on Windows
       binPath = path.join(__dirname.split("node_modules")[0]);
@@ -110,13 +108,13 @@ async function installAppiumDepencencies() {
   process.chdir(path.join(__dirname, ".."));
   // Install appium dependencies
   try {
-    console.log("Installing Chrome/Edge driver");
+    console.log("Checking Chrome/Edge driver");
     chromiumInstall = await spawnCommand(`npx appium driver install chromium`);
   } catch (e) {
     console.log("Chrome/Edge driver not available.");
   }
   try {
-    console.log("Installing Firefox driver");
+    console.log("Checking Firefox driver");
     geckoInstall = await spawnCommand(`npx appium driver install gecko`);
   } catch (e) {
     console.log("Firefox driver not available.");
@@ -124,7 +122,7 @@ async function installAppiumDepencencies() {
   // macOS-only
   if (process.platform == "darwin") {
     try {
-      console.log("Installing Safari driver");
+      console.log("Checking Safari driver");
       safariInstall = await spawnCommand(`npx appium driver install safari`);
     } catch (e) {
       console.log("Safari driver not available.");
