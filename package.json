@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.11.3-rc.1",
+  "version": "2.11.3-rc.4",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -36,8 +36,8 @@
     "axios": "^1.6.8",
     "doc-detective-common": "^1.15.0",
     "dotenv": "^16.4.5",
-    "edgedriver": "^5.3.10",
-    "geckodriver": "^4.3.3",
+    "edgedriver": "^5.4.0",
+    "geckodriver": "^4.4.0",
     "node-jq": "^4.3.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
