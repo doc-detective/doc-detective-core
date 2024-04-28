@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.11.3-rc.4",
+  "version": "2.11.3",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
