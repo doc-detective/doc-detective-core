@@ -1,4 +1,7 @@
 const fs = require("fs");
+const os = require("os");
+const crypto = require("crypto");
+const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
@@ -13,9 +16,49 @@ exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
+exports.cleanTemp = cleanTemp;
+
+// Delete all contents of doc-detective temp directory
+function cleanTemp() {
+  const tempDir = `${os.tmpdir}/doc-detective`;
+  if (fs.existsSync(tempDir)) {
+    fs.readdirSync(tempDir).forEach((file) => {
+      const curPath = `${tempDir}/${file}`;
+      fs.unlinkSync(curPath);
+    });
+  }
+}
+
+// Fetch a file from a URL and save to a temp directory
+// If the file is not JSON, return the contents as a string
+// If the file is not found, return an error
+async function fetchFile(fileURL) {
+  try {
+    const response = await axios.get(fileURL);
+    if (typeof response.data === "object") {
+      response.data = JSON.stringify(response.data, null, 2);
+    } else {
+      response.data = response.data.toString();
+    }
+    const fileName = fileURL.split("/").pop();
+    const hash = crypto.createHash("md5").update(response.data).digest("hex");
+    const filePath = `${os.tmpdir}/doc-detective/${hash}_${fileName}`;
+    // If doc-detective temp directory doesn't exist, create it
+    if (!fs.existsSync(`${os.tmpdir}/doc-detective`)) {
+      fs.mkdirSync(`${os.tmpdir}/doc-detective`);
+    }
+    // If file doesn't exist, write it
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, response.data);
+    }
+    return { result: "success", path: filePath };
+  } catch (error) {
+    return { result: "error", message: error };
+  }
+}
 
 // Set array of test files
-function setFiles(config) {
+async function setFiles(config) {
   let dirs = [];
   let files = [];
   let sequence = [];
@@ -28,9 +71,19 @@ function setFiles(config) {
   const cleanup = config.runTests.cleanup;
   if (cleanup) sequence = sequence.concat(cleanup);
 
-  for (const source of sequence) {
+  for (let source of sequence) {
     // Check if file or directory
     log(config, "debug", `source: ${source}`);
+    let isURL = source.startsWith("http");
+    // If URL, fetch file and place in temp directory
+    if (isURL) {
+      const fetch = await fetchFile(source);
+      if (fetch.result === "error") {
+        log(config, "warning", fetch.message);
+        continue;
+      }
+      source = fetch.path;
+    }
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -469,7 +522,10 @@ function loadEnvs(stringOrObject) {
       if (value) {
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
-          if (match.length === stringOrObject.length && typeof JSON.parse(stringOrObject) === "object") {
+          if (
+            match.length === stringOrObject.length &&
+            typeof JSON.parse(stringOrObject) === "object"
+          ) {
             value = JSON.parse(value);
           }
         } catch {}
