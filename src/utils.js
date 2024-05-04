@@ -359,7 +359,11 @@ function parseTests(config, files) {
           fileType.markup.forEach((markup) => {
             // Test for markup
             regex = new RegExp(markup.regex, "g");
-            matches = line.match(regex);
+            const matches = [];
+            markup.regex.forEach((regex) => {
+              const match = line.match(regex);
+              if (match) matches.push(...match);
+            });
             if (!matches) return false;
             action = markup.actions[0];
             log(config, "debug", `markup: ${markup.name}`);
