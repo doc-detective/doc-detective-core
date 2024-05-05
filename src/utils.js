@@ -6,6 +6,7 @@ const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate } = require("doc-detective-common");
+const { match } = require("assert");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -362,43 +363,85 @@ function parseTests(config, files) {
             const matches = [];
             markup.regex.forEach((regex) => {
               const match = line.match(regex);
-              if (match) matches.push(...match);
+              if (match) matches.push(match);
             });
+            // If no matches, skip
             if (!matches) return false;
-            action = markup.actions[0];
+
             log(config, "debug", `markup: ${markup.name}`);
-            log(config, "debug", `action: ${JSON.stringify(action, null, 2)}`);
-            // If `action` is string, convert to object
-            if (typeof action === "string") {
-              action = { name: action };
-            }
+
+            const actionMap = {
+              checkLink: {
+                action: "checkLink",
+                url: "$1",
+              },
+              goTo: {
+                action: "goTo",
+                url: "$1",
+              },
+              find: {
+                action: "find",
+                selector: "aria/$1",
+              },
+              saveScreenshot: {
+                action: "saveScreenshot",
+                path: "$1",
+              },
+              startRecording: {
+                action: "startRecording",
+                path: "$1",
+              },
+              httpRequest: {
+                action: "httpRequest",
+                url: "$1",
+              },
+              runShell: {
+                action: "runShell",
+                command: "$1",
+              },
+              typeKeys: {
+                action: "typeKeys",
+                keys: "$1",
+              },
+            };
+
             matches.forEach((match) => {
-              step = { action: action.name, ...action.params };
-              log(config, "debug", `match: ${match}`);
-              step.index = line.indexOf(match);
-              log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+              log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
 
-              // Per action `match` insertion
-              switch (step.action) {
-                case "find":
-                  step.selector = `aria/${match}`;
-                  break;
-                case "goTo":
-                case "checkLink":
-                  step.url = match;
-                  break;
-                case "typeKeys":
-                  step.keys = match;
-                  break;
-                case "saveScreenshot":
-                  step.path = match;
-                  break;
-                default:
-                  break;
+              // If `match` doesn't have a capture group, set it to the entire match
+              if (match.length === 1) {
+                match[1] = match[0];
               }
+              markup.actions.forEach((action) => {
+                let step = {};
+                if (typeof action === "string") {
+                  step = actionMap[action];
+                } else if (action.name) {
+                  // TODO v3: Remove this block
+                  if (action.params) {
+                    step = { action: action.name, ...action.params};
+                  } else {
+                    step = { action: action.name };
+                  }
+                } else {
+                  step = action;
+                }
+                step.index = match.index;
+                // Substitute variables $n with match[n]
+                Object.keys(step).forEach((key) => {
+                  // Replace $n with match[n]
+                  step[key] = step[key].replace(/\$[0-9]+/g, (match) => {
+                    //  Replace $n with match[n]
+                    return match.replace(/\$([0-9]+)/, (match, number) => {
+                      // If match is a number, return match[number]
+                      return match.replace(match, match[number]);
+                    });
+                  });
+                });
 
-              // Push to steps
-              steps.push(step);
+                log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+                steps.push(step);
+              });
             });
           });
           log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
