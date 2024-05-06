@@ -429,13 +429,11 @@ function parseTests(config, files) {
                 step.index = match.index;
                 // Substitute variables $n with match[n]
                 Object.keys(step).forEach((key) => {
+                  if (typeof step[key] !== "string") return;
                   // Replace $n with match[n]
-                  step[key] = step[key].replace(/\$[0-9]+/g, (match) => {
-                    //  Replace $n with match[n]
-                    return match.replace(/\$([0-9]+)/, (match, number) => {
-                      // If match is a number, return match[number]
-                      return match.replace(match, match[number]);
-                    });
+                  step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
+                    const index = stepMatch.substring(1);
+                    return match[index];
                   });
                 });
 
