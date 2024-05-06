@@ -362,12 +362,11 @@ function parseTests(config, files) {
             regex = new RegExp(markup.regex, "g");
             const matches = [];
             markup.regex.forEach((regex) => {
-              const match = line.match(regex);
-              if (match) matches.push(match);
+              const match = line.matchAll(regex);
+              if (match) matches.push(...match);
             });
             // If no matches, skip
-            if (!matches) return false;
-
+            if (matches.length === 0) return false;
             log(config, "debug", `markup: ${markup.name}`);
 
             const actionMap = {
@@ -415,7 +414,7 @@ function parseTests(config, files) {
               markup.actions.forEach((action) => {
                 let step = {};
                 if (typeof action === "string") {
-                  step = actionMap[action];
+                  step = JSON.parse(JSON.stringify(actionMap[action]));
                 } else if (action.name) {
                   // TODO v3: Remove this block
                   if (action.params) {
