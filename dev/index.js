@@ -85,9 +85,7 @@ async function main() {
           },
           {
             name: "Navigation link",
-            regex: [
-              "(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))",
-            ],
+            regex: ["(?:[Oo]pen|[Cc]lick)\\s+\\[.+?\\]\\((.*?)\\)"],
             actions: ["goTo"],
           },
           {
@@ -100,12 +98,10 @@ async function main() {
             regex: ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
             actions: [
               {
-                name: "saveScreenshot",
-                params: {
-                  directory: ".",
-                  maxVariation: 5,
-                  overwrite: "byVariation",
-                },
+                action: "saveScreenshot",
+                directory: ".",
+                maxVariation: 5,
+                overwrite: "byVariation",
               },
             ],
           },

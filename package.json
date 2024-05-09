@@ -34,7 +34,7 @@
     "appium-geckodriver": "^1.3.3",
     "appium-safari-driver": "^3.5.12",
     "axios": "^1.6.8",
-    "doc-detective-common": "^1.15.0",
+    "doc-detective-common": "1.16.0-rc.1",
     "dotenv": "^16.4.5",
     "edgedriver": "^5.4.0",
     "geckodriver": "^4.4.0",
