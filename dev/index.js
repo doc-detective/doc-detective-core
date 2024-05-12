@@ -80,22 +80,24 @@ async function main() {
         markup: [
           {
             name: "Hyperlink",
-            regex: ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+            regex: ["(?<!!)\\[.+?\\]\\(.+?\\)"],
             actions: ["checkLink"],
           },
           {
             name: "Navigation link",
-            regex: ["(?:[Oo]pen|[Cc]lick)\\s+\\[.+?\\]\\((.*?)\\)"],
+            regex: [
+              "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)",
+            ],
             actions: ["goTo"],
           },
           {
             name: "Onscreen text",
-            regex: ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
+            regex: ["\\*\\*.+?\\*\\*"],
             actions: ["find"],
           },
           {
             name: "Image",
-            regex: ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+            regex: ["!\\[.+?\\]\\(.+?\\)"],
             actions: [
               {
                 action: "saveScreenshot",
