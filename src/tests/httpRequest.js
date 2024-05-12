@@ -94,11 +94,13 @@ async function httpRequest(config, step) {
         output: "compact",
       });
       if (value) {
+        // Trim quotes if present
+        value = value.replace(/^"(.*)"$/, "$1");
         process.env[variable.name] = value;
         result.description =
           result.description + ` Set '$${variable.name}' environment variable.`;
       } else {
-        if (status != "FAIL") status = "WARNING";
+        if (result.status != "FAIL") result.status = "WARNING";
         result.description =
           result.description +
           ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;

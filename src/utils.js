@@ -1,22 +1,65 @@
 const fs = require("fs");
+const os = require("os");
+const crypto = require("crypto");
+const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate } = require("doc-detective-common");
+const { match } = require("assert");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
-exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
+exports.cleanTemp = cleanTemp;
+
+// Delete all contents of doc-detective temp directory
+function cleanTemp() {
+  const tempDir = `${os.tmpdir}/doc-detective`;
+  if (fs.existsSync(tempDir)) {
+    fs.readdirSync(tempDir).forEach((file) => {
+      const curPath = `${tempDir}/${file}`;
+      fs.unlinkSync(curPath);
+    });
+  }
+}
+
+// Fetch a file from a URL and save to a temp directory
+// If the file is not JSON, return the contents as a string
+// If the file is not found, return an error
+async function fetchFile(fileURL) {
+  try {
+    const response = await axios.get(fileURL);
+    if (typeof response.data === "object") {
+      response.data = JSON.stringify(response.data, null, 2);
+    } else {
+      response.data = response.data.toString();
+    }
+    const fileName = fileURL.split("/").pop();
+    const hash = crypto.createHash("md5").update(response.data).digest("hex");
+    const filePath = `${os.tmpdir}/doc-detective/${hash}_${fileName}`;
+    // If doc-detective temp directory doesn't exist, create it
+    if (!fs.existsSync(`${os.tmpdir}/doc-detective`)) {
+      fs.mkdirSync(`${os.tmpdir}/doc-detective`);
+    }
+    // If file doesn't exist, write it
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, response.data);
+    }
+    return { result: "success", path: filePath };
+  } catch (error) {
+    return { result: "error", message: error };
+  }
+}
 
 // Set array of test files
-function setFiles(config) {
+async function setFiles(config) {
   let dirs = [];
   let files = [];
   let sequence = [];
@@ -29,9 +72,19 @@ function setFiles(config) {
   const cleanup = config.runTests.cleanup;
   if (cleanup) sequence = sequence.concat(cleanup);
 
-  for (const source of sequence) {
+  for (let source of sequence) {
     // Check if file or directory
     log(config, "debug", `source: ${source}`);
+    let isURL = source.startsWith("http");
+    // If URL, fetch file and place in temp directory
+    if (isURL) {
+      const fetch = await fetchFile(source);
+      if (fetch.result === "error") {
+        log(config, "warning", fetch.message);
+        continue;
+      }
+      source = fetch.path;
+    }
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -90,10 +143,10 @@ function isValidSourceFile(config, files, source) {
     }
     const validation = validate("spec_v2", json);
     if (!validation.valid) {
-      log(config, "debug", validation);
+      log(config, "warning", validation);
       log(
         config,
-        "debug",
+        "warning",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;
@@ -164,10 +217,10 @@ function parseTests(config, files) {
       }
       const validation = validate("spec_v2", content);
       if (!validation.valid) {
-        log(config, "debug", validation);
+        log(config, "warning", validation);
         log(
           config,
-          "debug",
+          "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
         return false;
@@ -216,10 +269,19 @@ function parseTests(config, files) {
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
             // Load setup steps
-            const setupContent = fs.readFileSync(statementJson.setup).toString();
+            const setupContent = fs
+              .readFileSync(statementJson.setup)
+              .toString();
             const setup = JSON.parse(setupContent);
-            if (setup && setup.tests && setup.tests[0] && setup.tests[0].steps) {
-              statementJson.steps = setup.tests[0].steps.concat(statementJson.steps);
+            if (
+              setup &&
+              setup.tests &&
+              setup.tests[0] &&
+              setup.tests[0].steps
+            ) {
+              statementJson.steps = setup.tests[0].steps.concat(
+                statementJson.steps
+              );
             } else {
               console.error("Setup file does not contain valid steps.");
             }
@@ -298,42 +360,85 @@ function parseTests(config, files) {
           fileType.markup.forEach((markup) => {
             // Test for markup
             regex = new RegExp(markup.regex, "g");
-            matches = line.match(regex);
-            if (!matches) return false;
-            action = markup.actions[0];
+            const matches = [];
+            markup.regex.forEach((regex) => {
+              const match = line.matchAll(regex);
+              if (match) matches.push(...match);
+            });
+            // If no matches, skip
+            if (matches.length === 0) return false;
             log(config, "debug", `markup: ${markup.name}`);
-            log(config, "debug", `action: ${JSON.stringify(action, null, 2)}`);
-            // If `action` is string, convert to object
-            if (typeof action === "string") {
-              action = { name: action };
-            }
+
+            const actionMap = {
+              checkLink: {
+                action: "checkLink",
+                url: "$1",
+              },
+              goTo: {
+                action: "goTo",
+                url: "$1",
+              },
+              find: {
+                action: "find",
+                selector: "aria/$1",
+              },
+              saveScreenshot: {
+                action: "saveScreenshot",
+                path: "$1",
+              },
+              startRecording: {
+                action: "startRecording",
+                path: "$1",
+              },
+              httpRequest: {
+                action: "httpRequest",
+                url: "$1",
+              },
+              runShell: {
+                action: "runShell",
+                command: "$1",
+              },
+              typeKeys: {
+                action: "typeKeys",
+                keys: "$1",
+              },
+            };
+
             matches.forEach((match) => {
-              step = { action: action.name, ...action.params };
-              log(config, "debug", `match: ${match}`);
-              step.index = line.indexOf(match);
-              log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+              log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
 
-              // Per action `match` insertion
-              switch (step.action) {
-                case "find":
-                  step.selector = `aria/${match}`;
-                  break;
-                case "goTo":
-                case "checkLink":
-                  step.url = match;
-                  break;
-                case "typeKeys":
-                  step.keys = match;
-                  break;
-                case "saveScreenshot":
-                  step.path = match;
-                  break;
-                default:
-                  break;
+              // If `match` doesn't have a capture group, set it to the entire match
+              if (match.length === 1) {
+                match[1] = match[0];
               }
+              markup.actions.forEach((action) => {
+                let step = {};
+                if (typeof action === "string") {
+                  step = JSON.parse(JSON.stringify(actionMap[action]));
+                } else if (action.name) {
+                  // TODO v3: Remove this block
+                  if (action.params) {
+                    step = { action: action.name, ...action.params};
+                  } else {
+                    step = { action: action.name };
+                  }
+                } else {
+                  step = action;
+                }
+                step.index = match.index;
+                // Substitute variables $n with match[n]
+                Object.keys(step).forEach((key) => {
+                  if (typeof step[key] !== "string") return;
+                  // Replace $n with match[n]
+                  step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
+                    const index = stepMatch.substring(1);
+                    return match[index];
+                  });
+                });
 
-              // Push to steps
-              steps.push(step);
+                log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+                steps.push(step);
+              });
             });
           });
           log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
@@ -442,59 +547,46 @@ async function log(config, level, message) {
 
 function loadEnvs(stringOrObject) {
   if (!stringOrObject) return stringOrObject;
-  // Try to convert string to object
-  try {
-    if (
-      typeof stringOrObject === "string" &&
-      typeof JSON.parse(stringOrObject) === "object"
-    ) {
-      stringOrObject = JSON.parse(stringOrObject);
-    }
-  } catch {}
   if (typeof stringOrObject === "object") {
-    // Load for object
-    stringOrObject = loadEnvsForObject(stringOrObject);
+    // Iterate through object and recursively resolve variables
+    Object.keys(stringOrObject).forEach((key) => {
+      // Resolve all variables in key value
+      stringOrObject[key] = loadEnvs(stringOrObject[key]);
+    });
   } else if (typeof stringOrObject === "string") {
-    // Load for string
-    stringOrObject = loadEnvsForString(stringOrObject);
+    // Load variable from string
+    variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    matches = stringOrObject.match(variableRegex);
+    // If no matches, return string
+    if (!matches) return stringOrObject;
+    // Iterate matches
+    matches.forEach((match) => {
+      // Check if is declared variable
+      value = process.env[match.substring(1)];
+      if (value) {
+        // If match is the entire string instead of just being a substring, try to convert value to object
+        try {
+          if (
+            match.length === stringOrObject.length &&
+            typeof JSON.parse(stringOrObject) === "object"
+          ) {
+            value = JSON.parse(value);
+          }
+        } catch {}
+        // Attempt to load additional variables in value
+        value = loadEnvs(value);
+        // Replace match with variable value
+        if (typeof value === "string") {
+          // Replace match with value. Supports whole- and sub-string matches.
+          stringOrObject = stringOrObject.replace(match, value);
+        } else if (typeof value === "object") {
+          // If value is an object, replace match with object
+          stringOrObject = value;
+        }
+      }
+    });
   }
-  // Try to convert resolved string to object
-  try {
-    if (typeof JSON.parse(stringOrObject) === "object") {
-      stringOrObject = JSON.parse(stringOrObject);
-    }
-  } catch {}
   return stringOrObject;
-}
-
-function loadEnvsForString(string) {
-  // Find all variables
-  variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
-  matches = string.match(variableRegex);
-  // If no matches, return
-  if (!matches) return string;
-  // Iterate matches
-  matches.forEach((match) => {
-    // Check if is declared variable
-    value = process.env[match.substring(1)];
-    if (value) {
-      // If variable value might have a nested variable, recurse to try to resolve
-      if (value.includes("$")) value = loadEnvs(value);
-      // Convert to string in case value was a substring of the greater string
-      if (typeof value === "object") value = JSON.stringify(value);
-      // Replace match with variable value
-      string = string.replace(match, value);
-    }
-  });
-  return string;
-}
-
-function loadEnvsForObject(object) {
-  Object.keys(object).forEach((key) => {
-    // Resolve all variables in key value
-    object[key] = loadEnvs(object[key]);
-  });
-  return object;
 }
 
 function timestamp() {

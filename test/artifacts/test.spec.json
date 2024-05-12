@@ -8,15 +8,6 @@
       "cleanup": "test/artifacts/cleanup.spec.json",
       "steps": [
         {
-          "action": "setVariables",
-          "path": ".env"
-        },
-        {
-          "action": "runShell",
-          "command": "echo",
-          "args": ["$USER"]
-        },
-        {
           "action": "checkLink",
           "url": "https://www.duckduckgo.com"
         },

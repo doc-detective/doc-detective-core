@@ -6,6 +6,7 @@ const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
+const geckodriver = require("geckodriver");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -111,6 +112,7 @@ async function getAvailableApps(config) {
   const installedBrowsers = await browsers.getInstalledBrowsers({
     cacheDir: path.resolve("browser-snapshots"),
   });
+  const installedAppiumDrivers = await spawnCommand("npx appium driver list");
 
   // Detect Chrome
   const chrome = installedBrowsers.find(
@@ -120,8 +122,11 @@ async function getAvailableApps(config) {
   const chromedriver = installedBrowsers.find(
     (browser) => browser.browser === "chromedriver"
   );
+  const appiumChromium = installedAppiumDrivers.stderr.match(
+    /\n.*chromium.*installed \(npm\).*\n/
+  );
 
-  if (chrome) {
+  if (chrome && chromedriver && appiumChromium) {
     apps.push({
       name: "chrome",
       version: chromeVersion,
@@ -134,7 +139,11 @@ async function getAvailableApps(config) {
   const firefox = installedBrowsers.find(
     (browser) => browser.browser === "firefox"
   );
-  if (firefox) {
+  const appiumFirefox = installedAppiumDrivers.stderr.match(
+    /\n.*gecko.*installed \(npm\).*\n/
+  );
+
+  if (firefox && appiumFirefox) {
     apps.push({
       name: "firefox",
       version: firefox.buildId,
@@ -146,7 +155,14 @@ async function getAvailableApps(config) {
   let edgeDriverPath;
   try {
     edgeDriverPath = await edgedriver.download();
-    apps.push({ name: "edge", version: "", path: "", driver: edgeDriverPath });
+    if (edgeDriverPath && appiumChromium) {
+      apps.push({
+        name: "edge",
+        version: "",
+        path: "",
+        driver: edgeDriverPath,
+      });
+    }
   } catch {
     // Edge not available
   }
@@ -156,7 +172,11 @@ async function getAvailableApps(config) {
     const safariVersion = await spawnCommand(
       "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
     );
-    if (safariVersion.exitCode === 0) {
+    const appiumSafari = installedAppiumDrivers.stderr.match(
+      /\n.*safari.*installed \(npm\).*\n/
+    );
+ 
+    if (safariVersion.exitCode === 0 && appiumSafari) {
       apps.push({ name: "safari", version: safariVersion, path: "" });
     }
   }
