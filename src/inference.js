@@ -4,30 +4,37 @@ const { log } = require("./utils");
 
 exports.inferSpec = inferSpec;
 
-inferSpec(
-  { logLevel: "debug" },
-  "Go to [Google](https://www.google.com). In the search bar, type 'American shorthair kittens', then press Enter."
-);
+// inferSpec(
+//   {
+//     logLevel: "debug",
+//     integrations: {
+//       openai: {
+//         apiKey: process.env.OPENAI_API_KEY,
+//       },
+//     },
+//   },
+//   "Go to [Google](https://www.google.com). In the search bar, type 'American shorthair kittens', then press Enter."
+// );
 
 // Create an LLM instance
 function createLlm(config, model) {
   switch (model) {
     case "gpt-4-turbo":
-      log(config, "debug", "Using GPT-4 Turbo.");
+      log(config, "debug", "Using gpt-4-turbo.");
       return new ChatOpenAI({
         model: "gpt-4-turbo",
         temperature: 0.1,
         maxTokens: 128,
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: config.integrations.openai.apiKey || process.env.OPENAI_API_KEY,
       });
     case "gpt-3.5-turbo":
     default:
-      log(config, "debug", "Using GPT-3.5 Turbo.");
+      log(config, "debug", "Using gpt-3.5-turbo.");
       return new ChatOpenAI({
         model: "gpt-3.5-turbo",
         temperature: 0.1,
         maxTokens: 128,
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: config.integrations.openai.apiKey || process.env.OPENAI_API_KEY,
       });
   }
 }
@@ -35,7 +42,7 @@ function createLlm(config, model) {
 // Infer a Doc Detective test from a string
 async function inferSpec(config, string) {
   // Bind function to the model as a tool
-  const chat = createLlm(config).bind({
+  const chat = createLlm(config, "gpt-4-turbo").bind({
     tools: [
       {
         type: "function",
@@ -75,7 +82,6 @@ async function inferSpec(config, string) {
     let spec = JSON.parse(
       res.additional_kwargs.tool_calls[0].function.arguments
     );
-    log(config, "debug", spec);
     let validation = validate("spec_v2", spec);
     if (!validation.valid) {
       log(config, "debug", "Validation errors:");
