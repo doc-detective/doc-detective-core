@@ -60,30 +60,32 @@ async function inferSpec(config, string) {
   ];
 
   // Ask initial question that requires multiple tool calls
-  // const maxAttempts = 5;
-  // for (let i = 0; i < maxAttempts; i++) {
-  //   log(
-  //     config,
-  //     "debug",
-  //     `Inference attempt ${i + 1} of ${maxAttempts}: ${string}`
-  //   );
-  //   if (i >= maxAttempts - 1) {
-  //     log(config, "error", "Failed to infer spec.");
-  //     return null;
-  //   }
-  let res = await chat.invoke(prompt);
-  let spec = JSON.parse(res.additional_kwargs.tool_calls[0].function.arguments);
-  log(config, "debug", spec);
-  let validation = validate("spec_v2", spec);
-  if (!validation.valid) {
-    log(config, "debug", "Validation errors:")
-    log(config, "debug", validation.errors);
-  }
-  if (validation.valid) {
-    log(config, "info", "Inferred spec.");
-    log(config, "debug", "Inferred spec:");
+  const maxAttempts = 5;
+  for (let i = 0; i < maxAttempts; i++) {
+    log(
+      config,
+      "debug",
+      `Inference attempt ${i + 1} of ${maxAttempts}: ${string}`
+    );
+    if (i >= maxAttempts - 1) {
+      log(config, "error", "Failed to infer spec.");
+      return null;
+    }
+    let res = await chat.invoke(prompt);
+    let spec = JSON.parse(
+      res.additional_kwargs.tool_calls[0].function.arguments
+    );
     log(config, "debug", spec);
-    return spec;
+    let validation = validate("spec_v2", spec);
+    if (!validation.valid) {
+      log(config, "debug", "Validation errors:");
+      log(config, "debug", validation.errors);
+    }
+    if (validation.valid) {
+      log(config, "info", "Inferred spec.");
+      log(config, "debug", "Inferred spec:");
+      log(config, "debug", spec);
+      return spec;
+    }
   }
-  // }
 }
