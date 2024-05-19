@@ -15,7 +15,7 @@ async function main(string) {
           `Evaluate the following portion of a procedure, identify each instruction, and adapt each instruction to a step in a Doc Detective test:\n${string}`,
       },
     ],
-    model: "gpt-3.5-turbo",
+    model: "gpt-4-turbo",
     functions: [
       {
         name: "test",
