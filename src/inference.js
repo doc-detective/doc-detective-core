@@ -4,17 +4,17 @@ const { log } = require("./utils");
 
 exports.inferSpec = inferSpec;
 
-inferSpec(
-  {
-    logLevel: "debug",
-    integrations: {
-      openai: {
-        apiKey: process.env.OPENAI_API_KEY,
-      },
-    },
-  },
-  "Go to [Google](www.google.com). In the search bar, type 'American shorthair kittens', then press Enter."
-);
+// inferSpec(
+//   {
+//     logLevel: "debug",
+//     integrations: {
+//       openai: {
+//         apiKey: process.env.OPENAI_API_KEY,
+//       },
+//     },
+//   },
+//   "Go to [Google](www.google.com). In the search bar, type 'American shorthair kittens', then press Enter."
+// );
 
 // Create an LLM instance
 function createLlm(config, model) {
