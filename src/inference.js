@@ -43,7 +43,7 @@ function createLlm(config, model) {
 // Infer a Doc Detective test from a string
 async function inferSpec(config, string) {
   // Bind function to the model as a tool
-  const chat = createLlm(config, "gpt-4-turbo").bind({
+  const chat = createLlm(config, "gpt-3.5-turbo").bind({
     tools: [
       {
         type: "function",
@@ -62,8 +62,12 @@ async function inferSpec(config, string) {
 
   const prompt = [
     [
+      "system",
+      "You are an expert quality assurance engineer. You are tasked with creating a Doc Detective test for a procedure. Doc Detective can check links or go to URLs, find and interact with elements on a page, make HTTP requests, run shell scripts, and more.",
+    ],
+    [
       "human",
-      `Evaluate the following portion of a procedure, identify each instruction, and adapt each instruction to a step in a Doc Detective test:\n${string}`,
+      `Evaluate the following portion of a documentation, and if there are one or more instructions or pieces of markup that map to a Doc Detective step, identify and adapt each instruction or piece of markup to a step in a Doc Detective test:\n${string}`,
     ],
   ];
 
@@ -86,17 +90,17 @@ async function inferSpec(config, string) {
     // If no steps were detected, return null
     if (
       typeof res.additional_kwargs?.tool_calls === "undefined" ||
-      res.additional_kwargs?.tool_calls?.length === 0 ||
-      res.content === "NONE"
+      res.additional_kwargs?.tool_calls?.length === 0
     )
       return null;
-    
+
     let spec;
     try {
-      spec = JSON.parse(res?.tool_calls[0]?.function?.arguments);
+      spec = JSON.parse(res?.additional_kwargs?.tool_calls[0]?.function?.arguments);
     } catch (e) {
       spec = {};
     }
+    console.log(spec)
     let validation = validate("spec_v2", spec);
     if (!validation.valid) {
       log(config, "debug", "Validation errors:");

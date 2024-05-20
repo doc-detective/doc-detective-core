@@ -4,11 +4,11 @@ const uuid = require("uuid");
 const { log, actionMap } = require("./utils");
 const { validate } = require("doc-detective-common");
 const { inferSpec } = require("./inference");
+const { prompt, BooleanPrompt } = require("enquirer");
 
 exports.buildSpecs = buildSpecs;
 
 async function buildSpecs(config, files) {
-  console.log("ping");
   let specs = [];
 
   // Loop through files
@@ -30,6 +30,8 @@ async function buildSpecs(config, files) {
         fileType.extensions.includes(extension)
       );
       for (const line of content) {
+        // If trimmed line is empty, skip
+        if (line.trim() === "") continue;
         // console.log(line);
         if (line.includes(fileType.testStartStatementOpen)) {
           continue;
@@ -105,13 +107,16 @@ async function buildSpecs(config, files) {
             });
           });
 
-          if (steps.length === 0 && (typeof config.integrations?.openai?.apiKey != undefined || process.env.OPENAI_API_KEY)) {
+          if (
+            steps.length === 0 &&
+            (typeof config.integrations?.openai?.apiKey != undefined ||
+              process.env.OPENAI_API_KEY)
+          ) {
             // Infer spec
             log(config, "debug", `Infer spec for line: ${line}`);
             const inferredSpec = await inferSpec(config, line);
             if (inferredSpec) {
-              console.log(inferredSpec);
-              test.steps.push(...inferredSpec.tests[0].steps);
+              steps.push(...inferredSpec.tests[0].steps);
             }
           }
 
@@ -127,11 +132,11 @@ async function buildSpecs(config, files) {
           );
 
           // Pause to review detected/inferred steps
-          console.log('Detected/inferred steps:');
-          console.log(steps)
+          console.log(line);
+          console.log("Detected/inferred steps:");
+          console.log(steps);
           // Sleep for 5 seconds
-          await new Promise(resolve => setTimeout(resolve, 5000));
-
+          await new Promise((resolve) => setTimeout(resolve, 5000));
 
           // Filter out steps that don't pass validation
           steps = steps.filter((step) => {
@@ -146,6 +151,26 @@ async function buildSpecs(config, files) {
             }
             return true;
           });
+
+          // Pause to review and update steps
+          for (let step of steps) {
+            console.log(`Step: ${JSON.stringify(step, null, 2)}`);
+            let response = new Booll await prompt({
+              type: "boolean",
+              name: "update",
+              message: "Would you like to update this step?",
+            });
+
+            if (response.update) {
+              response = await prompt({
+                type: "input",
+                name: "step",
+                message: "Review and modify the step:",
+                initial: JSON.stringify(step, null, 2),
+              });
+              step = JSON.parse(response.step);
+            }
+          }
 
           // Push steps to test
           test.steps.push(...steps);

@@ -67,17 +67,18 @@ async function buildTests(config) {
   log(config, "debug", `FILES:`);
   log(config, "debug", files);
 
+  // Build test specs
   const specs = await buildSpecs(config, files);
   log(config, "debug", `SPECS:`);
   log(config, "debug", specs);
 
-  // // Clean up
-  // cleanTemp();
+  // Clean up
+  cleanTemp();
 
   // // Send telemetry
   // sendTelemetry(config, "buildTests", specs);
 
-  // return specs;
+  return specs;
 }
 
 // Calculate test coverage of doc content.
