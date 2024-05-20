@@ -4,7 +4,7 @@ const uuid = require("uuid");
 const { log, actionMap } = require("./utils");
 const { validate } = require("doc-detective-common");
 const { inferSpec } = require("./inference");
-const { prompt, BooleanPrompt } = require("enquirer");
+const { Confirm, Form, Toggle } = require("enquirer");
 
 exports.buildSpecs = buildSpecs;
 
@@ -155,13 +155,45 @@ async function buildSpecs(config, files) {
           // Pause to review and update steps
           for (let step of steps) {
             console.log(`Step: ${JSON.stringify(step, null, 2)}`);
-            let response = new Booll await prompt({
-              type: "boolean",
-              name: "update",
-              message: "Would you like to update this step?",
-            });
+            const updateBoolean = await new Toggle({
+              message: "Update this step?",
+              enabled: "Yes",
+              disabled: "No",
+              initial: true,
+            }).run();
 
-            if (response.update) {
+            if (updateBoolean) {
+              const choices = [];
+              Object.keys(step).forEach((key) => {
+                choices.push({
+                  name: key,
+                  message: key,
+                  initial: () => {
+                    if (typeof step[key] === "object") {
+                      return JSON.stringify(step[key],null,0).replace(/\n/g, "")
+                    } else {
+                      return step[key]
+                    }
+                  },
+                  result: (value) => {
+                    if (typeof step[key] === "object") {
+                      return JSON.stringify(value, null, 2);
+                    }
+                    return value;
+                  },
+                });
+              });
+              const stepUpdate = await new Form({
+                name: "step",
+                message: "Review and modify the step:",
+                choices: choices,
+              }).run();
+              console.log(`Step: ${JSON.stringify(stepUpdate)}`);
+            }
+
+            process.exit(0);
+
+            if (update) {
               response = await prompt({
                 type: "input",
                 name: "step",
