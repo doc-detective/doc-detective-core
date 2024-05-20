@@ -3,7 +3,6 @@ const { schemas, validate } = require("doc-detective-common");
 const { log } = require("./utils");
 
 exports.inferSpec = inferSpec;
-
 // inferSpec(
 //   {
 //     logLevel: "debug",
@@ -25,7 +24,8 @@ function createLlm(config, model) {
         model: "gpt-4-turbo",
         temperature: 0.1,
         maxTokens: 128,
-        apiKey: config.integrations.openai.apiKey || process.env.OPENAI_API_KEY,
+        apiKey:
+          config?.integrations?.openai?.apiKey || process.env.OPENAI_API_KEY,
       });
     case "gpt-3.5-turbo":
     default:
@@ -34,7 +34,8 @@ function createLlm(config, model) {
         model: "gpt-3.5-turbo",
         temperature: 0.1,
         maxTokens: 128,
-        apiKey: config.integrations.openai.apiKey || process.env.OPENAI_API_KEY,
+        apiKey:
+          config?.integrations?.openai?.apiKey || process.env.OPENAI_API_KEY,
       });
   }
 }
@@ -79,16 +80,31 @@ async function inferSpec(config, string) {
       return null;
     }
     let res = await chat.invoke(prompt);
-    let spec = JSON.parse(
-      res.additional_kwargs.tool_calls[0].function.arguments
-    );
+    log(config, "debug", "Inference response:");
+    log(config, "debug", res);
+
+    // If no steps were detected, return null
+    if (
+      typeof res.additional_kwargs?.tool_calls === "undefined" ||
+      res.additional_kwargs?.tool_calls?.length === 0 ||
+      res.content === "NONE"
+    )
+      return null;
+    
+    let spec;
+    try {
+      spec = JSON.parse(res?.tool_calls[0]?.function?.arguments);
+    } catch (e) {
+      spec = {};
+    }
     let validation = validate("spec_v2", spec);
     if (!validation.valid) {
       log(config, "debug", "Validation errors:");
       log(config, "debug", validation.errors);
       prompt.push([
-        "human", `The last inferred spec returned the following validation errors:\n${validation.errors}`
-      ])
+        "human",
+        `The last inferred spec returned the following validation errors:\n${validation.errors}`,
+      ]);
     }
     if (validation.valid) {
       log(config, "info", "Inferred spec.");

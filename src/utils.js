@@ -6,7 +6,6 @@ const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate } = require("doc-detective-common");
-const { match } = require("assert");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -18,6 +17,44 @@ exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
+
+// Map of actions strings to default objects.
+const actionMap = {
+  checkLink: {
+    action: "checkLink",
+    url: "$1",
+  },
+  goTo: {
+    action: "goTo",
+    url: "$1",
+  },
+  find: {
+    action: "find",
+    selector: "aria/$1",
+  },
+  saveScreenshot: {
+    action: "saveScreenshot",
+    path: "$1",
+  },
+  startRecording: {
+    action: "startRecording",
+    path: "$1",
+  },
+  httpRequest: {
+    action: "httpRequest",
+    url: "$1",
+  },
+  runShell: {
+    action: "runShell",
+    command: "$1",
+  },
+  typeKeys: {
+    action: "typeKeys",
+    keys: "$1",
+  },
+};
+exports.actionMap = actionMap;
+
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
@@ -368,41 +405,6 @@ function parseTests(config, files) {
             // If no matches, skip
             if (matches.length === 0) return false;
             log(config, "debug", `markup: ${markup.name}`);
-
-            const actionMap = {
-              checkLink: {
-                action: "checkLink",
-                url: "$1",
-              },
-              goTo: {
-                action: "goTo",
-                url: "$1",
-              },
-              find: {
-                action: "find",
-                selector: "aria/$1",
-              },
-              saveScreenshot: {
-                action: "saveScreenshot",
-                path: "$1",
-              },
-              startRecording: {
-                action: "startRecording",
-                path: "$1",
-              },
-              httpRequest: {
-                action: "httpRequest",
-                url: "$1",
-              },
-              runShell: {
-                action: "runShell",
-                command: "$1",
-              },
-              typeKeys: {
-                action: "typeKeys",
-                keys: "$1",
-              },
-            };
 
             matches.forEach((match) => {
               log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
