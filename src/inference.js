@@ -67,7 +67,7 @@ async function inferSpec(config, string) {
     ],
     [
       "human",
-      `Evaluate the following portion of a documentation, and if there are one or more instructions or pieces of markup that map to a Doc Detective step, identify and adapt each instruction or piece of markup to a step in a Doc Detective test:\n${string}`,
+      `Evaluate the following portion of a documentation. If there are no instructions or pieces of markup that map to a Doc Detective step, return only the word 'NONE'. If there are one or more instructions or pieces of markup that map to a Doc Detective step, identify and adapt each instruction or piece of markup to a step in a Doc Detective test:\n${string}`,
     ],
   ];
 
@@ -90,7 +90,8 @@ async function inferSpec(config, string) {
     // If no steps were detected, return null
     if (
       typeof res.additional_kwargs?.tool_calls === "undefined" ||
-      res.additional_kwargs?.tool_calls?.length === 0
+      res.additional_kwargs?.tool_calls?.length === 0 ||
+      res.content === "NONE"
     )
       return null;
 
