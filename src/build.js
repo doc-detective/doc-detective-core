@@ -165,42 +165,27 @@ async function buildSpecs(config, files) {
             if (updateBoolean) {
               const choices = [];
               Object.keys(step).forEach((key) => {
+                const initial =
+                  typeof step[key] === "object"
+                    ? JSON.stringify(step[key], null, 0).replace(/\n/g, "")
+                    : step[key];
                 choices.push({
                   name: key,
                   message: key,
-                  initial: () => {
-                    if (typeof step[key] === "object") {
-                      return JSON.stringify(step[key],null,0).replace(/\n/g, "")
-                    } else {
-                      return step[key]
-                    }
-                  },
+                  initial: initial,
                   result: (value) => {
                     if (typeof step[key] === "object") {
-                      return JSON.stringify(value, null, 2);
+                      return JSON.parse(value, null, 2);
                     }
                     return value;
                   },
                 });
               });
-              const stepUpdate = await new Form({
+              step = await new Form({
                 name: "step",
                 message: "Review and modify the step:",
                 choices: choices,
-              }).run();
-              console.log(`Step: ${JSON.stringify(stepUpdate)}`);
-            }
-
-            process.exit(0);
-
-            if (update) {
-              response = await prompt({
-                type: "input",
-                name: "step",
-                message: "Review and modify the step:",
-                initial: JSON.stringify(step, null, 2),
-              });
-              step = JSON.parse(response.step);
+              }).run();            
             }
           }
 
