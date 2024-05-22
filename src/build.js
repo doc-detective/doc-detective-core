@@ -4,7 +4,7 @@ const uuid = require("uuid");
 const { log, actionMap } = require("./utils");
 const { validate } = require("doc-detective-common");
 const { inferSpec } = require("./inference");
-const { Confirm, Form, Toggle } = require("enquirer");
+const { Confirm, Form, Toggle, Select } = require("enquirer");
 
 exports.buildSpecs = buildSpecs;
 
@@ -131,13 +131,6 @@ async function buildSpecs(config, files) {
             `cleaned steps: ${JSON.stringify(steps, null, 2)}`
           );
 
-          // Pause to review detected/inferred steps
-          console.log(line);
-          console.log("Detected/inferred steps:");
-          console.log(steps);
-          // Sleep for 5 seconds
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-
           // Filter out steps that don't pass validation
           steps = steps.filter((step) => {
             const validation = validate(`${step.action}_v2`, step);
@@ -154,15 +147,21 @@ async function buildSpecs(config, files) {
 
           // Pause to review and update steps
           for (let step of steps) {
-            console.log(`Step: ${JSON.stringify(step, null, 2)}`);
-            const updateBoolean = await new Toggle({
-              message: "Update this step?",
-              enabled: "Yes",
-              disabled: "No",
-              initial: true,
+            if (config.logLevel !== "debug") {
+              process.stdout.write('\x1Bc');
+            }
+            const stepChoice = await new Select({
+              name: "stepChoice",
+              message: `Doc Detective generated the following step:\n\n${JSON.stringify(
+                step,
+                null,
+                2
+              )}\n\nWhat do you watn to do with it?`,
+              choices: [ "Update it", "Keep it", "Ignore it"],
+              initial: "Update it",
             }).run();
 
-            if (updateBoolean) {
+            if (stepChoice === "update") {
               const choices = [];
               Object.keys(step).forEach((key) => {
                 const initial =
@@ -185,7 +184,10 @@ async function buildSpecs(config, files) {
                 name: "step",
                 message: "Review and modify the step:",
                 choices: choices,
-              }).run();            
+              }).run();
+            } else if (stepChoice === "ignore") {
+              // Remove step
+              steps = steps.filter((s) => s !== step);
             }
           }
 
