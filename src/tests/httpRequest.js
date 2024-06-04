@@ -231,7 +231,7 @@ function objectExistsInObject(expected, actual) {
         if (result.result.description != "")
           description = description + " " + result.result.description;
       }
-    } else if (expected[key] != actual[key]) {
+    } else if (expected[key] !== actual[key]) {
       // Actual value doesn't match expected
       description =
         description +
