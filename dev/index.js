@@ -27,93 +27,43 @@ main();
 
 async function main() {
   json = {
-    envVariables: "./variables.env",
+    envVariables: "",
     input: ".",
     output: ".",
     recursive: true,
     logLevel: "debug",
     runTests: {
-      detectSteps: true,
-      input: "./dev/doc-content copy.md",
+      input: "./test/artifacts/context_edge.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
       recursive: true,
+      detectSteps: false,
       mediaDirectory: ".",
       downloadDirectory: ".",
       contexts: [
         {
-          app: {
-            name: "firefox",
-            options: {
-              width: 1200,
-              height: 800,
-              headless: false,
-            },
-          },
-          platforms: ["linux", "mac", "windows"],
+          app: { name: "firefox" },
+          platforms: ["windows", "mac", "linux"],
+        },
+        {
+          app: { name: "chrome", options: { headless: true } },
+          platforms: ["windows", "mac", "linux"],
+        },
+        {
+          app: { name: "edge" },
+          platforms: ["windows", "mac", "linux"],
         },
       ],
     },
     runCoverage: {
       recursive: true,
-      input: ".",
+      input: ".dev/",
       output: ".",
       markup: [],
     },
-    suggestTests: {
-      recursive: true,
-      input: ".",
-      output: ".",
-      markup: [],
-    },
-    fileTypes: [
-      {
-        name: "Markdown",
-        extensions: [".md"],
-        testStartStatementOpen: "[comment]: # (test start",
-        testStartStatementClose: ")",
-        testIgnoreStatement: "[comment]: # (test ignore)",
-        testEndStatement: "[comment]: # (test end)",
-        stepStatementOpen: "[comment]: # (step",
-        stepStatementClose: ")",
-        markup: [
-          {
-            name: "Hyperlink",
-            regex: ["(?<!!)\\[.+?\\]\\(.+?\\)"],
-            actions: ["checkLink"],
-          },
-          {
-            name: "Navigation link",
-            regex: [
-              "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)",
-            ],
-            actions: ["goTo"],
-          },
-          {
-            name: "Onscreen text",
-            regex: ["\\*\\*.+?\\*\\*"],
-            actions: ["find"],
-          },
-          {
-            name: "Image",
-            regex: ["!\\[.+?\\]\\(.+?\\)"],
-            actions: [
-              {
-                action: "saveScreenshot",
-                directory: ".",
-                maxVariation: 5,
-                overwrite: "byVariation",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    integrations: {},
     telemetry: {
-      send: true,
-      userId: "Doc Detective Samples",
+      send: false,
     },
   };
   // console.log(json);
