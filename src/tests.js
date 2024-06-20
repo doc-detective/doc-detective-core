@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const uuid = require("uuid");
+const { setAppiumHome } = require("./appium");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -241,6 +242,8 @@ async function runSpecs(config, specs) {
 
   // Warm up Appium
   if (appiumRequired) {
+    // Set Appium home directory
+    setAppiumHome();
     // Start Appium server
     appium = spawn("npx", ["appium"], { shell: true, windowsHide: true, cwd: path.join(__dirname, "..")});
     appium.stdout.on("data", (data) => {
