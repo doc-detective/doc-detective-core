@@ -33,87 +33,37 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "dev/dev.spec.json",
+      input: "./test/artifacts/context_edge.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
       recursive: true,
+      detectSteps: false,
       mediaDirectory: ".",
       downloadDirectory: ".",
+      contexts: [
+        {
+          app: { name: "firefox" },
+          platforms: ["windows", "mac", "linux"],
+        },
+        {
+          app: { name: "chrome", options: { headless: true } },
+          platforms: ["windows", "mac", "linux"],
+        },
+        {
+          app: { name: "edge" },
+          platforms: ["windows", "mac", "linux"],
+        },
+      ],
     },
     runCoverage: {
       recursive: true,
-      input: "test/artifacts/",
+      input: ".dev/",
       output: ".",
       markup: [],
     },
-    suggestTests: {
-      recursive: true,
-      input: "test/artifacts/doc-content-uncovered.md",
-      output: ".",
-      markup: [],
-    },
-    fileTypes: [
-      {
-        name: "Markdown",
-        extensions: [".md"],
-        testStartStatementOpen: "[comment]: # (test start",
-        testStartStatementClose: ")",
-        testIgnoreStatement: "[comment]: # (test ignore)",
-        testEndStatement: "[comment]: # (test end)",
-        stepStatementOpen: "[comment]: # (step",
-        stepStatementClose: ")",
-        markup: [
-          {
-            name: "Hyperlink",
-            regex: ["(?<=(?<!!)\\[.*?\\]\\().*?(?=\\))"],
-            actions: [
-              {
-                name: "checkLink",
-                params: {
-                  origin: "https://doc-detective.com",
-                },
-              },
-            ],
-          },
-          {
-            name: "Image",
-            regex: ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
-            actions: [
-              {
-                name: "saveScreenshot",
-                params: {
-                  directory: "dev",
-                  maxVariation: 5,
-                  overwrite: "byVariation",
-                }
-              },
-            ],
-          },
-          {
-            name: "Navigation link",
-            regex: ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]*\\]\\().*?(?=\\))"],
-            actions: [
-              {
-                name: "goTo",
-                params: {
-                  origin: "https://doc-detective.com",
-                },
-              },
-            ],
-          },
-          {
-            name: "Onscreen text",
-            regex: ["(?<=\\*\\*)[\\w|\\s]+?(?=\\*\\*)"],
-            actions: ["find"],
-          },
-        ],
-      },
-    ],
-    integrations: {},
     telemetry: {
       send: false,
-      userId: "Doc Detective",
     },
   };
   // console.log(json);

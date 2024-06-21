@@ -1,0 +1,19 @@
+{
+  "id": "Make sure Edge is working",
+  "contexts": [
+    {
+      "app": { "name": "edge" },
+      "platforms": ["windows", "mac", "linux"]
+    }
+  ],
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://www.google.com"
+        }
+      ]
+    }
+  ]
+}

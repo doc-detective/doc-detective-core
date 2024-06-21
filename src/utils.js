@@ -1,8 +1,12 @@
 const fs = require("fs");
+const os = require("os");
+const crypto = require("crypto");
+const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate } = require("doc-detective-common");
+const { match } = require("assert");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -13,9 +17,49 @@ exports.timestamp = timestamp;
 exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
+exports.cleanTemp = cleanTemp;
+
+// Delete all contents of doc-detective temp directory
+function cleanTemp() {
+  const tempDir = `${os.tmpdir}/doc-detective`;
+  if (fs.existsSync(tempDir)) {
+    fs.readdirSync(tempDir).forEach((file) => {
+      const curPath = `${tempDir}/${file}`;
+      fs.unlinkSync(curPath);
+    });
+  }
+}
+
+// Fetch a file from a URL and save to a temp directory
+// If the file is not JSON, return the contents as a string
+// If the file is not found, return an error
+async function fetchFile(fileURL) {
+  try {
+    const response = await axios.get(fileURL);
+    if (typeof response.data === "object") {
+      response.data = JSON.stringify(response.data, null, 2);
+    } else {
+      response.data = response.data.toString();
+    }
+    const fileName = fileURL.split("/").pop();
+    const hash = crypto.createHash("md5").update(response.data).digest("hex");
+    const filePath = `${os.tmpdir}/doc-detective/${hash}_${fileName}`;
+    // If doc-detective temp directory doesn't exist, create it
+    if (!fs.existsSync(`${os.tmpdir}/doc-detective`)) {
+      fs.mkdirSync(`${os.tmpdir}/doc-detective`);
+    }
+    // If file doesn't exist, write it
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, response.data);
+    }
+    return { result: "success", path: filePath };
+  } catch (error) {
+    return { result: "error", message: error };
+  }
+}
 
 // Set array of test files
-function setFiles(config) {
+async function setFiles(config) {
   let dirs = [];
   let files = [];
   let sequence = [];
@@ -28,9 +72,19 @@ function setFiles(config) {
   const cleanup = config.runTests.cleanup;
   if (cleanup) sequence = sequence.concat(cleanup);
 
-  for (const source of sequence) {
+  for (let source of sequence) {
     // Check if file or directory
     log(config, "debug", `source: ${source}`);
+    let isURL = source.startsWith("http");
+    // If URL, fetch file and place in temp directory
+    if (isURL) {
+      const fetch = await fetchFile(source);
+      if (fetch.result === "error") {
+        log(config, "warning", fetch.message);
+        continue;
+      }
+      source = fetch.path;
+    }
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -306,42 +360,85 @@ function parseTests(config, files) {
           fileType.markup.forEach((markup) => {
             // Test for markup
             regex = new RegExp(markup.regex, "g");
-            matches = line.match(regex);
-            if (!matches) return false;
-            action = markup.actions[0];
+            const matches = [];
+            markup.regex.forEach((regex) => {
+              const match = line.matchAll(regex);
+              if (match) matches.push(...match);
+            });
+            // If no matches, skip
+            if (matches.length === 0) return false;
             log(config, "debug", `markup: ${markup.name}`);
-            log(config, "debug", `action: ${JSON.stringify(action, null, 2)}`);
-            // If `action` is string, convert to object
-            if (typeof action === "string") {
-              action = { name: action };
-            }
+
+            const actionMap = {
+              checkLink: {
+                action: "checkLink",
+                url: "$1",
+              },
+              goTo: {
+                action: "goTo",
+                url: "$1",
+              },
+              find: {
+                action: "find",
+                selector: "aria/$1",
+              },
+              saveScreenshot: {
+                action: "saveScreenshot",
+                path: "$1",
+              },
+              startRecording: {
+                action: "startRecording",
+                path: "$1",
+              },
+              httpRequest: {
+                action: "httpRequest",
+                url: "$1",
+              },
+              runShell: {
+                action: "runShell",
+                command: "$1",
+              },
+              typeKeys: {
+                action: "typeKeys",
+                keys: "$1",
+              },
+            };
+
             matches.forEach((match) => {
-              step = { action: action.name, ...action.params };
-              log(config, "debug", `match: ${match}`);
-              step.index = line.indexOf(match);
-              log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+              log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
 
-              // Per action `match` insertion
-              switch (step.action) {
-                case "find":
-                  step.selector = `aria/${match}`;
-                  break;
-                case "goTo":
-                case "checkLink":
-                  step.url = match;
-                  break;
-                case "typeKeys":
-                  step.keys = match;
-                  break;
-                case "saveScreenshot":
-                  step.path = match;
-                  break;
-                default:
-                  break;
+              // If `match` doesn't have a capture group, set it to the entire match
+              if (match.length === 1) {
+                match[1] = match[0];
               }
+              markup.actions.forEach((action) => {
+                let step = {};
+                if (typeof action === "string") {
+                  step = JSON.parse(JSON.stringify(actionMap[action]));
+                } else if (action.name) {
+                  // TODO v3: Remove this block
+                  if (action.params) {
+                    step = { action: action.name, ...action.params};
+                  } else {
+                    step = { action: action.name };
+                  }
+                } else {
+                  step = action;
+                }
+                step.index = match.index;
+                // Substitute variables $n with match[n]
+                Object.keys(step).forEach((key) => {
+                  if (typeof step[key] !== "string") return;
+                  // Replace $n with match[n]
+                  step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
+                    const index = stepMatch.substring(1);
+                    return match[index];
+                  });
+                });
 
-              // Push to steps
-              steps.push(step);
+                log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
+                steps.push(step);
+              });
             });
           });
           log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
@@ -469,7 +566,10 @@ function loadEnvs(stringOrObject) {
       if (value) {
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
-          if (match.length === stringOrObject.length && typeof JSON.parse(stringOrObject) === "object") {
+          if (
+            match.length === stringOrObject.length &&
+            typeof JSON.parse(stringOrObject) === "object"
+          ) {
             value = JSON.parse(value);
           }
         } catch {}
