@@ -7,6 +7,7 @@ const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
 const geckodriver = require("geckodriver");
+const { setAppiumHome } = require("./appium");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -105,6 +106,7 @@ function getEnvironment() {
 
 // Detect available apps.
 async function getAvailableApps(config) {
+  setAppiumHome();
   cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
   const apps = [];
