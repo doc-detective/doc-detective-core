@@ -53,7 +53,7 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  if (context.app.name === "chrome") {
+  if (context.app.name === "chrome" && context?.app?.options?.headless === false) {
     config.recording = {};
     // Chrome and Chromium
     // Get document title
