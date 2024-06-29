@@ -26,8 +26,8 @@
         {
           "description": "Testing timeout.",
           "action": "runShell",
-          "command": "ping 127.0.0.1 -n 6 > null",
-          "timeout": 500
+          "command": "ping 127.0.0.1 -n 6 > nul",
+          "timeout": 6000
         }
       ]
     }

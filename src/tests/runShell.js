@@ -23,16 +23,19 @@ async function runShell(config, step) {
   }
 
   // Execute command
-  const timeout = step.timeout || Infinity; // Default timeout of Infinity if not specified
+  const timeout = step.timeout;
   const commandPromise = spawnCommand(step.command, step.args);
+  let timeoutId;
   const timeoutPromise = new Promise((resolve, reject) => {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       reject(new Error(`Command timed out after ${timeout} milliseconds`));
     }, timeout);
   });
 
   try {
+    // Wait for command to finish or timeout
     const commandResult = await Promise.race([commandPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
     result.stdout = commandResult.stdout.replace(/\r$/, "");
     result.stderr = commandResult.stderr.replace(/\r$/, "");
     result.exitCode = commandResult.exitCode;
