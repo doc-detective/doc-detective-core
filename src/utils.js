@@ -75,7 +75,7 @@ async function setFiles(config) {
   for (let source of sequence) {
     // Check if file or directory
     log(config, "debug", `source: ${source}`);
-    let isURL = source.startsWith("http");
+    let isURL = source.startsWith("http://") || source.startsWith("https://");
     // If URL, fetch file and place in temp directory
     if (isURL) {
       const fetch = await fetchFile(source);
