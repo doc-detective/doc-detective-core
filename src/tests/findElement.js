@@ -35,14 +35,27 @@ async function findElement(config, step, driver) {
   }
 
   // Match text
+  // If step.matchText starts and ends with `/`, treat it as a regex
   if (step.matchText) {
     const text = (await element.getText()) || (await element.getValue());
-    if (text !== step.matchText) {
-      result.status = "FAIL";
-      result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
-      return result;
+    if (step.matchText.startsWith("/") && step.matchText.endsWith("/")) {
+      const regex = new RegExp(step.matchText.slice(1, -1));
+      if (regex.test(text)) {
+        result.description = result.description + " Matched regex.";
+      } else {
+        result.status = "FAIL";
+        result.description = `Element text (${text}) didn't match regex (${step.matchText}).`;
+        return result;
+      }
+    } else {
+      if (text === step.matchText) {
+        result.description = result.description + " Matched text.";
+      } else {
+        result.status = "FAIL";
+        result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
+        return result;
+      }
     }
-    result.description = result.description + " Matched text.";
   }
 
   // Move to element
