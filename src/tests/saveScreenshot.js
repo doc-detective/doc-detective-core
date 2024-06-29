@@ -2,12 +2,13 @@ const { validate } = require("doc-detective-common");
 const { log } = require("../utils");
 const path = require("path");
 const fs = require("fs");
-const pixelmatch = require("pixelmatch");
 const PNG = require("pngjs").PNG;
 
 exports.saveScreenshot = saveScreenshot;
 
 async function saveScreenshot(config, step, driver) {
+  const pixelmatch = await import("pixelmatch");
+
   let result = {
     status: "PASS",
     description: "Saved screenshot.",
