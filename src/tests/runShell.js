@@ -23,10 +23,24 @@ async function runShell(config, step) {
   }
 
   // Execute command
-  const commandResult = await spawnCommand(step.command, step.args);
-  result.stdout = commandResult.stdout.replace(/\r$/, "");
-  result.stderr = commandResult.stderr.replace(/\r$/, "");
-  result.exitCode = commandResult.exitCode;
+  const timeout = step.timeout || Infinity; // Default timeout of Infinity if not specified
+  const commandPromise = spawnCommand(step.command, step.args);
+  const timeoutPromise = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Command timed out after ${timeout} milliseconds`));
+    }, timeout);
+  });
+
+  try {
+    const commandResult = await Promise.race([commandPromise, timeoutPromise]);
+    result.stdout = commandResult.stdout.replace(/\r$/, "");
+    result.stderr = commandResult.stderr.replace(/\r$/, "");
+    result.exitCode = commandResult.exitCode;
+  } catch (error) {
+    result.status = "FAIL";
+    result.description = error.message;
+    return result;
+  }
 
   // Evaluate exit code
   if (!step.exitCodes.includes(result.exitCode)) {
