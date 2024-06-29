@@ -28,8 +28,8 @@
         {
           "description": "Testing timeout.",
           "action": "runShell",
-          "command": "ping 127.0.0.1 -n 6 > nul",
-          "timeout": 6000
+          "command": "bash -c 'sleep 1'",
+          "timeout": 2000
         }
       ]
     }
