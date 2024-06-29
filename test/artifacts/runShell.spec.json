@@ -4,6 +4,7 @@
     {
       "steps": [
         {
+          "description": "Testing regex output matching and variable setting.",
           "action": "runShell",
           "command": "echo",
           "args": ["setup"],
@@ -17,11 +18,18 @@
           ]
         },
         {
+          "description": "Testing variable substitution.",
           "action": "runShell",
           "command": "echo",
           "args": ["$TEST"],
           "exitCodes": [0],
           "output": "setup"
+        },
+        {
+          "description": "Testing timeout.",
+          "action": "runShell",
+          "command": "echo timeout",
+          "timeout": 2000
         }
       ]
     }

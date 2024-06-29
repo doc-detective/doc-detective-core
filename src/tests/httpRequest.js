@@ -21,6 +21,7 @@ async function httpRequest(config, step) {
 
   request.url = step.url;
   request.method = step.method;
+  request.timeout = step.timeout;
   if (JSON.stringify(step.requestHeaders) != "{}")
     request.headers = step.requestHeaders;
   if (JSON.stringify(step.requestParams) != "{}")
