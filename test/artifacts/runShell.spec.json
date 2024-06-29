@@ -28,7 +28,7 @@
         {
           "description": "Testing timeout.",
           "action": "runShell",
-          "command": "bash -c 'sleep 1'",
+          "command": "echo timeout",
           "timeout": 2000
         }
       ]
