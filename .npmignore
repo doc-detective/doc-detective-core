@@ -1,0 +1,5 @@
+.devcontainer/
+.github/
+dev/
+.gitignore
+CONTRIBUTIONS.md
