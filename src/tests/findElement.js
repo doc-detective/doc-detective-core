@@ -35,14 +35,26 @@ async function findElement(config, step, driver) {
   }
 
   // Match text
+  const text = (await element.getText()) || (await element.getValue());
   if (step.matchText) {
-    const text = (await element.getText()) || (await element.getValue());
     if (text !== step.matchText) {
       result.status = "FAIL";
       result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
       return result;
     }
     result.description = result.description + " Matched text.";
+  }
+
+  // Set environment variables from command output
+  for (const variable of step.setVariables) {
+    const regex = new RegExp(variable.regex);
+    const matchText = text.match(regex);
+    if (matchText) {
+      process.env[variable.name] = matchText[0];
+    } else {
+      result.status = "FAIL";
+      result.description = `Couldn't set '${variable.name}' environment variable. The regex (${variable.regex}) wasn't found in the element text (${text}).`;
+    }
   }
 
   // Move to element
