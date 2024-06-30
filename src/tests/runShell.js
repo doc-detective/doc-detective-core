@@ -1,5 +1,5 @@
 const { validate } = require("doc-detective-common");
-const { spawnCommand, log } = require("../utils");
+const { spawnCommand, log, calculatePercentageDifference } = require("../utils");
 const fs = require("fs");
 const path = require("path");
 
@@ -146,38 +146,4 @@ async function runShell(config, step) {
   }
 
   return result;
-}
-
-function calculatePercentageDifference(text1, text2) {
-  const distance = llevenshteinDistance(text1, text2);
-  const maxLength = Math.max(text1.length, text2.length);
-  const percentageDiff = (distance / maxLength) * 100;
-  return percentageDiff.toFixed(2); // Returns the percentage difference as a string with two decimal places
-}
-
-function llevenshteinDistance(s, t) {
-  if (!s.length) return t.length;
-  if (!t.length) return s.length;
-
-  const arr = [];
-
-  for (let i = 0; i <= t.length; i++) {
-    arr[i] = [i];
-  }
-
-  for (let j = 0; j <= s.length; j++) {
-    arr[0][j] = j;
-  }
-
-  for (let i = 1; i <= t.length; i++) {
-    for (let j = 1; j <= s.length; j++) {
-      arr[i][j] = Math.min(
-        arr[i - 1][j] + 1, // deletion
-        arr[i][j - 1] + 1, // insertion
-        arr[i - 1][j - 1] + (s[j - 1] === t[i - 1] ? 0 : 1) // substitution
-      );
-    }
-  }
-
-  return arr[t.length][s.length];
 }
