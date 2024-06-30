@@ -33,7 +33,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/httpRequest.spec.json",
+      input: "./test/artifacts/matchText_regex.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
@@ -45,7 +45,11 @@ async function main() {
         {
           app: { name: "firefox" },
           platforms: ["windows", "mac", "linux"],
-        }
+        },
+        {
+          app: { name: "chrome", options: { headless: true } },
+          platforms: ["windows", "mac", "linux"],
+        },
       ],
     },
     runCoverage: {
