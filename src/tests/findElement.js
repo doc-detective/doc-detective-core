@@ -35,9 +35,9 @@ async function findElement(config, step, driver) {
   }
 
   // Match text
+  const text = (await element.getText()) || (await element.getValue());
   // If step.matchText starts and ends with `/`, treat it as a regex
   if (step.matchText) {
-    const text = (await element.getText()) || (await element.getValue());
     if (step.matchText.startsWith("/") && step.matchText.endsWith("/")) {
       const regex = new RegExp(step.matchText.slice(1, -1));
       if (regex.test(text)) {
@@ -54,6 +54,20 @@ async function findElement(config, step, driver) {
         result.status = "FAIL";
         result.description = `Element text (${text}) didn't equal match text (${step.matchText}).`;
         return result;
+      }
+    }
+  }
+
+  // Set environment variables from command output
+  if (step.setVariables) {
+    for (const variable of step.setVariables) {
+      const regex = new RegExp(variable.regex);
+      const matchText = text.match(regex);
+      if (matchText) {
+        process.env[variable.name] = matchText[0];
+      } else {
+        result.status = "FAIL";
+        result.description = `Couldn't set '${variable.name}' environment variable. The regex (${variable.regex}) wasn't found in the element text (${text}).`;
       }
     }
   }
