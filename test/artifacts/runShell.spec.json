@@ -30,6 +30,21 @@
           "action": "runShell",
           "command": "echo timeout",
           "timeout": 2000
+        },
+        {
+          "description": "Testing exit code.",
+          "action": "runShell",
+          "command": "exit",
+          "args": ["1"],
+          "exitCodes": [1]
+        },
+        {
+          "description": "Testing savePath.",
+          "action": "runShell",
+          "command": "echo hello",
+          "savePath": "test.txt",
+          "maxVariation": 0,
+          "overwrite": "byVariation"
         }
       ]
     }

@@ -1,6 +1,9 @@
 const { validate } = require("doc-detective-common");
 const axios = require("axios");
 const jq = require("node-jq");
+const fs = require("fs");
+const path = require("path");
+const { log, calculatePercentageDifference } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
@@ -107,6 +110,61 @@ async function httpRequest(config, step) {
           ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
       }
     }
+
+  // Check if command output is saved to a file
+  if (step.savePath) {
+    const dir =
+      step.directory ||
+      config.runTests?.mediaDirectory ||
+      config.runTests?.output ||
+      config.output;
+    // If `dir` doesn't exist, create it
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    // Set filePath
+    const filePath = path.resolve(dir, step.savePath);
+    log(config,"debug", `Saving output to file: ${filePath}`)
+
+    // Check if file already exists
+    if (!fs.existsSync(filePath)) {
+      // Doesn't exist, save output to file
+      fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2))
+    } else {
+      if (step.overwrite == "false") {
+        // File already exists
+        result.description =
+          result.description + ` Didn't save output. File already exists.`;
+      }
+
+      // Read existing file
+      const existingFile = fs.readFileSync(filePath, "utf8");
+
+      // Calculate percentage diff between existing file content and command output content, not length
+      const percentDiff = calculatePercentageDifference(
+        existingFile,
+        JSON.stringify(response.data, null, 2)
+      );
+      log(config,"debug", `Percentage difference: ${percentDiff}%`);
+
+      if (percentDiff > step.maxVariation) {
+        if (step.overwrite == "byVariation") {
+          // Overwrite file
+          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+        }
+        result.status = "FAIL";
+        result.description =
+          result.description +
+          ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
+        return result;
+      }
+
+      if (step.overwrite == "true") {
+        // Overwrite file
+        fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+      }
+    }
+  }
 
   result.description = result.description.trim();
   return result;

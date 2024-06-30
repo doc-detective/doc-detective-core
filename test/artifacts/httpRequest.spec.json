@@ -48,7 +48,10 @@
               "last_name": "Bluth"
             }
           },
-          "statusCodes": [200, 201]
+          "statusCodes": [200, 201],
+          "savePath": "response.json",
+          "maxVariation": 0,
+          "overwrite": "byVariation"
         }
       ]
     }
