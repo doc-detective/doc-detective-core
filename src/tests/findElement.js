@@ -46,14 +46,16 @@ async function findElement(config, step, driver) {
   }
 
   // Set environment variables from command output
-  for (const variable of step.setVariables) {
-    const regex = new RegExp(variable.regex);
-    const matchText = text.match(regex);
-    if (matchText) {
-      process.env[variable.name] = matchText[0];
-    } else {
-      result.status = "FAIL";
-      result.description = `Couldn't set '${variable.name}' environment variable. The regex (${variable.regex}) wasn't found in the element text (${text}).`;
+  if (step.setVariables) {
+    for (const variable of step.setVariables) {
+      const regex = new RegExp(variable.regex);
+      const matchText = text.match(regex);
+      if (matchText) {
+        process.env[variable.name] = matchText[0];
+      } else {
+        result.status = "FAIL";
+        result.description = `Couldn't set '${variable.name}' environment variable. The regex (${variable.regex}) wasn't found in the element text (${text}).`;
+      }
     }
   }
 
