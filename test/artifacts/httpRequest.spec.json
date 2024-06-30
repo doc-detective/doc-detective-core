@@ -41,7 +41,7 @@
           "action": "httpRequest",
           "url": "https://reqres.in/api/users/$ID",
           "method": "get",
-          "timeout": 100,
+          "timeout": 1000,
           "responseData": {
             "data": {
               "first_name": "George",
