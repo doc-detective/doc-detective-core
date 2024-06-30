@@ -33,7 +33,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/runShell.spec.json",
+      input: "./test/artifacts/httpRequest.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
