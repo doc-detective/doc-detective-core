@@ -34,6 +34,7 @@ async function httpRequest(config, step) {
   // Perform request
   const response = await axios(request)
     .then((response) => {
+      result.actualResponseData = response.data;
       return response;
     })
     .catch((error) => {
@@ -59,8 +60,19 @@ async function httpRequest(config, step) {
   }
 
   // Compare response.data and responseData
+  if (!step.allowAdditionalFields) {
+    // Do a deep comparison
+    let dataComparison = objectExistsInObject(response.data, step.responseData);
+    if (dataComparison.result.status === "FAIL") {
+      result.status = "FAIL";
+      result.description =
+        result.description + " Response contained unexpected fields.";
+      return result;
+    }
+  }
+
   if (JSON.stringify(step.responseData) != "{}") {
-    dataComparison = objectExistsInObject(step.responseData, response.data);
+    let dataComparison = objectExistsInObject(step.responseData, response.data);
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
       result.description =
