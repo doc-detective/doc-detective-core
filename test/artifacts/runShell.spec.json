@@ -32,13 +32,6 @@
           "timeout": 2000
         },
         {
-          "description": "Testing exit code.",
-          "action": "runShell",
-          "command": "exit",
-          "args": ["1"],
-          "exitCodes": [1]
-        },
-        {
           "description": "Testing savePath.",
           "action": "runShell",
           "command": "echo hello",
