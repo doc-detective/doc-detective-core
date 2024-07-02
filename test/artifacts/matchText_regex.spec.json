@@ -1,0 +1,28 @@
+{
+  "id": "matchTextRegex",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/reference/schemas/config.html"
+        },
+        {
+          "action": "find",
+          "selector": "h2#description",
+          "matchText": "Description"
+        },
+        {
+          "action": "find",
+          "selector": "h2#description",
+          "matchText": "/^Description$/"
+        },
+        {
+          "action": "find",
+          "selector": "h2#description",
+          "matchText": "/^D.*?n/"
+        }
+      ]
+    }
+  ]
+}
