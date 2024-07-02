@@ -627,6 +627,7 @@ async function spawnCommand(cmd, args, options) {
   }
 
   const runCommand = spawn(cmd, args, spawnOptions);
+  runCommand.on("error", (error) => {});
 
   // Capture stdout
   let stdout = "";
@@ -647,20 +648,9 @@ async function spawnCommand(cmd, args, options) {
   stderr = stderr.replace(/\n$/, "");
 
   // Capture exit code
-  let exitCode;
-  try {
-    exitCode = await new Promise((resolve, reject) => {
-      runCommand.on("close", (code) => {
-        if (code === 0) {
-          resolve(code);
-        } else {
-          reject(code);
-        }
-      });
-    });
-  } catch (error) {
-    exitCode = error;
-  }
+  const exitCode = await new Promise((resolve, reject) => {
+    runCommand.on("close", resolve);
+  });
 
   return { stdout, stderr, exitCode };
 }

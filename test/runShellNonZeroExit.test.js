@@ -15,7 +15,7 @@ before(function() {
           {
             action: "runShell",
             command: "exit 1",
-            exitCodes: [1],
+            exitCodes: [1,-2],
           },
         ],
       },
