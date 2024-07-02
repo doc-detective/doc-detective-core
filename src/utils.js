@@ -419,7 +419,7 @@ function parseTests(config, files) {
                 } else if (action.name) {
                   // TODO v3: Remove this block
                   if (action.params) {
-                    step = { action: action.name, ...action.params};
+                    step = { action: action.name, ...action.params };
                   } else {
                     step = { action: action.name };
                   }
@@ -647,9 +647,20 @@ async function spawnCommand(cmd, args, options) {
   stderr = stderr.replace(/\n$/, "");
 
   // Capture exit code
-  const exitCode = await new Promise((resolve, reject) => {
-    runCommand.on("close", resolve);
-  });
+  let exitCode;
+  try {
+    exitCode = await new Promise((resolve, reject) => {
+      runCommand.on("close", (code) => {
+        if (code === 0) {
+          resolve(code);
+        } else {
+          reject(code);
+        }
+      });
+    });
+  } catch (error) {
+    exitCode = error;
+  }
 
   return { stdout, stderr, exitCode };
 }

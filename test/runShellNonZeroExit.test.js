@@ -5,7 +5,6 @@ const artifactPath = path.resolve("./test/artifacts");
 const config_base = require(`${artifactPath}/config.json`);
 const inputPath = `${artifactPath}/runShellNonZeroExit.json`;
 const fs = require("fs");
-const { exitCode } = require("process");
 
 before(function() {
   const spec = {
