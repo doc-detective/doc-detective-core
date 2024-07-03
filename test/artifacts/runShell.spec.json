@@ -38,6 +38,11 @@
           "savePath": "test.txt",
           "maxVariation": 0,
           "overwrite": "byVariation"
+        },
+        {
+          "action": "runShell",
+          "command": "exit 1",
+          "exitCodes": [1,-2]
         }
       ]
     }
