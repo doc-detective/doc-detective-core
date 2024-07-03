@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.14.0-dev.0",
+  "version": "2.14.0",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -49,6 +49,6 @@
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
-    "mocha": "^10.5.2"
+    "mocha": "^10.6.0"
   }
 }
