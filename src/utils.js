@@ -18,6 +18,7 @@ exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
+exports.calculatePercentageDifference = calculatePercentageDifference;
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
@@ -418,7 +419,7 @@ function parseTests(config, files) {
                 } else if (action.name) {
                   // TODO v3: Remove this block
                   if (action.params) {
-                    step = { action: action.name, ...action.params};
+                    step = { action: action.name, ...action.params };
                   } else {
                     step = { action: action.name };
                   }
@@ -626,6 +627,7 @@ async function spawnCommand(cmd, args, options) {
   }
 
   const runCommand = spawn(cmd, args, spawnOptions);
+  runCommand.on("error", (error) => {});
 
   // Capture stdout
   let stdout = "";
@@ -662,4 +664,38 @@ async function inContainer() {
     if (result.exitCode === 0) return true;
   }
   return false;
+}
+
+function calculatePercentageDifference(text1, text2) {
+  const distance = llevenshteinDistance(text1, text2);
+  const maxLength = Math.max(text1.length, text2.length);
+  const percentageDiff = (distance / maxLength) * 100;
+  return percentageDiff.toFixed(2); // Returns the percentage difference as a string with two decimal places
+}
+
+function llevenshteinDistance(s, t) {
+  if (!s.length) return t.length;
+  if (!t.length) return s.length;
+
+  const arr = [];
+
+  for (let i = 0; i <= t.length; i++) {
+    arr[i] = [i];
+  }
+
+  for (let j = 0; j <= s.length; j++) {
+    arr[0][j] = j;
+  }
+
+  for (let i = 1; i <= t.length; i++) {
+    for (let j = 1; j <= s.length; j++) {
+      arr[i][j] = Math.min(
+        arr[i - 1][j] + 1, // deletion
+        arr[i][j - 1] + 1, // insertion
+        arr[i - 1][j - 1] + (s[j - 1] === t[i - 1] ? 0 : 1) // substitution
+      );
+    }
+  }
+
+  return arr[t.length][s.length];
 }

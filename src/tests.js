@@ -365,7 +365,7 @@ async function runSpecs(config, specs) {
         for (let step of test.steps) {
           // Set step id if not defined
           if (!step.id) step.id = `${uuid.v4()}`;
-          log(config, "debug", `STEP: ${step.id}`);
+          log(config, "debug", `STEP:\n${JSON.stringify(step,null,2)}`);
 
           const stepResult = await runStep(config, context, step, driver);
           log(
