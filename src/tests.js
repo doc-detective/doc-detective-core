@@ -47,7 +47,7 @@ function getDriverCapabilities(config, name, options) {
       if (!firefox) break;
       // Set args
       // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
-      if (options.headless) args.push("--headless");
+      if (options.headless || config.environment.runner === "github") args.push("--headless");
       // Set capabilities
       capabilities = {
         platformName: config.environment.platform,
@@ -91,7 +91,7 @@ function getDriverCapabilities(config, name, options) {
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
-        if (options.headless) args.push("--headless", "--disable-gpu");
+        if (options.headless || config.environment.runner === "github") args.push("--headless", "--disable-gpu");
         // Set capabilities
         capabilities = {
           platformName: config.environment.platform,
