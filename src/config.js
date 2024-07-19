@@ -153,35 +153,33 @@ async function getAvailableApps(config) {
     });
   }
 
-  if (config.environment.runner !== "github") {
-    // Detect Edge
-    let edgeDriverPath;
-    try {
-      edgeDriverPath = await edgedriver.download();
-      if (edgeDriverPath && appiumChromium) {
-        apps.push({
-          name: "edge",
-          version: "",
-          path: "",
-          driver: edgeDriverPath,
-        });
-      }
-    } catch {
-      // Edge not available
+  // Detect Edge
+  let edgeDriverPath;
+  try {
+    edgeDriverPath = await edgedriver.download();
+    if (edgeDriverPath && appiumChromium) {
+      apps.push({
+        name: "edge",
+        version: "",
+        path: "",
+        driver: edgeDriverPath,
+      });
     }
+  } catch {
+    // Edge not available
+  }
 
-    // Detect Safari
-    if (config.environment.platform === "mac") {
-      const safariVersion = await spawnCommand(
-        "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
-      );
-      const appiumSafari = installedAppiumDrivers.stderr.match(
-        /\n.*safari.*installed \(npm\).*\n/
-      );
+  // Detect Safari
+  if (config.environment.platform === "mac") {
+    const safariVersion = await spawnCommand(
+      "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+    );
+    const appiumSafari = installedAppiumDrivers.stderr.match(
+      /\n.*safari.*installed \(npm\).*\n/
+    );
 
-      if (safariVersion.exitCode === 0 && appiumSafari) {
-        apps.push({ name: "safari", version: safariVersion, path: "" });
-      }
+    if (safariVersion.exitCode === 0 && appiumSafari) {
+      apps.push({ name: "safari", version: safariVersion, path: "" });
     }
   }
 
