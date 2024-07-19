@@ -1,0 +1,29 @@
+{
+  "id": "saveScreenshot_pixeldiff",
+  "tests": [
+
+    {
+      "id": "no-match",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/reference/schemas/config.html"
+        },
+        {
+          "action": "saveScreenshot",
+          "path": "screenshot2.png"
+        },
+        {
+          "action": "goTo",
+          "url": "https://duckduckgo.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "path": "screenshot2.png",
+          "maxVariation": 5,
+          "overwrite": "true"      
+        }
+      ]
+    }
+  ]
+}

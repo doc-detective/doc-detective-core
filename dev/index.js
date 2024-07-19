@@ -33,7 +33,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/matchText_regex.spec.json",
+      input: "./test/artifacts/saveScreenshot_pixeldiff.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
@@ -42,10 +42,6 @@ async function main() {
       mediaDirectory: ".",
       downloadDirectory: ".",
       contexts: [
-        {
-          app: { name: "firefox" },
-          platforms: ["windows", "mac", "linux"],
-        },
         {
           app: { name: "chrome", options: { headless: true } },
           platforms: ["windows", "mac", "linux"],

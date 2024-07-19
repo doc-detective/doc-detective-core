@@ -3,12 +3,11 @@ const { log } = require("../utils");
 const path = require("path");
 const fs = require("fs");
 const PNG = require("pngjs").PNG;
+const pixelmatch = require("pixelmatch");
 
 exports.saveScreenshot = saveScreenshot;
 
 async function saveScreenshot(config, step, driver) {
-  const pixelmatch = await import("pixelmatch");
-
   let result = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -100,7 +99,7 @@ async function saveScreenshot(config, step, driver) {
         null,
         width,
         height,
-        { threshold: 0.005 }
+        { threshold: 0.0005 }
       );
       percentDiff = (numDiffPixels / (width * height)) * 100;
 
