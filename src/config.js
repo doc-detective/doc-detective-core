@@ -101,7 +101,6 @@ function getEnvironment() {
   environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
-  environment.runner = process.env.GITHUB_ACTIONS ? "github" : "local";
   return environment;
 }
 
