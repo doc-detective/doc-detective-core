@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.15.0",
+  "version": "2.15.1-docker.0",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
