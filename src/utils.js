@@ -263,6 +263,10 @@ function parseTests(config, files) {
           statementJson.steps = [];
           // Set id if `id` is set
           if (statementJson.id) {
+            // If `id` already exists in the spec, set it to the `id` with a dash and a new UUID
+            if (spec.tests.find((test) => test.id === statementJson.id)) {
+              statementJson.id = `${statementJson.id}-${uuid.v4()}`;
+            }
             id = statementJson.id;
           } else {
             statementJson.id = id;
