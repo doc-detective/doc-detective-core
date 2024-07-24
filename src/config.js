@@ -177,7 +177,7 @@ async function getAvailableApps(config) {
     const appiumSafari = installedAppiumDrivers.stderr.match(
       /\n.*safari.*installed \(npm\).*\n/
     );
- 
+
     if (safariVersion.exitCode === 0 && appiumSafari) {
       apps.push({ name: "safari", version: safariVersion, path: "" });
     }

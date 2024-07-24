@@ -92,6 +92,7 @@ function getDriverCapabilities(config, name, options) {
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
+        if (process.env.CONTAINER) args.push("--no-sandbox");
         // Set capabilities
         capabilities = {
           platformName: config.environment.platform,
@@ -338,16 +339,30 @@ async function runSpecs(config, specs) {
           try {
             driver = await driverStart(caps);
           } catch (error) {
-            let errorMessage = `Failed to start context: '${context.app?.name}' on '${platform}'.`
-            if (context.app?.name === "safari") errorMessage = errorMessage + " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
-            log(config, "error", errorMessage);
-            contextReport = {
-              result: { status: "SKIPPED", description: errorMessage },
-              ...contextReport,
-            };
-            report.summary.contexts.skipped++;
-            testReport.contexts.push(contextReport);
-            continue;
+            try {
+              // If driver fails to start, try again as headless
+              log(config, "warning", `Failed to start context '${context.app?.name}' on '${platform}'. Retrying as headless.`);
+              if (typeof context.app.options === "undefined") context.app.options = {};
+              context.app.options.headless = true;
+              caps = getDriverCapabilities(config, context.app.name, {
+                path: context.app?.path,
+                width: context.app?.options?.width || 1200,
+                height: context.app?.options?.height || 800,
+                headless: context.app?.options?.headless === false ? false : true,
+              })
+              driver = await driverStart(caps);
+            } catch (error) {
+              let errorMessage = `Failed to start context '${context.app?.name}' on '${platform}'.`
+              if (context.app?.name === "safari") errorMessage = errorMessage + " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+              log(config, "error", errorMessage);
+              contextReport = {
+                result: { status: "SKIPPED", description: errorMessage },
+                ...contextReport,
+              };
+              report.summary.contexts.skipped++;
+              testReport.contexts.push(contextReport);
+              continue;
+            }
           }
 
           if (context.app?.options?.width || context.app?.options?.height) {
