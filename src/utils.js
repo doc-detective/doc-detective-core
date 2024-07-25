@@ -155,21 +155,33 @@ function isValidSourceFile(config, files, source) {
     // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
     for (const test of json.tests) {
       if (test.setup) {
-        if (!fs.existsSync(test.setup)) {
+        let setupPath = ""
+        if (config.relativePathBase === "file") {
+          setupPath = path.resolve(path.dirname(source), test.setup);
+        } else {
+          setupPath = path.resolve(test.setup);
+        }
+        if (!fs.existsSync(setupPath)) {
           log(
             config,
             "debug",
-            `${test.setup} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+            `${setupPath} is specified as a setup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
       }
       if (test.cleanup) {
-        if (!fs.existsSync(test.cleanup)) {
+        let cleanupPath = ""
+        if (config.relativePathBase === "file") {
+          cleanupPath = path.resolve(path.dirname(source), test.cleanup);
+        } else {
+          cleanupPath = path.resolve(test.cleanup);
+        }
+        if (!fs.existsSync(cleanupPath)) {
           log(
             config,
             "debug",
-            `${test.cleanup} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+            `${cleanupPath} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
@@ -205,13 +217,25 @@ function parseTests(config, files) {
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
         if (test.setup) {
-          const setupContent = fs.readFileSync(test.setup).toString();
+          let setupPath = "";
+          if (config.relativePathBase === "file") {
+            setupPath = path.resolve(path.dirname(file), test.setup);
+          } else {
+            setupPath = path.resolve(test.setup);
+          }
+          const setupContent = fs.readFileSync(setupPath).toString();
           const setup = JSON.parse(setupContent);
           test.steps = setup.tests[0].steps.concat(test.steps);
         }
         // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
         if (test.cleanup) {
-          const cleanupContent = fs.readFileSync(test.cleanup).toString();
+          let cleanupPath = "";
+          if (config.relativePathBase === "file") {
+            cleanupPath = path.resolve(path.dirname(file), test.cleanup);
+          } else {
+            cleanupPath = path.resolve(test.cleanup);
+          }
+          const cleanupContent = fs.readFileSync(cleanupPath).toString();
           const cleanup = JSON.parse(cleanupContent);
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
