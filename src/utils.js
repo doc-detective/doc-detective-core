@@ -242,7 +242,7 @@ async function parseTests(config, files) {
     } else {
       // Process non-JSON
       let id = `${uuid.v4()}`;
-      const spec = { id, file, tests: [] };
+      let spec = { id, file, tests: [] };
       content = content.split("\n");
       let ignore = false;
       fileType = config.fileTypes.find((fileType) =>
@@ -489,7 +489,7 @@ async function parseTests(config, files) {
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
       // Resolve paths
-      spec = resolvePaths(config, spec, file);
+      spec = await resolvePaths(config, spec, file);
 
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
