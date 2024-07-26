@@ -5,8 +5,7 @@ const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
-const { validate } = require("doc-detective-common");
-const { match } = require("assert");
+const { validate, resolvePaths } = require("doc-detective-common");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -155,21 +154,33 @@ function isValidSourceFile(config, files, source) {
     // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
     for (const test of json.tests) {
       if (test.setup) {
-        if (!fs.existsSync(test.setup)) {
+        let setupPath = "";
+        if (config.relativePathBase === "file") {
+          setupPath = path.resolve(path.dirname(source), test.setup);
+        } else {
+          setupPath = path.resolve(test.setup);
+        }
+        if (!fs.existsSync(setupPath)) {
           log(
             config,
             "debug",
-            `${test.setup} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+            `${setupPath} is specified as a setup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
       }
       if (test.cleanup) {
-        if (!fs.existsSync(test.cleanup)) {
+        let cleanupPath = "";
+        if (config.relativePathBase === "file") {
+          cleanupPath = path.resolve(path.dirname(source), test.cleanup);
+        } else {
+          cleanupPath = path.resolve(test.cleanup);
+        }
+        if (!fs.existsSync(cleanupPath)) {
           log(
             config,
             "debug",
-            `${test.cleanup} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+            `${cleanupPath} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
@@ -190,7 +201,7 @@ function isValidSourceFile(config, files, source) {
 }
 
 // Parse files for tests
-function parseTests(config, files) {
+async function parseTests(config, files) {
   let specs = [];
 
   // Loop through files
@@ -202,6 +213,7 @@ function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
+      content = await resolvePaths(config, content, file);
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
         if (test.setup) {
@@ -230,7 +242,7 @@ function parseTests(config, files) {
     } else {
       // Process non-JSON
       let id = `${uuid.v4()}`;
-      const spec = { id, file, tests: [] };
+      let spec = { id, file, tests: [] };
       content = content.split("\n");
       let ignore = false;
       fileType = config.fileTypes.find((fileType) =>
@@ -263,6 +275,10 @@ function parseTests(config, files) {
           statementJson.steps = [];
           // Set id if `id` is set
           if (statementJson.id) {
+            // If `id` already exists in the spec, set it to the `id` with a dash and a new UUID
+            if (spec.tests.find((test) => test.id === statementJson.id)) {
+              statementJson.id = `${statementJson.id}-${uuid.v4()}`;
+            }
             id = statementJson.id;
           } else {
             statementJson.id = id;
@@ -472,6 +488,8 @@ function parseTests(config, files) {
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
+      // Resolve paths
+      spec = await resolvePaths(config, spec, file);
 
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
