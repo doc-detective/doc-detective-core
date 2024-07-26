@@ -5,8 +5,7 @@ const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
-const { validate } = require("doc-detective-common");
-const { match } = require("assert");
+const { validate, resolvePaths } = require("doc-detective-common");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -155,7 +154,7 @@ function isValidSourceFile(config, files, source) {
     // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
     for (const test of json.tests) {
       if (test.setup) {
-        let setupPath = ""
+        let setupPath = "";
         if (config.relativePathBase === "file") {
           setupPath = path.resolve(path.dirname(source), test.setup);
         } else {
@@ -171,7 +170,7 @@ function isValidSourceFile(config, files, source) {
         }
       }
       if (test.cleanup) {
-        let cleanupPath = ""
+        let cleanupPath = "";
         if (config.relativePathBase === "file") {
           cleanupPath = path.resolve(path.dirname(source), test.cleanup);
         } else {
@@ -202,7 +201,7 @@ function isValidSourceFile(config, files, source) {
 }
 
 // Parse files for tests
-function parseTests(config, files) {
+async function parseTests(config, files) {
   let specs = [];
 
   // Loop through files
@@ -214,28 +213,17 @@ function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
+      content = await resolvePaths(config, content, file);
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
         if (test.setup) {
-          let setupPath = "";
-          if (config.relativePathBase === "file") {
-            setupPath = path.resolve(path.dirname(file), test.setup);
-          } else {
-            setupPath = path.resolve(test.setup);
-          }
-          const setupContent = fs.readFileSync(setupPath).toString();
+          const setupContent = fs.readFileSync(test.setup).toString();
           const setup = JSON.parse(setupContent);
           test.steps = setup.tests[0].steps.concat(test.steps);
         }
         // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
         if (test.cleanup) {
-          let cleanupPath = "";
-          if (config.relativePathBase === "file") {
-            cleanupPath = path.resolve(path.dirname(file), test.cleanup);
-          } else {
-            cleanupPath = path.resolve(test.cleanup);
-          }
-          const cleanupContent = fs.readFileSync(cleanupPath).toString();
+          const cleanupContent = fs.readFileSync(test.cleanup).toString();
           const cleanup = JSON.parse(cleanupContent);
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
@@ -500,6 +488,8 @@ function parseTests(config, files) {
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
+      // Resolve paths
+      spec = resolvePaths(config, spec, file);
 
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
