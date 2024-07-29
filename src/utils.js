@@ -5,8 +5,7 @@ const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
-const { validate } = require("doc-detective-common");
-const { match } = require("assert");
+const { validate, resolvePaths } = require("doc-detective-common");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -155,21 +154,33 @@ function isValidSourceFile(config, files, source) {
     // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
     for (const test of json.tests) {
       if (test.setup) {
-        if (!fs.existsSync(test.setup)) {
+        let setupPath = "";
+        if (config.relativePathBase === "file") {
+          setupPath = path.resolve(path.dirname(source), test.setup);
+        } else {
+          setupPath = path.resolve(test.setup);
+        }
+        if (!fs.existsSync(setupPath)) {
           log(
             config,
             "debug",
-            `${test.setup} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+            `${setupPath} is specified as a setup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
       }
       if (test.cleanup) {
-        if (!fs.existsSync(test.cleanup)) {
+        let cleanupPath = "";
+        if (config.relativePathBase === "file") {
+          cleanupPath = path.resolve(path.dirname(source), test.cleanup);
+        } else {
+          cleanupPath = path.resolve(test.cleanup);
+        }
+        if (!fs.existsSync(cleanupPath)) {
           log(
             config,
             "debug",
-            `${test.cleanup} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+            `${cleanupPath} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
@@ -190,18 +201,22 @@ function isValidSourceFile(config, files, source) {
 }
 
 // Parse files for tests
-function parseTests(config, files) {
+async function parseTests(config, files) {
   let specs = [];
 
   // Loop through files
   for (const file of files) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file);
-    let content = fs.readFileSync(file).toString();
+    let content = "";
+    content = fs.readFileSync(file).toString();
 
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
+      // Resolve to catch any relative setup or cleanup paths
+      content = await resolvePaths(config, content, file);
+
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
         if (test.setup) {
@@ -216,6 +231,22 @@ function parseTests(config, files) {
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
       }
+      // Validate each step
+      for (const test of content.tests) {
+        // Filter out steps that don't pass validation
+        test.steps.forEach((step) => {
+          const validation = validate(`${step.action}_v2`, step);
+          if (!validation.valid) {
+            log(
+              config,
+              "warning",
+              `Step ${step} isn't a valid step. Skipping.`
+            );
+            return false;
+          }
+          return true;
+        });
+      }
       const validation = validate("spec_v2", content);
       if (!validation.valid) {
         log(config, "warning", validation);
@@ -226,11 +257,13 @@ function parseTests(config, files) {
         );
         return false;
       }
+      // Resolve previously unapplied defaults
+      content = await resolvePaths(config, content, file);
       specs.push(content);
     } else {
       // Process non-JSON
       let id = `${uuid.v4()}`;
-      const spec = { id, file, tests: [] };
+      let spec = { id, file, tests: [] };
       content = content.split("\n");
       let ignore = false;
       fileType = config.fileTypes.find((fileType) =>
@@ -263,6 +296,10 @@ function parseTests(config, files) {
           statementJson.steps = [];
           // Set id if `id` is set
           if (statementJson.id) {
+            // If `id` already exists in the spec, set it to the `id` with a dash and a new UUID
+            if (spec.tests.find((test) => test.id === statementJson.id)) {
+              statementJson.id = `${statementJson.id}-${uuid.v4()}`;
+            }
             id = statementJson.id;
           } else {
             statementJson.id = id;
@@ -472,6 +509,8 @@ function parseTests(config, files) {
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
+      // Resolve paths
+      spec = await resolvePaths(config, spec, file);
 
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
@@ -602,10 +641,19 @@ function timestamp() {
 }
 
 // Perform a native command in the current working directory.
+/**
+ * Executes a command in a child process using the `spawn` function from the `child_process` module.
+ * @param {string} cmd - The command to execute.
+ * @param {string[]} args - The arguments to pass to the command.
+ * @param {object} options - The options for the command execution.
+ * @param {boolean} options.workingDirectory - Directory in which to execute the command.
+ * @param {boolean} options.debug - Whether to enable debug mode.
+ * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
+ */
 async function spawnCommand(cmd, args, options) {
   // Set default options
   if (!options) options = {};
-
+  console.log(options);
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
@@ -621,9 +669,13 @@ async function spawnCommand(cmd, args, options) {
 
   // Set spawnOptions based on OS
   let spawnOptions = {};
+  let cleanupNodeModules = false;
   if (process.platform === "win32") {
     spawnOptions.shell = true;
     spawnOptions.windowsHide = true;
+  }
+  if (options.cwd) {
+    spawnOptions.cwd = options.cwd;
   }
 
   const runCommand = spawn(cmd, args, spawnOptions);

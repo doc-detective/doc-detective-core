@@ -32,8 +32,9 @@ async function main() {
     output: ".",
     recursive: true,
     logLevel: "debug",
+    relativePathBase: "file",
     runTests: {
-      input: "./test/artifacts/saveScreenshot_pixeldiff.spec.json",
+      input: "./dev/runShell.spec.json",
       output: ".",
       setup: "",
       cleanup: "",

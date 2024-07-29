@@ -3,6 +3,7 @@
   "tests": [
     {
       "id": "simple",
+      "setup": "setup.spec.json",
       "steps": [
         {
           "action": "goTo",

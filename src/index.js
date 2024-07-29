@@ -33,7 +33,7 @@ async function runTests(config) {
   log(config, "debug", files);
 
   // Set test specs
-  const specs = parseTests(config, files);
+  const specs = await parseTests(config, files);
   log(config, "debug", `SPECS:`);
   log(config, "debug", specs);
 
