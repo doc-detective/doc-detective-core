@@ -1,4 +1,4 @@
-const { validate } = require("doc-detective-common");
+const { validate, resolvePaths } = require("doc-detective-common");
 const { spawnCommand, log, calculatePercentageDifference } = require("../utils");
 const fs = require("fs");
 const path = require("path");
@@ -26,7 +26,9 @@ async function runShell(config, step) {
 
   // Execute command
   const timeout = step.timeout;
-  const commandPromise = spawnCommand(step.command, step.args);
+  const options = {};
+  if (step.workingDirectory) options.cwd = step.workingDirectory;
+  const commandPromise = spawnCommand(step.command, step.args, options);
   let timeoutId;
   const timeoutPromise = new Promise((resolve, reject) => {
     timeoutId = setTimeout(() => {
