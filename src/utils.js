@@ -307,8 +307,8 @@ async function parseTests(config, files) {
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
             // If `setup` is a relative path, resolve it
-            if (config.relativePathBase === "file" && !path.isAbsolute(setup)) {
-              statementJson.setup = path.resolve(path.dirname(file), setup);
+            if (config.relativePathBase === "file" && !path.isAbsolute(statementJson.setup)) {
+              statementJson.setup = path.resolve(path.dirname(file), statementJson.setup);
             }
             // Load setup steps
             const setupContent = fs
