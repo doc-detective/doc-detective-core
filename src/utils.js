@@ -520,8 +520,6 @@ async function parseTests(config, files) {
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
-      // Resolve paths
-      spec = await resolvePaths(config, spec, file);
 
       // Push spec to specs, if it is valid
       const validation = validate("spec_v2", spec);
@@ -532,6 +530,8 @@ async function parseTests(config, files) {
           `Tests from ${file} don't create a valid test specification. Skipping.`
         );
       } else {
+        // Resolve paths
+        spec = await resolvePaths(config, spec, file);
         specs.push(spec);
       }
     }
