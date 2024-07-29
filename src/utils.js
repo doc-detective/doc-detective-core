@@ -664,7 +664,6 @@ function timestamp() {
 async function spawnCommand(cmd, args, options) {
   // Set default options
   if (!options) options = {};
-  console.log(options);
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
