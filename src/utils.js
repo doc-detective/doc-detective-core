@@ -306,6 +306,10 @@ async function parseTests(config, files) {
           }
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
+            // If `setup` is a relative path, resolve it
+            if (config.relativePathBase === "file" && !path.isAbsolute(setup)) {
+              statementJson.setup = path.resolve(path.dirname(file), setup);
+            }
             // Load setup steps
             const setupContent = fs
               .readFileSync(statementJson.setup)
@@ -333,6 +337,13 @@ async function parseTests(config, files) {
           test = spec.tests.find((test) => test.id === id);
           // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
           if (test.cleanup) {
+            // If `cleanup` is a relative path, resolve it
+            if (
+              config.relativePathBase === "file" &&
+              !path.isAbsolute(test.cleanup)
+            ) {
+              test.cleanup = path.resolve(path.dirname(file), test.cleanup);
+            }
             const cleanupContent = fs.readFileSync(test.cleanup).toString();
             const cleanup = JSON.parse(cleanupContent);
             test.steps = test.steps.concat(cleanup.tests[0].steps);
@@ -653,7 +664,6 @@ function timestamp() {
 async function spawnCommand(cmd, args, options) {
   // Set default options
   if (!options) options = {};
-  console.log(options);
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
