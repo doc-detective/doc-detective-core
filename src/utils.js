@@ -208,12 +208,15 @@ async function parseTests(config, files) {
   for (const file of files) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file);
-    let content = fs.readFileSync(file).toString();
+    let content = "";
+    content = fs.readFileSync(file).toString();
 
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
+      // Resolve to catch any relative setup or cleanup paths
       content = await resolvePaths(config, content, file);
+
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
         if (test.setup) {
@@ -228,6 +231,22 @@ async function parseTests(config, files) {
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
       }
+      // Validate each step
+      for (const test of content.tests) {
+        // Filter out steps that don't pass validation
+        test.steps.forEach((step) => {
+          const validation = validate(`${step.action}_v2`, step);
+          if (!validation.valid) {
+            log(
+              config,
+              "warning",
+              `Step ${step} isn't a valid step. Skipping.`
+            );
+            return false;
+          }
+          return true;
+        });
+      }
       const validation = validate("spec_v2", content);
       if (!validation.valid) {
         log(config, "warning", validation);
@@ -238,6 +257,8 @@ async function parseTests(config, files) {
         );
         return false;
       }
+      // Resolve previously unapplied defaults
+      content = await resolvePaths(config, content, file);
       specs.push(content);
     } else {
       // Process non-JSON
@@ -620,10 +641,19 @@ function timestamp() {
 }
 
 // Perform a native command in the current working directory.
+/**
+ * Executes a command in a child process using the `spawn` function from the `child_process` module.
+ * @param {string} cmd - The command to execute.
+ * @param {string[]} args - The arguments to pass to the command.
+ * @param {object} options - The options for the command execution.
+ * @param {boolean} options.workingDirectory - Directory in which to execute the command.
+ * @param {boolean} options.debug - Whether to enable debug mode.
+ * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
+ */
 async function spawnCommand(cmd, args, options) {
   // Set default options
   if (!options) options = {};
-
+  console.log(options);
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
@@ -639,9 +669,13 @@ async function spawnCommand(cmd, args, options) {
 
   // Set spawnOptions based on OS
   let spawnOptions = {};
+  let cleanupNodeModules = false;
   if (process.platform === "win32") {
     spawnOptions.shell = true;
     spawnOptions.windowsHide = true;
+  }
+  if (options.cwd) {
+    spawnOptions.cwd = options.cwd;
   }
 
   const runCommand = spawn(cmd, args, spawnOptions);
