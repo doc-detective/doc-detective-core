@@ -29,21 +29,18 @@ async function startRecording(config, context, step, driver) {
   }
 
   // Set file name
-  step.path = step.path || `${step.id}.webm`;
-  const baseName = path.basename(step.path, path.extname(step.path));
- 
+  if (!step.path) {
+    step.path = `${step.id}.webm`;
+    if (step.directory) { step.path = path.join(step.directory, step.path); }
+  }
+  let filePath = step.path;
+
   // Set path directory
-  const dir =
-    step.directory ||
-    config.runTests?.mediaDirectory ||
-    config.runTests?.output ||
-    config.output;
+  const dir = path.dirname(step.path);
   // If `dir` doesn't exist, create it
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  // Set filePath
-  filePath = path.join(dir, step.path);
 
   // Check if file already exists
   if (fs.existsSync(filePath) && step.overwrite == "false") {
