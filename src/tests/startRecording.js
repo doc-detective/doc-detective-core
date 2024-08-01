@@ -30,7 +30,7 @@ async function startRecording(config, context, step, driver) {
 
   // Set file name
   if (!step.path) {
-    step.path = `${step.id}.webm`;
+    step.path = `${step.id}.mp4`;
     if (step.directory) { step.path = path.join(step.directory, step.path); }
   }
   let filePath = step.path;
