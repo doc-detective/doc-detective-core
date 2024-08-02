@@ -125,17 +125,13 @@ async function httpRequest(config, step) {
 
   // Check if command output is saved to a file
   if (step.savePath) {
-    const dir =
-      step.directory ||
-      config.runTests?.mediaDirectory ||
-      config.runTests?.output ||
-      config.output;
+    const dir = path.dirname(step.savePath);
     // If `dir` doesn't exist, create it
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     // Set filePath
-    const filePath = path.resolve(dir, step.savePath);
+    let filePath = step.savePath;
     log(config,"debug", `Saving output to file: ${filePath}`)
 
     // Check if file already exists

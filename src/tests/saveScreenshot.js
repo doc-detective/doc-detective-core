@@ -22,21 +22,19 @@ async function saveScreenshot(config, step, driver) {
   }
 
   // Set file name
-  step.path = step.path || `${step.id}.png`;
+  if (!step.path) {
+    step.path = `${step.id}.png`;
+    if (step.directory) { step.path = path.join(step.directory, step.path); }
+  }
+  let filePath = step.path;
 
   // Set path directory
-  const dir =
-    step.directory ||
-    config.runTests?.mediaDirectory ||
-    config.runTests?.output ||
-    config.output;
+  const dir = path.dirname(step.path);
   // If `dir` doesn't exist, create it
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  // Set filePath
-  filePath = path.join(dir, step.path);
-
+    
   // Check if file already exists
   let existFilePath;
   if (fs.existsSync(filePath)) {
