@@ -1,0 +1,28 @@
+{
+  "id": "matchTextRegex",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/docs/references/schemas/typeKeys"
+        },
+        {
+          "action": "find",
+          "selector": "h2#examples",
+          "matchText": "Examples"
+        },
+        {
+          "action": "find",
+          "selector": "h2#examples",
+          "matchText": "/^Examples$/"
+        },
+        {
+          "action": "find",
+          "selector": "h2#examples",
+          "matchText": "/^E.*?s/"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "id": "Set env variable from element text",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/docs/references/schemas/typeKeys"
+        },
+        {
+          "description": "Set EXAMPLES variable to the text of the element with id 'examples'",
+          "action": "find",
+          "selector": "h2#examples",
+          "setVariables": [
+            {
+              "name": "EXAMPLES",
+              "regex": ".*"
+            }
+          ]
+        },
+        {
+          "description": "Print and validate the value of the EXAMPLES variable.",
+          "action": "runShell",
+          "command": "echo $EXAMPLES",
+          "output": "Examples"
+        }
+      ]
+    }
+  ]
+}

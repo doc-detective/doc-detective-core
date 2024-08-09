@@ -661,21 +661,21 @@ function timestamp() {
  * @param {boolean} options.debug - Whether to enable debug mode.
  * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
  */
-async function spawnCommand(cmd, args, options) {
+async function spawnCommand(cmd, args = [], options) {
   // Set default options
   if (!options) options = {};
-  // Split command into command and arguments
-  if (cmd.includes(" ")) {
-    const cmdArray = cmd.split(" ");
-    cmd = cmdArray[0];
-    cmdArgs = cmdArray.slice(1);
-    // Add arguments to args array
-    if (args) {
-      args = cmdArgs.concat(args);
-    } else {
-      args = cmdArgs;
-    }
+  
+  // Set shell (bash/cmd) based on OS
+  let shell = "bash";
+  let command = ["-c"];
+  if (process.platform === "win32") {
+    shell = "cmd";
+    command = ["/c"];
   }
+
+  // Combine command and arguments
+  let fullCommand = [cmd, ...args].join(" ");
+  command.push(fullCommand);
 
   // Set spawnOptions based on OS
   let spawnOptions = {};
@@ -688,7 +688,7 @@ async function spawnCommand(cmd, args, options) {
     spawnOptions.cwd = options.cwd;
   }
 
-  const runCommand = spawn(cmd, args, spawnOptions);
+  const runCommand = spawn(shell, command, spawnOptions);
   runCommand.on("error", (error) => {});
 
   // Capture stdout
