@@ -11,7 +11,8 @@
         },
         {
           "action": "saveScreenshot",
-          "path": "screenshot2.png"
+          "path": "screenshot2.png",
+          "overwrite": "true"
         },
         {
           "action": "goTo",
