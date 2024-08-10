@@ -307,8 +307,14 @@ async function parseTests(config, files) {
           // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
           if (statementJson.setup) {
             // If `setup` is a relative path, resolve it
-            if (config.relativePathBase === "file" && !path.isAbsolute(statementJson.setup)) {
-              statementJson.setup = path.resolve(path.dirname(file), statementJson.setup);
+            if (
+              config.relativePathBase === "file" &&
+              !path.isAbsolute(statementJson.setup)
+            ) {
+              statementJson.setup = path.resolve(
+                path.dirname(file),
+                statementJson.setup
+              );
             }
             // Load setup steps
             const setupContent = fs
@@ -398,8 +404,9 @@ async function parseTests(config, files) {
           }
           // If `detectSteps` is false, skip
           if (
-            config.runTests?.detectSteps === false ||
-            test.detectSteps === false
+            (typeof config.runTests?.detectSteps == "undefined" &&
+              test.detectSteps === false) ||
+            config.runTests?.detectSteps === false
           )
             continue;
 
@@ -664,7 +671,7 @@ function timestamp() {
 async function spawnCommand(cmd, args = [], options) {
   // Set default options
   if (!options) options = {};
-  
+
   // Set shell (bash/cmd) based on OS
   let shell = "bash";
   let command = ["-c"];
