@@ -7,7 +7,7 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://doc-detective.com/reference/schemas/config.html"
+          "url": "https://doc-detective.com/docs/references/schemas/typeKeys"
         },
         {
           "action": "saveScreenshot",
