@@ -15,7 +15,7 @@
     "downloadDirectory": ".",
     "contexts": [
       {
-        "app": { "name": "chrome", "options": { "headless": true } },
+        "app": { "name": "chrome", "options": { "headless": false } },
         "platforms": ["windows", "mac", "linux"]
       }
     ]

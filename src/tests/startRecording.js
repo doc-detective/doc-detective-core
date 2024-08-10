@@ -31,9 +31,12 @@ async function startRecording(config, context, step, driver) {
   // Set file name
   if (!step.path) {
     step.path = `${step.id}.mp4`;
-    if (step.directory) { step.path = path.join(step.directory, step.path); }
+    if (step.directory) {
+      step.path = path.join(step.directory, step.path);
+    }
   }
   let filePath = step.path;
+  const baseName = path.basename(filePath, path.extname(filePath));
 
   // Set path directory
   const dir = path.dirname(step.path);
@@ -50,7 +53,10 @@ async function startRecording(config, context, step, driver) {
     return result;
   }
 
-  if (context.app.name === "chrome" && context?.app?.options?.headless === false) {
+  if (
+    context.app.name === "chrome" &&
+    context?.app?.options?.headless === false
+  ) {
     config.recording = {};
     // Chrome and Chromium
     // Get document title
