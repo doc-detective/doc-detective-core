@@ -405,8 +405,10 @@ async function parseTests(config, files) {
           // If `detectSteps` is false, skip
           if (
             (typeof config.runTests?.detectSteps == "undefined" &&
-              test.detectSteps === false) ||
-            config.runTests?.detectSteps === false
+              typeof test.detectSteps === "undefined") ||
+            (config.runTests?.detectSteps === false &&
+              typeof test.detectSteps === "undefined") ||
+            test.detectSteps === false
           )
             continue;
 
@@ -479,7 +481,7 @@ async function parseTests(config, files) {
                     step = { action: action.name };
                   }
                 } else {
-                  step = action;
+                  step = JSON.parse(JSON.stringify(action));
                 }
                 step.index = match.index;
                 // Substitute variables $n with match[n]
