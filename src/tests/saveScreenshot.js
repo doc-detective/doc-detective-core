@@ -24,7 +24,9 @@ async function saveScreenshot(config, step, driver) {
   // Set file name
   if (!step.path) {
     step.path = `${step.id}.png`;
-    if (step.directory) { step.path = path.join(step.directory, step.path); }
+    if (step.directory) {
+      step.path = path.join(step.directory, step.path);
+    }
   }
   let filePath = step.path;
 
@@ -34,7 +36,7 @@ async function saveScreenshot(config, step, driver) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-    
+
   // Check if file already exists
   let existFilePath;
   if (fs.existsSync(filePath)) {
@@ -70,6 +72,39 @@ async function saveScreenshot(config, step, driver) {
     result.status = "FAIL";
     result.description = `Couldn't save screenshot. ${error}`;
     return result;
+  }
+
+  // If crop is set, found bounds of element and crop image
+  if (step.crop) {
+    let padding = { top: 0, right: 0, bottom: 0, left: 0 };
+    if (typeof step.crop.padding === "number") {
+      padding.top = step.crop.padding;
+      padding.right = step.crop.padding;
+      padding.bottom = step.crop.padding;
+      padding.left = step.crop.padding;
+    } else if (typeof step.crop.padding === "object") {
+      padding = step.crop.padding;
+    }
+
+    // Get the element using the provided selector
+    const element = await driver.$(step.crop.selector);
+
+    // Get the bounding rectangle of the element
+    const rect = await element.getRect();
+
+    // Read the image file into a PNG object
+    const img = PNG.sync.read(fs.readFileSync(filePath));
+
+    // TODO: Add error handling for out of bounds
+    
+    // Create a new PNG object with the dimensions of the cropped area
+    const cropped = new PNG({ width: rect.width + padding.left + padding.right, height: rect.height + padding.top + padding.bottom });
+
+    // Copy the pixels from the original image to the cropped image based on the rectangle coordinates
+    img.bitblt(cropped, rect.x - padding.left, rect.y - padding.top, rect.width + padding.left + padding.right, rect.height + padding.top + padding.bottom, 0, 0);
+
+    // Write the cropped image back to the file
+    fs.writeFileSync(filePath, PNG.sync.write(cropped));
   }
 
   // If file already exists
