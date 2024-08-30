@@ -1,8 +1,10 @@
 const { validate } = require("doc-detective-common");
 const { log } = require("../utils");
+const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const PNG = require("pngjs").PNG;
+const sharp = require("sharp");
 const pixelmatch = require("pixelmatch");
 
 exports.saveScreenshot = saveScreenshot;
@@ -86,25 +88,65 @@ async function saveScreenshot(config, step, driver) {
       padding = step.crop.padding;
     }
 
+    // Get pixel density
+    const pixelDensity = await driver.execute(() => window.devicePixelRatio);
+
     // Get the element using the provided selector
     const element = await driver.$(step.crop.selector);
 
     // Get the bounding rectangle of the element
-    const rect = await element.getRect();
+    const rect = {
+      ...(await element.getSize()),
+      ...(await element.getLocation()),
+    };
+    log(config, "debug", { rect });
 
-    // Read the image file into a PNG object
-    const img = PNG.sync.read(fs.readFileSync(filePath));
+    // Calculate the padding based on the provided padding values
+    rect.x -= padding.left;
+    rect.y -= padding.top;
+    rect.width += padding.left + padding.right;
+    rect.height += padding.top + padding.bottom;
+
+    // Scale the values based on the pixel density
+    rect.x *= pixelDensity;
+    rect.y *= pixelDensity;
+    rect.width *= pixelDensity;
+    rect.height *= pixelDensity;
+
+    // Round the values to integers
+    rect.x = Math.round(rect.x);
+    rect.y = Math.round(rect.y);
+    rect.width = Math.round(rect.width);
+    rect.height = Math.round(rect.height);
+
+    log(config, "debug", { padded_rect: rect });
 
     // TODO: Add error handling for out of bounds
-    
+
     // Create a new PNG object with the dimensions of the cropped area
-    const cropped = new PNG({ width: rect.width + padding.left + padding.right, height: rect.height + padding.top + padding.bottom });
+    const croppedPath = path.join(dir, "cropped.png");
+    sharp(filePath)
+      .extract({
+        left: rect.x,
+        top: rect.y,
+        width: rect.width,
+        height: rect.height,
+      })
+      .toFile(croppedPath, (err, info) => {
+        if (err) {
+          result.status = "FAIL";
+          result.description = `Couldn't crop image. ${err}`;
+          return result;
+        }
+      });
+    
+      // Wait for the file to be written
+    while (!fs.existsSync(croppedPath)) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
 
-    // Copy the pixels from the original image to the cropped image based on the rectangle coordinates
-    img.bitblt(cropped, rect.x - padding.left, rect.y - padding.top, rect.width + padding.left + padding.right, rect.height + padding.top + padding.bottom, 0, 0);
-
-    // Write the cropped image back to the file
-    fs.writeFileSync(filePath, PNG.sync.write(cropped));
+    // Replace the original file with the cropped file
+    fs.renameSync(croppedPath, filePath);
   }
 
   // If file already exists
@@ -145,8 +187,6 @@ async function saveScreenshot(config, step, driver) {
       if (percentDiff > step.maxVariation) {
         if (step.overwrite == "byVariation") {
           // Replace old file with new file
-          // TODO: Not working
-          fs.unlinkSync(existFilePath);
           fs.renameSync(filePath, existFilePath);
         }
         result.status = "FAIL";
@@ -158,13 +198,15 @@ async function saveScreenshot(config, step, driver) {
         result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
-        fs.unlinkSync(filePath);
+        if (step.overwrite != "true") {
+          fs.unlinkSync(filePath);
+        }
       }
     }
 
     if (step.overwrite == "true") {
       // Replace old file with new file
-      fs.unlinkSync(existFilePath);
+      result.description += ` Overwrote existing file.`;
       fs.renameSync(filePath, existFilePath);
     }
   }
