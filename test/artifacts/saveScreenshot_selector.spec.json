@@ -1,0 +1,64 @@
+{
+  "tests": [
+    {
+      "id": "saveScreenshot_selector_firefox",
+      "description": "Save a screenshot of a specific element",
+      "contexts": [
+        {
+          "app": {
+            "name": "firefox",
+            "options": {
+              "headless": false
+            }
+          },
+          "platforms": ["windows", "mac", "linux"]
+        }
+      ],
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "http://www.duckduckgo.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "crop": {
+            "selector": "#searchbox_homepage",
+            "padding": 10
+          },
+          "path": "test/artifacts/saveScreenshot_selector_firefox.png",
+          "overwrite": "byVariation"
+        }
+      ]
+    },
+    {
+      "id": "saveScreenshot_selector_chrome",
+      "description": "Save a screenshot of a specific element",
+      "contexts": [
+        {
+          "app": {
+            "name": "chrome",
+            "options": {
+              "headless": false
+            }
+          },
+          "platforms": ["windows", "mac", "linux"]
+        }
+      ],
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "http://www.duckduckgo.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "crop": {
+            "selector": "#searchbox_homepage",
+            "padding": 10
+          },
+          "path": "test/artifacts/saveScreenshot_selector_chrome.png",
+          "overwrite": "byVariation"
+        }
+      ]
+    }
+  ]
+}
