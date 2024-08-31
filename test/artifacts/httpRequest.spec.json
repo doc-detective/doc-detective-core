@@ -63,7 +63,7 @@
           "action": "httpRequest",
           "url": "https://reqres.in/api/users/1",
           "method": "get",
-          "timeout": 100,
+          "timeout": 1000,
           "responseData": {
             "data": {
               "id": 1,
