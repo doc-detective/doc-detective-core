@@ -1,5 +1,14 @@
-// TODO: Dereference the OpenAPI definition.
-async function dereferenceDefinition() {}
+/**
+ * Dereferences an OpenAPI definition.
+ * 
+ * @param {Object} definition - The OpenAPI definition to be dereferenced.
+ * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
+ */
+async function dereferenceOpenApiDefinition(definition) {
+  const parser = require("@apidevtools/json-schema-ref-parser");
+  const dereferencedDefinition = await parser.dereference(definition);
+  return dereferencedDefinition;
+}
 
 /**
  * Retrieves the operation object from the OpenAPI definition based on the provided operationId.
@@ -131,7 +140,7 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
 
 /**
  * Retrieves an example value based on the given definition and example key.
- * 
+ *
  * @param {object} definition - The definition object.
  * @param {string} exampleKey - The key of the example to retrieve.
  * @returns {object|null} - The example value.
@@ -233,12 +242,17 @@ function generateArrayExample(items = {}, exampleKey = "") {
   return example;
 }
 
-module.exports = { getOperation };
+module.exports = { getOperation, dereferenceOpenApiDefinition };
 
-const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres_deref.openapi.json");
-const operationId = "getUsers";
-const operation = getOperation(apiDefinition, operationId);
-console.log(operation);
+(async () => {
+  const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
+  const definition = await dereferenceOpenApiDefinition(apiDefinition);
+  console.log(JSON.stringify(definition, null, 2));
+})();
+
+// const operationId = "getUsers";
+// const operation = getOperation(apiDefinition, operationId);
+// console.log(operation);
 
 // const paramDefinition = {
 //   name: "page",
