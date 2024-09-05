@@ -92,9 +92,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/userResponse"
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "example": "morpheus"
+                    },
+                    "job": {
+                      "type": "string",
+                      "example": "leader"
+                    }
                   }
                 }
               }
