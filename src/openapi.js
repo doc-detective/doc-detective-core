@@ -4,7 +4,12 @@
  * @param {Object} definition - The OpenAPI definition to be dereferenced.
  * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
  */
-async function dereferenceOpenApiDefinition(definition) {
+async function dereferenceOpenApiDefinition(definition = {}) {
+  // Error handling
+  if (!definition) {
+    throw new Error("OpenAPI definition is required.");
+  }
+
   const parser = require("@apidevtools/json-schema-ref-parser");
   const dereferencedDefinition = await parser.dereference(definition);
   return dereferencedDefinition;
