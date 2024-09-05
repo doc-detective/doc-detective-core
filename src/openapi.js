@@ -1,6 +1,6 @@
 /**
  * Dereferences an OpenAPI definition.
- * 
+ *
  * @param {Object} definition - The OpenAPI definition to be dereferenced.
  * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
  */
@@ -252,12 +252,10 @@ module.exports = { getOperation, dereferenceOpenApiDefinition };
 (async () => {
   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
   const definition = await dereferenceOpenApiDefinition(apiDefinition);
-  console.log(JSON.stringify(definition, null, 2));
+  const operationId = "getUsers";
+  const operation = getOperation(definition, operationId);
+  console.log(operation);
 })();
-
-// const operationId = "getUsers";
-// const operation = getOperation(apiDefinition, operationId);
-// console.log(operation);
 
 // const paramDefinition = {
 //   name: "page",
