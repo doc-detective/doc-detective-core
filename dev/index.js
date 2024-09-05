@@ -34,7 +34,7 @@ async function main() {
     logLevel: "debug",
     relativePathBase: "file",
     runTests: {
-      input: "./dev/runShell.spec.json",
+      input: "./dev/dev.spec.json",
       output: ".",
       setup: "",
       cleanup: "",

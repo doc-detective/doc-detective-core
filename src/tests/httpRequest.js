@@ -3,13 +3,14 @@ const axios = require("axios");
 const jq = require("node-jq");
 const fs = require("fs");
 const path = require("path");
+const { getOperation, dereferenceOpenApiDefinition } = require("../openapi");
 const { log, calculatePercentageDifference } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
 async function httpRequest(config, step) {
   let result = { status: "", description: "" };
-  let request = { url: "", method: "" };
+  let request = { url: "", method: "", headers: {}, params: {}, data: {} };
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
@@ -22,14 +23,41 @@ async function httpRequest(config, step) {
     return result;
   }
 
-  request.url = step.url;
+  if (step.openApi) {
+    // Get operation from OpenAPI definition
+    const rawDefinition = step.openApi.definitionPath;
+    const definition = await dereferenceOpenApiDefinition(rawDefinition);
+    const operation = await getOperation(definition, step.openApi.operationId);
+    log(config, "debug", `Operation: ${JSON.stringify(operation,null,2)}`);
+    if (!operation) {
+      result.status = "FAIL";
+      result.description = `Couldn't find operation '${step.operationId}' in OpenAPI definition.`;
+      return result;
+    }
+    if (step.openApi.useRequestExample) {
+      // Set request parameters
+      request.url = operation.example.url;
+      request.method = operation.method;
+      step.method = request.method;
+      if (operation.example.parameters)
+        request.params = operation.example.parameters;
+      if (operation.example.headers)
+        request.headers = operation.example.headers;
+      if (operation.example.request)
+        request.data = operation.example.request;
+    }
+  }
+
+  request.url = step.url || request.url;
+  step.url = request.url;
   request.method = step.method;
   request.timeout = step.timeout;
-  if (JSON.stringify(step.requestHeaders) != "{}")
-    request.headers = step.requestHeaders;
-  if (JSON.stringify(step.requestParams) != "{}")
-    request.params = step.requestParams;
-  if (JSON.stringify(step.requestData) != "{}") request.data = step.requestData;
+    request.headers = { ...request.headers, ...step.requestHeaders };
+    step.requestHeaders = request.headers;
+    request.params = { ...request.params, ...step.requestParams };
+    step.requestParams = request.params;
+    request.data = { ...request.data, ...step.requestData };
+    step.requestData = request.data;
 
   // Perform request
   const response = await axios(request)
@@ -104,24 +132,24 @@ async function httpRequest(config, step) {
   }
 
   // Set environment variables from response data
-    for (const variable of step.envsFromResponseData) {
-      let value = await jq.run(variable.jqFilter, response.data, {
-        input: "json",
-        output: "compact",
-      });
-      if (value) {
-        // Trim quotes if present
-        value = value.replace(/^"(.*)"$/, "$1");
-        process.env[variable.name] = value;
-        result.description =
-          result.description + ` Set '$${variable.name}' environment variable.`;
-      } else {
-        if (result.status != "FAIL") result.status = "WARNING";
-        result.description =
-          result.description +
-          ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
-      }
+  for (const variable of step.envsFromResponseData) {
+    let value = await jq.run(variable.jqFilter, response.data, {
+      input: "json",
+      output: "compact",
+    });
+    if (value) {
+      // Trim quotes if present
+      value = value.replace(/^"(.*)"$/, "$1");
+      process.env[variable.name] = value;
+      result.description =
+        result.description + ` Set '$${variable.name}' environment variable.`;
+    } else {
+      if (result.status != "FAIL") result.status = "WARNING";
+      result.description =
+        result.description +
+        ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
+  }
 
   // Check if command output is saved to a file
   if (step.savePath) {
@@ -132,12 +160,12 @@ async function httpRequest(config, step) {
     }
     // Set filePath
     let filePath = step.savePath;
-    log(config,"debug", `Saving output to file: ${filePath}`)
+    log(config, "debug", `Saving output to file: ${filePath}`);
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file
-      fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2))
+      fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
     } else {
       if (step.overwrite == "false") {
         // File already exists
@@ -153,7 +181,7 @@ async function httpRequest(config, step) {
         existingFile,
         JSON.stringify(response.data, null, 2)
       );
-      log(config,"debug", `Percentage difference: ${percentDiff}%`);
+      log(config, "debug", `Percentage difference: ${percentDiff}%`);
 
       if (percentDiff > step.maxVariation) {
         if (step.overwrite == "byVariation") {

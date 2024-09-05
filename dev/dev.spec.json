@@ -1,30 +1,16 @@
 {
-  "id": "Simple",
+  "id": "httpRequest_OpenAPI support",
   "tests": [
     {
-      "id": "simple",
-      "setup": "setup.spec.json",
       "steps": [
         {
-          "action": "goTo",
-          "url": "http://www.duckduckgo.com"
-        },
-        {
-          "action": "startRecording",
-          "path": "simple.mp4",
-          "overwrite": true
-        },
-        {
-          "action": "find",
-          "selector": "#searchbox_input",
-          "moveTo": true,
-          "click": true,
-          "typeKeys": {
-            "keys": ["doc-detective","$ENTER$"]
-          } 
-        },
-        {
-          "action": "stopRecording"
+          "action": "httpRequest",
+          "openApi": {
+            "definitionPath": "reqres.openapi.json",
+            "operationId": "addUser",
+            "useRequestExample": true
+          },
+          "statusCodes": [201]
         }
       ]
     }
