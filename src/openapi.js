@@ -8,7 +8,7 @@ async function dereferenceDefinition() {}
  * @param {string} operationId - The operationId to search for.
  * @returns {object|null} - The operation, path, and method if found, otherwise null.
  */
-function getOperation(definition = {}, operationId = "") {
+function getOperation(definition = {}, operationId = "", exampleKey = "") {
   // Error handling
   if (!definition) {
     throw new Error("OpenAPI definition is required.");
@@ -20,7 +20,9 @@ function getOperation(definition = {}, operationId = "") {
   for (const path in definition.paths) {
     for (const method in definition.paths[path]) {
       if (definition.paths[path][method].operationId === operationId) {
-        return { path, method, definition: definition.paths[path][method] };
+        const operation = definition.paths[path][method];
+        const example = compileExample(operation, path, exampleKey);
+        return { path, method, definition: operation, example };
       }
     }
   }
@@ -30,43 +32,37 @@ function getOperation(definition = {}, operationId = "") {
 // Given an operation object, retrieves the examples for the parameters, request body, and responses. Returns an array of examples.
 // If multiple examples are provided, each examples[key] value is complied individually and returned as an array item.
 // If a parameter or object has an `example` property, that value is used for all examples[key] values.
-function getExamples(operation = {}) {
-  // Defile example class
-  class OperationExample {
-    constructor() {
-      this.key = "";
-      this.query = "";
-      this.parameters = [];
-      this.headers = [];
-      this.request = {};
-      this.response = {};
-    }
+function compileExample(operation = {}, path = "", exampleKey = "") {
+  // Error handling
+  if (!operation) {
+    throw new Error("Operation is required.");
   }
-  const examples = [];
+  if (!path) {
+    throw new Error("Path is required.");
+  }
 
-  // Identify `example` and `examples` properties in the operation object
-  const { parameters, requestBody, responses } = operation;
-  const example = new OperationExample();
-  example.key = "default";
-  example.query = operation.parameters;
-  example.parameters = parameters;
-  example.headers = operation.headers;
-  example.request = requestBody;
-  example.response = responses;
-  examples.push(example);
+  // Setup
+  const example = {url: path, headers: [], request: {}, response: {}};
+  
+  // Path parameters
+  const pathParameters = getExampleParameters(operation, "path", exampleKey);
+  pathParameters.forEach((param) => { 
+    example.url = example.url.replace(`{${param.key}}`, param.value);
+  });
+
+  // Query parameters
+  const queryParameters = getExampleParameters(operation, "query", exampleKey);
+  queryParameters.forEach((param) => {
+    example.url += `${example.url.includes("?") ? "&" : "?"}${param.key}=${param.value}`;
+  });
+
+  console.log(example);
+  return example;
 }
 
 // Return array of query parameters for the example
-function getExampleQueryParameters(operation = {}, exampleKey = "") {
-  const queryParams = [];
-
-  // Set up class
-  class QueryParameter {
-    constructor() {
-      this.key = "";
-      this.value = "";
-    }
-  }
+function getExampleParameters(operation = {}, type = "", exampleKey = "") {
+  const params = [];
 
   // Error handling
   if (!operation) {
@@ -76,29 +72,24 @@ function getExampleQueryParameters(operation = {}, exampleKey = "") {
 
   // Find all query parameters
   for (const parameter of operation.parameters) {
-    if (parameter.in === "query") {
-      if (parameter.example) {
-        const queryParam = new QueryParameter();
-        queryParam.key = parameter.name;
-        queryParam.value = parameter.example;
-        queryParams.push(queryParam);
+    if (parameter.in === type) {
+      const value = getExample(parameter, exampleKey);
+      if (value) {
+        params.push({ key: parameter.name, value });
       }
-
-      queryParams.push(parameter);
     }
   }
 
-  return queryParams;
+  return params;
 }
 
-function compileExample(operation = {}, exampleKey = "") {
-  const compiledExample = { ...example };
-  for (const key in compiledExample) {
-    if (typeof compiledExample[key] === "string") {
-      compiledExample[key] = compileString(compiledExample[key], parameters);
-    }
+
+// Given a string with parameters, replaces the parameters with the provided values.
+function compileString(string = "", parameters = []) {
+  for (const parameter of parameters) {
+    string = string.replace(`{${parameter.key}}`, parameter.value);
   }
-  return compiledExample;
+  return string;
 }
 
 // Given a parameter or object definition or schema, returns an example object.
@@ -184,20 +175,12 @@ function generateArrayExample(items = {}, exampleKey = "") {
   return example;
 }
 
-// Given a string with parameters, replaces the parameters with the provided values.
-function compileString(string = "", parameters = []) {
-  for (const parameter of parameters) {
-    string = string.replace(`{${parameter.key}}`, parameter.value);
-  }
-  return string;
-}
-
 module.exports = { getOperation };
 
-// const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres_deref.openapi.json");
-// const operationId = "getUsers";
-// const operation = getOperation(apiDefinition, operationId);
-// console.log(operation);
+const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres_deref.openapi.json");
+const operationId = "getUsers";
+const operation = getOperation(apiDefinition, operationId);
+console.log(operation);
 
 const paramDefinition = {
   name: "page",
@@ -262,6 +245,6 @@ const requestBody = {
   required: true,
 };
 
-console.log(getExample(requestBody, "test"));
+// console.log(getExample(requestBody, "test"));
 
 // console.log(getExampleQueryParameters(operation.definition));
