@@ -30,9 +30,15 @@ function getOperation(definition = {}, operationId = "", exampleKey = "") {
   return null;
 }
 
-// Given an operation object, retrieves the examples for the parameters, request body, and responses. Returns an array of examples.
-// If multiple examples are provided, each examples[key] value is complied individually and returned as an array item.
-// If a parameter or object has an `example` property, that value is used for all examples[key] values.
+/**
+ * Compiles an example object based on the provided operation, path, and example key.
+ *
+ * @param {Object} operation - The operation object.
+ * @param {string} path - The path string.
+ * @param {string} exampleKey - The example key string.
+ * @returns {Object} - The compiled example object.
+ * @throws {Error} - If operation or path is not provided.
+ */
 function compileExample(operation = {}, path = "", exampleKey = "") {
   // Error handling
   if (!operation) {
@@ -92,6 +98,15 @@ function compileExample(operation = {}, path = "", exampleKey = "") {
 }
 
 // Return array of query parameters for the example
+/**
+ * Retrieves example parameters based on the given operation, type, and example key.
+ *
+ * @param {object} operation - The operation object.
+ * @param {string} [type=""] - The type of parameter to retrieve.
+ * @param {string} [exampleKey=""] - The example key to use.
+ * @returns {Array} - An array of example parameters.
+ * @throws {Error} - If the operation is not provided.
+ */
 function getExampleParameters(operation = {}, type = "", exampleKey = "") {
   const params = [];
 
@@ -114,15 +129,14 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
   return params;
 }
 
-// Given a string with parameters, replaces the parameters with the provided values.
-function compileString(string = "", parameters = []) {
-  for (const parameter of parameters) {
-    string = string.replace(`{${parameter.key}}`, parameter.value);
-  }
-  return string;
-}
-
-// Given a parameter or object definition or schema, returns an example object.
+/**
+ * Retrieves an example value based on the given definition and example key.
+ * 
+ * @param {object} definition - The definition object.
+ * @param {string} exampleKey - The key of the example to retrieve.
+ * @returns {object|null} - The example value.
+ * @throws {Error} - If the definition is not provided.
+ */
 function getExample(definition = {}, exampleKey = "") {
   // Debug
   // console.log({definition, exampleKey});
@@ -183,6 +197,13 @@ function getExample(definition = {}, exampleKey = "") {
   return example;
 }
 
+/**
+ * Generates an object example based on the provided schema and example key.
+ *
+ * @param {object} schema - The schema object.
+ * @param {string} exampleKey - The example key.
+ * @returns {object} - The generated object example.
+ */
 function generateObjectExample(schema = {}, exampleKey = "") {
   const example = {};
   for (const property in schema.properties) {
@@ -192,16 +213,23 @@ function generateObjectExample(schema = {}, exampleKey = "") {
   return example;
 }
 
+/**
+ * Generates an array example based on the provided items and example key.
+ *
+ * @param {Object} items - The items object.
+ * @param {string} exampleKey - The example key.
+ * @returns {Array} - The generated array example.
+ */
 function generateArrayExample(items = {}, exampleKey = "") {
   // Debug
-  console.log({ items, exampleKey });
+  // console.log({ items, exampleKey });
 
   const example = [];
   const itemExample = getExample(items, exampleKey);
   if (itemExample) example.push(itemExample);
 
   // Debug
-  console.log(example);
+  // console.log(example);
   return example;
 }
 
@@ -212,68 +240,68 @@ const operationId = "getUsers";
 const operation = getOperation(apiDefinition, operationId);
 console.log(operation);
 
-const paramDefinition = {
-  name: "page",
-  in: "query",
-  description: "Select the portition of record you want back",
-  required: false,
-  // examples: {
-  //   default: 3,
-  // },
-  example: 4,
-  schema: {
-    type: "integer",
-    example: 1,
-  },
-};
+// const paramDefinition = {
+//   name: "page",
+//   in: "query",
+//   description: "Select the portition of record you want back",
+//   required: false,
+//   // examples: {
+//   //   default: 3,
+//   // },
+//   example: 4,
+//   schema: {
+//     type: "integer",
+//     example: 1,
+//   },
+// };
 
-const requestBody = {
-  description: "Update an existent pet in the store",
-  content: {
-    "application/json": {
-      schema: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-            examples: {
-              default: "morpheus",
-            },
-          },
-          job: {
-            type: "string",
-            example: "leader",
-          },
-          nicknames: {
-            type: "array",
-            examples: {
-              default: ["mor", "pheus"],
-              test: ["foo", "bar"],
-            },
-            items: {
-              type: "string",
-              example: "neo",
-            },
-          },
-          age: {
-            type: "object",
-            properties: {
-              years: {
-                type: "integer",
-                example: 35,
-              },
-              months: {
-                type: "integer",
-                example: 0,
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  required: true,
-};
+// const requestBody = {
+//   description: "Update an existent pet in the store",
+//   content: {
+//     "application/json": {
+//       schema: {
+//         type: "object",
+//         properties: {
+//           name: {
+//             type: "string",
+//             examples: {
+//               default: "morpheus",
+//             },
+//           },
+//           job: {
+//             type: "string",
+//             example: "leader",
+//           },
+//           nicknames: {
+//             type: "array",
+//             examples: {
+//               default: ["mor", "pheus"],
+//               test: ["foo", "bar"],
+//             },
+//             items: {
+//               type: "string",
+//               example: "neo",
+//             },
+//           },
+//           age: {
+//             type: "object",
+//             properties: {
+//               years: {
+//                 type: "integer",
+//                 example: 35,
+//               },
+//               months: {
+//                 type: "integer",
+//                 example: 0,
+//               },
+//             },
+//           },
+//         },
+//       },
+//     },
+//   },
+//   required: true,
+// };
 
 // console.log(getExample(requestBody, "test"));
 
