@@ -21,7 +21,8 @@ function getOperation(definition = {}, operationId = "", exampleKey = "") {
     for (const method in definition.paths[path]) {
       if (definition.paths[path][method].operationId === operationId) {
         const operation = definition.paths[path][method];
-        const example = compileExample(operation, path, exampleKey);
+        const server = definition.servers[0].url;
+        const example = compileExample(operation, server + path, exampleKey);
         return { path, method, definition: operation, example };
       }
     }
@@ -42,21 +43,51 @@ function compileExample(operation = {}, path = "", exampleKey = "") {
   }
 
   // Setup
-  const example = {url: path, headers: [], request: {}, response: {}};
-  
+  const example = { url: path };
+
   // Path parameters
   const pathParameters = getExampleParameters(operation, "path", exampleKey);
-  pathParameters.forEach((param) => { 
+  pathParameters.forEach((param) => {
     example.url = example.url.replace(`{${param.key}}`, param.value);
   });
 
   // Query parameters
   const queryParameters = getExampleParameters(operation, "query", exampleKey);
+  if (queryParameters.length > 0) example.parameters = {};
   queryParameters.forEach((param) => {
-    example.url += `${example.url.includes("?") ? "&" : "?"}${param.key}=${param.value}`;
+    example.parameters[param.key] = param.value;
   });
 
-  console.log(example);
+  // Headers
+  const headerParameters = getExampleParameters(
+    operation,
+    "header",
+    exampleKey
+  );
+  if (headerParameters.length > 0) example.headers = {};
+  headerParameters.forEach((param) => {
+    example.headers[param.key] = param.value;
+  });
+
+  // Request body
+  if (operation.requestBody) {
+    const requestBody = getExample(operation.requestBody, exampleKey);
+    if (requestBody) {
+      example.request = requestBody;
+    }
+  }
+
+  // Response body
+  for (const responseCode in operation.responses) {
+    const response = operation.responses[responseCode];
+    const responseBody = getExample(response, exampleKey);
+    if (responseBody) {
+      example.response = responseBody;
+      break;
+    }
+  }
+
+  // console.log(JSON.stringify(example, null, 2));
   return example;
 }
 
@@ -82,7 +113,6 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
 
   return params;
 }
-
 
 // Given a string with parameters, replaces the parameters with the provided values.
 function compileString(string = "", parameters = []) {
