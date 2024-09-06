@@ -61,7 +61,9 @@ function getSchemas(definition = {}, responseCode = "") {
   // Get request schema for operation
   if (definition.requestBody) {
     schemas.request =
-      definition.requestBody.content[Object.keys(definition.requestBody.content)[0]].schema;
+      definition.requestBody.content[
+        Object.keys(definition.requestBody.content)[0]
+      ].schema;
   }
   if (!responseCode) {
     responseCode = Object.keys(definition.responses)[0];
@@ -201,11 +203,13 @@ function getExample(definition = {}, exampleKey = "") {
 
   if (
     definition.examples &&
-    exampleKey &&
-    typeof definition.examples[exampleKey] !== "undefined"
+    typeof exampleKey !== "undefined" &&
+    exampleKey !== "" &&
+    typeof definition.examples[exampleKey] !== "undefined" &&
+    typeof definition.examples[exampleKey].value !== "undefined"
   ) {
     // If the definition has an `examples` property, exampleKey is specified, and the exampleKey exists in the examples object, use that example.
-    example = definition.examples[exampleKey];
+    example = definition.examples[exampleKey].value;
   } else if (typeof definition.example !== "undefined") {
     // If the definition has an `example` property, use that example.
     example = definition.example;
@@ -225,8 +229,8 @@ function getExample(definition = {}, exampleKey = "") {
     } else if (definition.content) {
       // Request/response body pattern
       for (const key in definition.content) {
-        if (definition.content[key].schema) {
-          schema = definition.content[key].schema;
+        if (definition.content[key]) {
+          schema = definition.content[key];
           break;
         }
       }
@@ -289,73 +293,6 @@ module.exports = { getOperation, dereferenceOpenApiDefinition };
 //   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
 //   const definition = await dereferenceOpenApiDefinition(apiDefinition);
 //   const operationId = "addUser";
-//   const operation = getOperation(definition, operationId);
+//   const operation = getOperation(definition, operationId, "", "");
 //   console.log(JSON.stringify(operation, null, 2));
 // })();
-
-// const paramDefinition = {
-//   name: "page",
-//   in: "query",
-//   description: "Select the portition of record you want back",
-//   required: false,
-//   // examples: {
-//   //   default: 3,
-//   // },
-//   example: 4,
-//   schema: {
-//     type: "integer",
-//     example: 1,
-//   },
-// };
-
-// const requestBody = {
-//   description: "Update an existent pet in the store",
-//   content: {
-//     "application/json": {
-//       schema: {
-//         type: "object",
-//         properties: {
-//           name: {
-//             type: "string",
-//             examples: {
-//               default: "morpheus",
-//             },
-//           },
-//           job: {
-//             type: "string",
-//             example: "leader",
-//           },
-//           nicknames: {
-//             type: "array",
-//             examples: {
-//               default: ["mor", "pheus"],
-//               test: ["foo", "bar"],
-//             },
-//             items: {
-//               type: "string",
-//               example: "neo",
-//             },
-//           },
-//           age: {
-//             type: "object",
-//             properties: {
-//               years: {
-//                 type: "integer",
-//                 example: 35,
-//               },
-//               months: {
-//                 type: "integer",
-//                 example: 0,
-//               },
-//             },
-//           },
-//         },
-//       },
-//     },
-//   },
-//   required: true,
-// };
-
-// console.log(getExample(requestBody, "test"));
-
-// console.log(getExampleQueryParameters(operation.definition));

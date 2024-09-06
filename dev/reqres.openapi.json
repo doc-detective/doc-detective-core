@@ -29,6 +29,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/userRequest"
+              },
+              "example": {
+                "name": "morpheus",
+                "job": "leader"
               }
             }
           },
@@ -41,6 +45,20 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/userResponse"
+                },
+                "examples": {
+                  "test": {
+                    "value": {
+                      "name": "morpheus",
+                      "job": "leader"
+                    }
+                  },
+                  "foobar": {
+                    "value": {
+                      "name": "neo",
+                      "job": "the-one"
+                    }
+                  }
                 }
               }
             }
@@ -153,17 +171,9 @@
   "components": {
     "schemas": {
       "userResponse": {
-        "description": "response payload",
-        "example": {
-          "name": "morpheus",
-          "job": "leader"
-        }
+        "description": "response payload"
       },
       "userRequest": {
-        "example": {
-          "name": "morpheus",
-          "job": "leader"
-        },
         "type": "object",
         "additionalProperties": false,
         "properties": {
