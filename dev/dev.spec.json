@@ -8,9 +8,8 @@
           "openApi": {
             "definitionPath": "reqres.openapi.json",
             "operationId": "addUser",
-            "useRequestExample": true
-          },
-          "statusCodes": [201]
+            "useExample": "both"
+          }
         }
       ]
     }
