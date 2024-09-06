@@ -47,11 +47,31 @@ function getOperation(
           responseCode,
           exampleKey
         );
-        return { path, method, definition: operation, example };
+        const schemas = getSchemas(operation, responseCode);
+        return { path, method, definition: operation, schemas, example };
       }
     }
   }
   return null;
+}
+
+function getSchemas(definition = {}, responseCode = "") {
+  const schemas = {};
+
+  // Get request schema for operation
+  if (definition.requestBody) {
+    schemas.request =
+      definition.requestBody.content[Object.keys(definition.requestBody.content)[0]].schema;
+  }
+  if (!responseCode) {
+    responseCode = Object.keys(definition.responses)[0];
+  }
+  schemas.responseSchema =
+    definition.responses[responseCode].content[
+      Object.keys(definition.responses[responseCode].content)[0]
+    ].schema;
+
+  return schemas;
 }
 
 /**
