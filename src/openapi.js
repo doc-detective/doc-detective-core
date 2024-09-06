@@ -66,7 +66,7 @@ function getSchemas(definition = {}, responseCode = "") {
   if (!responseCode) {
     responseCode = Object.keys(definition.responses)[0];
   }
-  schemas.responseSchema =
+  schemas.response =
     definition.responses[responseCode].content[
       Object.keys(definition.responses[responseCode].content)[0]
     ].schema;
