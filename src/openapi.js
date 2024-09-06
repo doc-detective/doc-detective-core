@@ -22,7 +22,12 @@ async function dereferenceOpenApiDefinition(definition = {}) {
  * @param {string} operationId - The operationId to search for.
  * @returns {object|null} - The operation, path, and method if found, otherwise null.
  */
-function getOperation(definition = {}, operationId = "", exampleKey = "") {
+function getOperation(
+  definition = {},
+  operationId = "",
+  responseCode = "",
+  exampleKey = ""
+) {
   // Error handling
   if (!definition) {
     throw new Error("OpenAPI definition is required.");
@@ -36,7 +41,12 @@ function getOperation(definition = {}, operationId = "", exampleKey = "") {
       if (definition.paths[path][method].operationId === operationId) {
         const operation = definition.paths[path][method];
         const server = definition.servers[0].url;
-        const example = compileExample(operation, server + path, exampleKey);
+        const example = compileExample(
+          operation,
+          server + path,
+          responseCode,
+          exampleKey
+        );
         return { path, method, definition: operation, example };
       }
     }
@@ -53,7 +63,12 @@ function getOperation(definition = {}, operationId = "", exampleKey = "") {
  * @returns {Object} - The compiled example object.
  * @throws {Error} - If operation or path is not provided.
  */
-function compileExample(operation = {}, path = "", exampleKey = "") {
+function compileExample(
+  operation = {},
+  path = "",
+  responseCode = "",
+  exampleKey = ""
+) {
   // Error handling
   if (!operation) {
     throw new Error("Operation is required.");
@@ -98,13 +113,14 @@ function compileExample(operation = {}, path = "", exampleKey = "") {
   }
 
   // Response body
-  for (const responseCode in operation.responses) {
-    const response = operation.responses[responseCode];
-    const responseBody = getExample(response, exampleKey);
-    if (responseBody) {
-      example.response = responseBody;
-      break;
-    }
+  if (!responseCode) {
+    responseCode = Object.keys(operation.responses)[0];
+  }
+  console.log(responseCode);
+  const response = operation.responses[responseCode];
+  const responseBody = getExample(response, exampleKey);
+  if (responseBody) {
+    example.response = responseBody;
   }
 
   // console.log(JSON.stringify(example, null, 2));
@@ -128,7 +144,7 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
   if (!operation) {
     throw new Error("Operation is required.");
   }
-  if (!operation.parameters) return queryParams;
+  if (!operation.parameters) return params;
 
   // Find all query parameters
   for (const parameter of operation.parameters) {
@@ -252,9 +268,9 @@ module.exports = { getOperation, dereferenceOpenApiDefinition };
 (async () => {
   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
   const definition = await dereferenceOpenApiDefinition(apiDefinition);
-  const operationId = "getUsers";
+  const operationId = "addUser";
   const operation = getOperation(definition, operationId);
-  console.log(operation);
+  console.log(JSON.stringify(operation, null, 2));
 })();
 
 // const paramDefinition = {
