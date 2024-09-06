@@ -82,14 +82,28 @@ async function httpRequest(config, step) {
   step.requestData = request.data;
 
   // Validate request payload against OpenAPI definition
-  if ((step.openApi?.validateAgainstSchema === "request" || step.openApi?.validateAgainstSchema === "both") && operation.schemas.request) {
+  if (
+    (step.openApi?.validateAgainstSchema === "request" ||
+      step.openApi?.validateAgainstSchema === "both") &&
+    operation.schemas.request
+  ) {
     // Validate request payload against OpenAPI definition
-    const ajv = new Ajv({ strictSchema: false, useDefaults: true, allErrors: true, allowUnionTypes: true, coerceTypes: true });
+    const ajv = new Ajv({
+      strictSchema: false,
+      useDefaults: true,
+      allErrors: true,
+      allowUnionTypes: true,
+      coerceTypes: true,
+    });
     const validate = ajv.compile(operation.schemas.request);
     const valid = validate(step.requestData);
     if (!valid) {
       result.status = "FAIL";
-      result.description = `Request data didn't match the OpenAPI schema. ${JSON.stringify(validate.errors,null,2)}`;
+      result.description = `Request data didn't match the OpenAPI schema. ${JSON.stringify(
+        validate.errors,
+        null,
+        2
+      )}`;
       return result;
     }
   }
@@ -121,6 +135,33 @@ async function httpRequest(config, step) {
       result.description = `Returned ${
         response.status
       }. Expected one of ${JSON.stringify(step.statusCodes)}`;
+    }
+  }
+
+  // Validate response payload against OpenAPI definition
+  if (
+    (step.openApi?.validateAgainstSchema === "response" ||
+      step.openApi?.validateAgainstSchema === "both") &&
+    operation.schemas.response
+  ) {
+    // Validate request payload against OpenAPI definition
+    const ajv = new Ajv({
+      strictSchema: false,
+      useDefaults: true,
+      allErrors: true,
+      allowUnionTypes: true,
+      coerceTypes: true,
+    });
+    const validate = ajv.compile(operation.schemas.response);
+    const valid = validate(response.data);
+    if (!valid) {
+      result.status = "FAIL";
+      result.description = `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+        validate.errors,
+        null,
+        2
+      )}`;
+      return result;
     }
   }
 
