@@ -3,6 +3,7 @@ const axios = require("axios");
 const jq = require("node-jq");
 const fs = require("fs");
 const path = require("path");
+const Ajv = require("ajv");
 const { getOperation, dereferenceOpenApiDefinition } = require("../openapi");
 const { log, calculatePercentageDifference } = require("../utils");
 
@@ -23,13 +24,14 @@ async function httpRequest(config, step) {
     return result;
   }
 
+  let operation;
   if (step.openApi) {
     // Get operation from OpenAPI definition
     const rawDefinition = step.openApi.definitionPath;
     const definition = await dereferenceOpenApiDefinition(rawDefinition);
     const responseCode = step.openApi.responseCode;
     const exampleKey = step.openApi.exampleKey;
-    const operation = await getOperation(
+    operation = await getOperation(
       definition,
       step.openApi.operationId,
       responseCode,
@@ -78,6 +80,19 @@ async function httpRequest(config, step) {
   step.requestParams = request.params;
   request.data = { ...request.data, ...step.requestData };
   step.requestData = request.data;
+
+  // Validate request payload against OpenAPI definition
+  if ((step.openApi?.validateAgainstSchema === "request" || step.openApi?.validateAgainstSchema === "both") && operation.schemas.request) {
+    // Validate request payload against OpenAPI definition
+    const ajv = new Ajv({ strictSchema: false, useDefaults: true, allErrors: true, allowUnionTypes: true, coerceTypes: true });
+    const validate = ajv.compile(operation.schemas.request);
+    const valid = validate(step.requestData);
+    if (!valid) {
+      result.status = "FAIL";
+      result.description = `Request data didn't match the OpenAPI schema. ${JSON.stringify(validate.errors,null,2)}`;
+      return result;
+    }
+  }
 
   // Perform request
   const response = await axios(request)
