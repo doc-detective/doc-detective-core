@@ -285,13 +285,13 @@ function generateArrayExample(items = {}, exampleKey = "") {
 
 module.exports = { getOperation, dereferenceOpenApiDefinition };
 
-(async () => {
-  const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
-  const definition = await dereferenceOpenApiDefinition(apiDefinition);
-  const operationId = "addUser";
-  const operation = getOperation(definition, operationId);
-  console.log(JSON.stringify(operation, null, 2));
-})();
+// (async () => {
+//   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
+//   const definition = await dereferenceOpenApiDefinition(apiDefinition);
+//   const operationId = "addUser";
+//   const operation = getOperation(definition, operationId);
+//   console.log(JSON.stringify(operation, null, 2));
+// })();
 
 // const paramDefinition = {
 //   name: "page",
