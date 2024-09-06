@@ -27,14 +27,25 @@ async function httpRequest(config, step) {
     // Get operation from OpenAPI definition
     const rawDefinition = step.openApi.definitionPath;
     const definition = await dereferenceOpenApiDefinition(rawDefinition);
-    const operation = await getOperation(definition, step.openApi.operationId);
-    log(config, "debug", `Operation: ${JSON.stringify(operation,null,2)}`);
+    const responseCode = step.openApi.responseCode;
+    const exampleKey = step.openApi.exampleKey;
+    const operation = await getOperation(
+      definition,
+      step.openApi.operationId,
+      responseCode,
+      exampleKey
+    );
+    log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
+
     if (!operation) {
       result.status = "FAIL";
       result.description = `Couldn't find operation '${step.operationId}' in OpenAPI definition.`;
       return result;
     }
-    if (step.openApi.useRequestExample) {
+    if (
+      step.openApi.useExample === "request" ||
+      step.openApi.useExample === "both"
+    ) {
       // Set request parameters
       request.url = operation.example.url;
       request.method = operation.method;
@@ -43,8 +54,17 @@ async function httpRequest(config, step) {
         request.params = operation.example.parameters;
       if (operation.example.headers)
         request.headers = operation.example.headers;
-      if (operation.example.request)
-        request.data = operation.example.request;
+      if (operation.example.request) request.data = operation.example.request;
+    }
+    if (
+      step.openApi.useExample === "response" ||
+      step.openApi.useExample === "both"
+    ) {
+      // Set expected response data
+      step.responseData = { ...operation.example.response };
+    }
+    if (step.openApi.responseCode) {
+      step.statusCodes = [step.openApi.responseCode, ...step.statusCodes];
     }
   }
 
@@ -52,12 +72,12 @@ async function httpRequest(config, step) {
   step.url = request.url;
   request.method = step.method;
   request.timeout = step.timeout;
-    request.headers = { ...request.headers, ...step.requestHeaders };
-    step.requestHeaders = request.headers;
-    request.params = { ...request.params, ...step.requestParams };
-    step.requestParams = request.params;
-    request.data = { ...request.data, ...step.requestData };
-    step.requestData = request.data;
+  request.headers = { ...request.headers, ...step.requestHeaders };
+  step.requestHeaders = request.headers;
+  request.params = { ...request.params, ...step.requestParams };
+  step.requestParams = request.params;
+  request.data = { ...request.data, ...step.requestData };
+  step.requestData = request.data;
 
   // Perform request
   const response = await axios(request)
@@ -77,14 +97,16 @@ async function httpRequest(config, step) {
   }
 
   // Compare status codes
-  if (step.statusCodes.indexOf(response.status) >= 0) {
-    result.status = "PASS";
-    result.description = `Returned ${response.status}.`;
-  } else {
-    result.status = "FAIL";
-    result.description = `Returned ${
-      response.status
-    }. Expected one of ${JSON.stringify(step.statusCodes)}`;
+  if (step.statusCodes) {
+    if (step.statusCodes.indexOf(response.status) >= 0) {
+      result.status = "PASS";
+      result.description = `Returned ${response.status}.`;
+    } else {
+      result.status = "FAIL";
+      result.description = `Returned ${
+        response.status
+      }. Expected one of ${JSON.stringify(step.statusCodes)}`;
+    }
   }
 
   // Compare response.data and responseData
