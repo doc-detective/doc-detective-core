@@ -4,7 +4,7 @@ const jq = require("node-jq");
 const fs = require("fs");
 const path = require("path");
 const Ajv = require("ajv");
-const { getOperation, dereferenceOpenApiDefinition } = require("../openapi");
+const { getOperation, loadOpenApiDefinition } = require("../openapi");
 const { log, calculatePercentageDifference } = require("../utils");
 
 exports.httpRequest = httpRequest;
@@ -28,7 +28,7 @@ async function httpRequest(config, step) {
   if (step.openApi) {
     // Get operation from OpenAPI definition
     const rawDefinition = step.openApi.definitionPath;
-    const definition = await dereferenceOpenApiDefinition(rawDefinition);
+    const definition = await loadOpenApiDefinition(rawDefinition);
     const responseCode = step.openApi.responseCode;
     const exampleKey = step.openApi.exampleKey;
     operation = await getOperation(

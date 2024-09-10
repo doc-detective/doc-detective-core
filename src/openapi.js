@@ -1,16 +1,24 @@
+const { fetchFile } = require("./utils");
+
 /**
  * Dereferences an OpenAPI definition.
  *
  * @param {Object} definition - The OpenAPI definition to be dereferenced.
  * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
  */
-async function dereferenceOpenApiDefinition(definition = {}) {
+async function loadOpenApiDefinition(definitionPath = {}) {
   // Error handling
   if (!definition) {
     throw new Error("OpenAPI definition is required.");
   }
-
   const parser = require("@apidevtools/json-schema-ref-parser");
+
+  // If URL is provided, load the definition from the URL
+  if (definitionPath.startsWith("https://")) {
+    const fetch = await fetchFile(definitionPath);
+    definitionPath = fetch.path;
+  }
+
   const dereferencedDefinition = await parser.dereference(definition);
   return dereferencedDefinition;
 }
@@ -287,7 +295,7 @@ function generateArrayExample(items = {}, exampleKey = "") {
   return example;
 }
 
-module.exports = { getOperation, dereferenceOpenApiDefinition };
+module.exports = { getOperation, loadOpenApiDefinition };
 
 // (async () => {
 //   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");

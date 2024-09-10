@@ -18,6 +18,7 @@ exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
 exports.calculatePercentageDifference = calculatePercentageDifference;
+exports.fetchFile = fetchFile;
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
