@@ -68,7 +68,15 @@
     "@img/sharp-linuxmusl-x64": "0.33.5",
     "@img/sharp-wasm32": "0.33.5",
     "@img/sharp-win32-ia32": "0.33.5",
-    "@img/sharp-win32-x64": "0.33.5"
+    "@img/sharp-win32-x64": "0.33.5",
+    "@ffmpeg-installer/darwin-arm64": "4.1.5",
+    "@ffmpeg-installer/darwin-x64": "4.1.0",
+    "@ffmpeg-installer/linux-arm": "4.1.3",
+    "@ffmpeg-installer/linux-arm64": "4.1.4",
+    "@ffmpeg-installer/linux-ia32": "4.1.0",
+    "@ffmpeg-installer/linux-x64": "4.1.0",
+    "@ffmpeg-installer/win32-ia32": "4.1.0",
+    "@ffmpeg-installer/win32-x64": "4.1.0"
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
