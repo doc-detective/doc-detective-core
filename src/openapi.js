@@ -3,12 +3,12 @@ const { fetchFile } = require("./utils");
 /**
  * Dereferences an OpenAPI definition.
  *
- * @param {Object} definition - The OpenAPI definition to be dereferenced.
+ * @param {String} definitionPath - The OpenAPI definition to be dereferenced.
  * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
  */
-async function loadOpenApiDefinition(definitionPath = {}) {
+async function loadOpenApiDefinition(definitionPath = "") {
   // Error handling
-  if (!definition) {
+  if (!definitionPath) {
     throw new Error("OpenAPI definition is required.");
   }
   const parser = require("@apidevtools/json-schema-ref-parser");
@@ -19,7 +19,7 @@ async function loadOpenApiDefinition(definitionPath = {}) {
     definitionPath = fetch.path;
   }
 
-  const dereferencedDefinition = await parser.dereference(definition);
+  const dereferencedDefinition = await parser.dereference(definitionPath);
   return dereferencedDefinition;
 }
 

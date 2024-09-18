@@ -26,15 +26,31 @@ async function httpRequest(config, step) {
 
   let operation;
   if (step.openApi) {
+    let definition;
+
+    // Identify OpenAPI definition
+    if (step.openApi.definitionPath) {
+      // Load OpenAPI definition from step
+      definition = await loadOpenApiDefinition(step.openApi.definitionPath);
+    } else if (step.openApi.name && config?.integrations?.openApi) {
+      // Load OpenAPI definition from config
+      definition = config.integrations.openApi.find(
+        (openApiConfig) => openApiConfig.name === step.openApi.name
+      ).definition;
+    }
+    if (!definition) {
+      result.status = "FAIL";
+      result.description = `OpenAPI definition not found.`;
+      return result;
+    }
+
     // Get operation from OpenAPI definition
-    const rawDefinition = step.openApi.definitionPath;
-    const definition = await loadOpenApiDefinition(rawDefinition);
-    const responseCode = step.openApi.responseCode;
+    const statusCode = step.openApi.statusCode;
     const exampleKey = step.openApi.exampleKey;
     operation = await getOperation(
       definition,
       step.openApi.operationId,
-      responseCode,
+      statusCode,
       exampleKey
     );
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
@@ -65,8 +81,8 @@ async function httpRequest(config, step) {
       // Set expected response data
       step.responseData = { ...operation.example.response };
     }
-    if (step.openApi.responseCode) {
-      step.statusCodes = [step.openApi.responseCode, ...step.statusCodes];
+    if (step.openApi.statusCode) {
+      step.statusCodes = [step.openApi.statusCode, ...step.statusCodes];
     }
   }
 

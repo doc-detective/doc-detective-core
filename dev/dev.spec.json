@@ -6,10 +6,10 @@
         {
           "action": "httpRequest",
           "openApi": {
-            "definitionPath": "reqres.openapi.json",
+            "name": "reqres",
             "operationId": "addUser",
             "useExample": "both",
-            "responseCode": 201
+            "statusCode": 201
           }
         }
       ]

@@ -55,6 +55,14 @@ async function main() {
       output: ".",
       markup: [],
     },
+    integrations: {
+      openApi: [
+        {
+          name: "reqres",
+          definitionPath: "dev/reqres.openapi.json",
+        }
+      ]
+    },
     telemetry: {
       send: false,
     },
