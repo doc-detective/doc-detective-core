@@ -51,7 +51,8 @@ async function httpRequest(config, step) {
       definition,
       step.openApi.operationId,
       statusCode,
-      exampleKey
+      exampleKey,
+      step.openApi.server
     );
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
 
