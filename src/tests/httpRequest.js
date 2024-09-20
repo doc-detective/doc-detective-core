@@ -12,9 +12,32 @@ exports.httpRequest = httpRequest;
 async function httpRequest(config, step) {
   let result = { status: "", description: "" };
   let request = { url: "", method: "", headers: {}, params: {}, data: {} };
+  let openApiDefinition;
+  let operation;
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
+
+  // Identify OpenAPI definition
+  if (step.openApi) {
+    if (step.openApi.definitionPath) {
+      // Load OpenAPI definition from step
+      openApiDefinition = await loadOpenApiDefinition(step.openApi.definitionPath);
+    } else if (step.openApi.name && config?.integrations?.openApi) {
+      // Load OpenAPI definition from config
+      integration = config.integrations.openApi.find(
+        (openApiConfig) => openApiConfig.name === step.openApi.name
+      );
+      openApiDefinition = integration.definition;
+      step.openApi = { ...integration, ...step.openApi };
+      delete step.openApi.definition;
+    }
+    if (!openApiDefinition) {
+      result.status = "FAIL";
+      result.description = `OpenAPI definition not found.`;
+      return result;
+    }
+  }
 
   // Validate step payload
   isValidStep = validate("httpRequest_v2", step);
@@ -24,31 +47,13 @@ async function httpRequest(config, step) {
     return result;
   }
 
-  let operation;
+  // Operate on OpenAPI definition
   if (step.openApi) {
-    let definition;
-
-    // Identify OpenAPI definition
-    if (step.openApi.definitionPath) {
-      // Load OpenAPI definition from step
-      definition = await loadOpenApiDefinition(step.openApi.definitionPath);
-    } else if (step.openApi.name && config?.integrations?.openApi) {
-      // Load OpenAPI definition from config
-      definition = config.integrations.openApi.find(
-        (openApiConfig) => openApiConfig.name === step.openApi.name
-      ).definition;
-    }
-    if (!definition) {
-      result.status = "FAIL";
-      result.description = `OpenAPI definition not found.`;
-      return result;
-    }
-
     // Get operation from OpenAPI definition
     const statusCode = step.openApi.statusCode;
     const exampleKey = step.openApi.exampleKey;
     operation = await getOperation(
-      definition,
+      openApiDefinition,
       step.openApi.operationId,
       statusCode,
       exampleKey,
