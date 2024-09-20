@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.18.0-openapi.1",
+  "version": "2.18.0-openapi.2",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -32,8 +32,8 @@
     "@puppeteer/browsers": "^2.4.0",
     "ajv": "^8.16.0",
     "appium": "^2.11.4",
-    "appium-chromium-driver": "1.3.35",
-    "appium-geckodriver": "^1.3.10",
+    "appium-chromium-driver": "1.3.36",
+    "appium-geckodriver": "^1.4.0",
     "appium-safari-driver": "^3.5.18",
     "axios": "^1.7.7",
     "doc-detective-common": "^1.21.0-openapi.2",

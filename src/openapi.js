@@ -24,17 +24,22 @@ async function loadOpenApiDefinition(definitionPath = "") {
 }
 
 /**
- * Retrieves the operation object from the OpenAPI definition based on the provided operationId.
+ * Retrieves the operation details from an OpenAPI definition based on the provided operationId.
  *
- * @param {object} definition - The OpenAPI definition object.
- * @param {string} operationId - The operationId to search for.
- * @returns {object|null} - The operation, path, and method if found, otherwise null.
+ * @param {Object} [definition={}] - The OpenAPI definition object.
+ * @param {string} [operationId=""] - The unique identifier for the operation.
+ * @param {string} [responseCode=""] - The HTTP response code to filter the operation.
+ * @param {string} [exampleKey=""] - The key for the example to be compiled.
+ * @param {string} [server=""] - The server URL to use for examples.
+ * @throws {Error} Will throw an error if the definition or operationId is not provided.
+ * @returns {Object|null} Returns an object containing the operation details, schemas, and example if found; otherwise, returns null.
  */
 function getOperation(
   definition = {},
   operationId = "",
   responseCode = "",
-  exampleKey = ""
+  exampleKey = "",
+  server = ""
 ) {
   // Error handling
   if (!definition) {
@@ -48,7 +53,7 @@ function getOperation(
     for (const method in definition.paths[path]) {
       if (definition.paths[path][method].operationId === operationId) {
         const operation = definition.paths[path][method];
-        const server = definition.servers[0].url;
+        server = server || definition.servers[0].url;
         const example = compileExample(
           operation,
           server + path,
