@@ -1,4 +1,4 @@
-const { fetchFile } = require("./utils");
+const { fetchFile, loadEnvs } = require("./utils");
 
 /**
  * Dereferences an OpenAPI definition.
@@ -113,7 +113,7 @@ function compileExample(
   }
 
   // Setup
-  const example = { url: path };
+  let example = { url: path };
 
   // Path parameters
   const pathParameters = getExampleParameters(operation, "path", exampleKey);
@@ -157,6 +157,9 @@ function compileExample(
   if (responseBody) {
     example.response = responseBody;
   }
+
+  // Load environment variables
+  example = loadEnvs(example);
 
   // console.log(JSON.stringify(example, null, 2));
   return example;

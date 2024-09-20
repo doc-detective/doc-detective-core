@@ -138,6 +138,7 @@ async function httpRequest(config, step) {
   // If request returned an error
   if (response.error) {
     result.status = "FAIL";
+    result.actualResponseData = response.error.response?.data;
     result.description = `Error: ${JSON.stringify(response.error.message)}`;
     return result;
   }
