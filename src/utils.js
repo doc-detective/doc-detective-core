@@ -142,7 +142,7 @@ function isValidSourceFile(config, files, source) {
       );
       return false;
     }
-    const validation = validate("spec_v2", json);
+    const validation = validate("spec_v2", json, false);
     if (!validation.valid) {
       log(config, "warning", validation);
       log(
@@ -236,8 +236,8 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, step);
-          if (!validation.valid) {
+          const validation = validate(`${step.action}_v2`, step, false);
+                if (!validation.valid) {
             log(
               config,
               "warning",
@@ -248,7 +248,7 @@ async function parseTests(config, files) {
           return true;
         });
       }
-      const validation = validate("spec_v2", content);
+      const validation = validate("spec_v2", content, false);
       if (!validation.valid) {
         log(config, "warning", validation);
         log(
@@ -512,7 +512,7 @@ async function parseTests(config, files) {
           );
           // Filter out steps that don't pass validation
           steps = steps.filter((step) => {
-            const validation = validate(`${step.action}_v2`, step);
+            const validation = validate(`${step.action}_v2`, step, false);
             if (!validation.valid) {
               log(
                 config,
@@ -532,7 +532,7 @@ async function parseTests(config, files) {
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
-      const validation = validate("spec_v2", spec);
+      const validation = validate("spec_v2", spec, false);
       if (!validation.valid) {
         log(
           config,
