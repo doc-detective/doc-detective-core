@@ -60,6 +60,9 @@ async function main() {
         {
           name: "reqres",
           definitionPath: "dev/reqres.openapi.json",
+          requestHeaders: {
+            "Content-Type": "application/json",
+          },
         }
       ]
     },

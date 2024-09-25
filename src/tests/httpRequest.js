@@ -78,6 +78,8 @@ async function httpRequest(config, step) {
         request.params = operation.example.parameters;
       if (operation.example.headers)
         request.headers = operation.example.headers;
+      if (step.openApi.requestHeaders)
+        request.headers = { ...request.headers, ...step.openApi.requestHeaders };
       if (operation.example.request) request.data = operation.example.request;
     }
     if (
