@@ -22,7 +22,9 @@ async function httpRequest(config, step) {
   if (step.openApi) {
     if (step.openApi.definitionPath) {
       // Load OpenAPI definition from step
-      openApiDefinition = await loadOpenApiDefinition(step.openApi.definitionPath);
+      openApiDefinition = await loadOpenApiDefinition(
+        step.openApi.definitionPath
+      );
     } else if (step.openApi.name && config?.integrations?.openApi) {
       // Load OpenAPI definition from config
       integration = config.integrations.openApi.find(
@@ -31,7 +33,25 @@ async function httpRequest(config, step) {
       openApiDefinition = integration.definition;
       step.openApi = { ...integration, ...step.openApi };
       delete step.openApi.definition;
+    } else if (config?.integrations?.openApi) {
+      // Identify first definition that contains the operation
+      for (const openApiConfig of config.integrations.openApi) {
+        for (const path in openApiConfig.definition.paths) {
+          for (const operation in openApiConfig.definition.paths[path]) {
+            if (
+              openApiConfig.definition.paths[path][operation].operationId ===
+              step.openApi.operationId
+            ) {
+              openApiDefinition = openApiConfig.definition;
+              step.openApi = { ...openApiConfig, ...step.openApi };
+              delete step.openApi.definition;
+              break;
+            }
+          }
+        }
+      }
     }
+
     if (!openApiDefinition) {
       result.status = "FAIL";
       result.description = `OpenAPI definition not found.`;
@@ -79,7 +99,10 @@ async function httpRequest(config, step) {
       if (operation.example.headers)
         request.headers = operation.example.headers;
       if (step.openApi.requestHeaders)
-        request.headers = { ...request.headers, ...step.openApi.requestHeaders };
+        request.headers = {
+          ...request.headers,
+          ...step.openApi.requestHeaders,
+        };
       if (operation.example.request) request.data = operation.example.request;
     }
     if (

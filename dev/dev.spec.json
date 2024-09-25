@@ -6,7 +6,6 @@
         {
           "action": "httpRequest",
           "openApi": {
-            "name": "reqres",
             "operationId": "addUser",
             "server": "https://reqres.in/api",
             "useExample": "both",
