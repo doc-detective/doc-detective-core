@@ -155,8 +155,10 @@ async function httpRequest(config, step) {
     }
   }
 
+  let response = {};
+  if (!step?.openApi?.mockResponse) {
   // Perform request
-  const response = await axios(request)
+  response = await axios(request)
     .then((response) => {
       result.actualResponseData = response.data;
       return response;
@@ -164,6 +166,12 @@ async function httpRequest(config, step) {
     .catch((error) => {
       return { error };
     });
+  } else {
+    // Mock response
+    response.status = step.statusCodes[0];
+    response.data = step.responseData;
+    response.headers = step.responseHeaders;
+  }
 
   // If request returned an error
   if (response.error) {
