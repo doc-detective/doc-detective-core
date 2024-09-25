@@ -115,7 +115,7 @@ async function httpRequest(config, step) {
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,
-      coerceTypes: true,
+      coerceTypes: false,
     });
     const validate = ajv.compile(operation.schemas.request);
     const valid = validate(step.requestData);
@@ -173,7 +173,7 @@ async function httpRequest(config, step) {
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,
-      coerceTypes: true,
+      coerceTypes: false,
     });
     const validate = ajv.compile(operation.schemas.response);
     const valid = validate(response.data);
