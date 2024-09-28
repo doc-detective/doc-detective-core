@@ -131,7 +131,7 @@ function isValidSourceFile(config, files, source) {
   // Is JSON but isn't a valid spec-formatted JSON object
   if (path.extname(source) === ".json") {
     const jsonContent = fs.readFileSync(source).toString();
-    let json;
+    let json = {};
     try {
       json = JSON.parse(jsonContent);
     } catch {
@@ -215,7 +215,7 @@ async function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
-      // Resolve to catch any relative setup or cleanup paths
+        // Resolve to catch any relative setup or cleanup paths
       content = await resolvePaths(config, content, file);
 
       for (const test of content.tests) {
@@ -236,8 +236,8 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, step, false);
-                if (!validation.valid) {
+          const validation = validate(`${step.action}_v2`, { ...step}, false);
+          if (!validation.valid) {
             log(
               config,
               "warning",
@@ -532,6 +532,7 @@ async function parseTests(config, files) {
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
+      console.log("foobar1")
       const validation = validate("spec_v2", spec, false);
       if (!validation.valid) {
         log(
