@@ -65,6 +65,16 @@
           },
           "400": {
             "description": "Invalid input",
+            "headers": {
+              "X-Rate-Limit": {
+                "description": "The number of allowed requests in the current period",
+                "required": true,
+                "schema": {
+                  "type": "integer"
+                },
+                "example": 60
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

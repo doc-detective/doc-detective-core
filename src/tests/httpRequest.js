@@ -90,27 +90,29 @@ async function httpRequest(config, step) {
       step.openApi.useExample === "request" ||
       step.openApi.useExample === "both"
     ) {
-      // Set request parameters
+      // Set request info
       request.url = operation.example.url;
       request.method = operation.method;
       step.method = request.method;
-      if (operation.example.parameters)
-        request.params = operation.example.parameters;
-      if (operation.example.headers)
-        request.headers = operation.example.headers;
+      if (operation.example.request.parameters)
+        request.params = operation.example.request.parameters;
+      if (operation.example.request.headers)
+        request.headers = operation.example.request.headers;
       if (step.openApi.requestHeaders)
         request.headers = {
           ...request.headers,
           ...step.openApi.requestHeaders,
         };
-      if (operation.example.request) request.data = operation.example.request;
+      if (operation.example.request.data)
+        request.data = operation.example.request.data;
     }
     if (
       step.openApi.useExample === "response" ||
       step.openApi.useExample === "both"
     ) {
-      // Set expected response data
-      step.responseData = { ...operation.example.response };
+      // Set response info
+      step.responseHeaders = { ...operation.example.response.headers, ...step.responseHeaders };
+      step.responseData = { ...operation.example.response.data, ...step.responseData };
     }
     if (step.openApi.statusCode) {
       step.statusCodes = [step.openApi.statusCode, ...step.statusCodes];
@@ -157,19 +159,27 @@ async function httpRequest(config, step) {
 
   let response = {};
   if (!step?.openApi?.mockResponse) {
-  // Perform request
-  response = await axios(request)
-    .then((response) => {
-      result.actualResponseData = response.data;
-      return response;
-    })
-    .catch((error) => {
-      return { error };
-    });
+    // Perform request
+    response = await axios(request)
+      .then((response) => {
+        result.actualResponseData = response.data;
+        return response;
+      })
+      .catch((error) => {
+        return { error };
+      });
   } else {
     // Mock response
+    if (
+      JSON.stringify(step.responseData) == "{}" &&
+      JSON.stringify(operation.example.response.data) != "{}"
+    ) {
+      response.data = operation.example.response.data;
+    } else {
+      response.data = step.responseData;
+    }
+    result.actualResponseData = response.data;
     response.status = step.statusCodes[0];
-    response.data = step.responseData;
     response.headers = step.responseHeaders;
   }
 

@@ -113,7 +113,11 @@ function compileExample(
   }
 
   // Setup
-  let example = { url: path };
+  let example = {
+    url: path,
+    request: { parameters: {}, headers: {}, body: {} },
+    response: { headers: {}, body: {} },
+  };
 
   // Path parameters
   const pathParameters = getExampleParameters(operation, "path", exampleKey);
@@ -123,9 +127,8 @@ function compileExample(
 
   // Query parameters
   const queryParameters = getExampleParameters(operation, "query", exampleKey);
-  if (queryParameters.length > 0) example.parameters = {};
   queryParameters.forEach((param) => {
-    example.parameters[param.key] = param.value;
+    example.request.parameters[param.key] = param.value;
   });
 
   // Headers
@@ -134,33 +137,40 @@ function compileExample(
     "header",
     exampleKey
   );
-  if (headerParameters.length > 0) example.headers = {};
   headerParameters.forEach((param) => {
-    example.headers[param.key] = param.value;
+    example.request.headers[param.key] = param.value;
   });
 
   // Request body
   if (operation.requestBody) {
     const requestBody = getExample(operation.requestBody, exampleKey);
     if (requestBody) {
-      example.request = requestBody;
+      example.request.body = requestBody;
+    }
+  }
+
+  // Response
+  if (!responseCode) {
+    responseCode = Object.keys(operation.responses)[0];
+  }
+  const response = operation.responses[responseCode];
+
+  // Response headers
+  if (response.headers) {
+    for (const header in response.headers) {
+      const headerExample = getExample(response.headers[header], exampleKey);
+      if (headerExample) example.response.headers[header] = headerExample;
     }
   }
 
   // Response body
-  if (!responseCode) {
-    responseCode = Object.keys(operation.responses)[0];
-  }
-  console.log(responseCode);
-  const response = operation.responses[responseCode];
   const responseBody = getExample(response, exampleKey);
   if (responseBody) {
-    example.response = responseBody;
+    example.response.body = responseBody;
   }
 
   // Load environment variables
   example = loadEnvs(example);
-
   // console.log(JSON.stringify(example, null, 2));
   return example;
 }

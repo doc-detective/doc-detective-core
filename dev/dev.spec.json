@@ -8,8 +8,9 @@
           "openApi": {
             "operationId": "addUser",
             "server": "https://reqres.in/api",
-            "useExample": "both",
-            "statusCode": 201
+            "useExample": "request",
+            "statusCode": 400,
+            "mockResponse": true
           }
         }
       ]
