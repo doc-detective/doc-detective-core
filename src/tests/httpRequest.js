@@ -145,9 +145,11 @@ async function httpRequest(config, step) {
     });
     const validate = ajv.compile(operation.schemas.request);
     const valid = validate(step.requestData);
-    if (!valid) {
+    if (valid) {
+      result.description = ` Request data matched the OpenAPI schema.`;
+    } else {
       result.status = "FAIL";
-      result.description = `Request data didn't match the OpenAPI schema. ${JSON.stringify(
+      result.description = ` Request data didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
@@ -219,9 +221,11 @@ async function httpRequest(config, step) {
     });
     const validate = ajv.compile(operation.schemas.response);
     const valid = validate(response.data);
-    if (!valid) {
+    if (valid) {
+      result.description += ` Response data matched the OpenAPI schema.`;
+    } else {
       result.status = "FAIL";
-      result.description = `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+      result.description += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
@@ -236,8 +240,7 @@ async function httpRequest(config, step) {
     let dataComparison = objectExistsInObject(response.data, step.responseData);
     if (dataComparison.result.status === "FAIL") {
       result.status = "FAIL";
-      result.description =
-        result.description + " Response contained unexpected fields.";
+      result.description += " Response contained unexpected fields.";
       return result;
     }
   }
@@ -246,8 +249,7 @@ async function httpRequest(config, step) {
     let dataComparison = objectExistsInObject(step.responseData, response.data);
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
-      result.description =
-        result.description +
+      result.description +=
         ` Expected response data was present in actual response data.`;
     } else {
       result.status = "FAIL";
@@ -264,8 +266,7 @@ async function httpRequest(config, step) {
     );
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
-      result.description =
-        result.description +
+      result.description +=
         ` Expected response headers were present in actual response headers.`;
     } else {
       result.description =
@@ -287,8 +288,7 @@ async function httpRequest(config, step) {
         result.description + ` Set '$${variable.name}' environment variable.`;
     } else {
       if (result.status != "FAIL") result.status = "WARNING";
-      result.description =
-        result.description +
+      result.description +=
         ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
   }
@@ -308,11 +308,11 @@ async function httpRequest(config, step) {
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file
       fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+      result.description += ` Saved output to file.`;
     } else {
       if (step.overwrite == "false") {
         // File already exists
-        result.description =
-          result.description + ` Didn't save output. File already exists.`;
+        result.description += ` Didn't save output. File already exists.`;
       }
 
       // Read existing file
@@ -331,8 +331,7 @@ async function httpRequest(config, step) {
           fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
         }
         result.status = "FAIL";
-        result.description =
-          result.description +
+        result.description +=
           ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
         return result;
       }
