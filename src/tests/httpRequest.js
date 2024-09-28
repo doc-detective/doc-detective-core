@@ -11,12 +11,8 @@ exports.httpRequest = httpRequest;
 
 async function httpRequest(config, step) {
   let result = { status: "", description: "" };
-  let request = { url: "", method: "", headers: {}, params: {}, data: {} };
   let openApiDefinition;
   let operation;
-
-  // Make sure there's a protocol
-  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
 
   // Identify OpenAPI definition
   if (step.openApi) {
@@ -57,7 +53,65 @@ async function httpRequest(config, step) {
       result.description = `OpenAPI definition not found.`;
       return result;
     }
+
+    operation = await getOperation(
+      openApiDefinition,
+      step.openApi.operationId,
+      step.openApi.statusCode,
+      step.openApi.exampleKey,
+      step.openApi.server
+    );
+    if (!operation) {
+      result.status = "FAIL";
+      result.description = `Couldn't find operation '${step.operationId}' in OpenAPI definition.`;
+      return result;
+    }
+    log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
+
+    // Set request info
+    if (
+      step.openApi.useExample === "request" ||
+      step.openApi.useExample === "both"
+    ) {
+      step.url = operation.example.url;
+      step.method = operation.method;
+      if (operation.example.request.parameters)
+        step.requestParams = operation.example.request.parameters;
+      if (operation.example.request.headers)
+        step.requestHeaders = operation.example.request.headers;
+      if (step.openApi.requestHeaders)
+        step.requestHeaders = step.requestHeaders
+          ? {
+              ...step.requestHeaders,
+              ...step.openApi.requestHeaders,
+            }
+          : step.openApi.requestHeaders;
+      if (operation.example.request.body)
+        step.requestData = operation.example.request.body;
+    }
+    if (
+      step.openApi.useExample === "response" ||
+      step.openApi.useExample === "both"
+    ) {
+      // Set response info
+      step.responseHeaders = {
+        ...operation.example.response.headers,
+        ...step.responseHeaders,
+      };
+      step.responseData = {
+        ...operation.example.response.body,
+        ...step.responseData,
+      };
+    }
+    if (step.openApi.statusCode) {
+      step.statusCodes = step.statusCodes
+        ? [step.openApi.statusCode, ...step.statusCodes]
+        : [step.openApi.statusCode];
+    }
   }
+
+  // Make sure there's a protocol
+  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
 
   // Validate step payload
   isValidStep = validate("httpRequest_v2", step);
@@ -67,68 +121,13 @@ async function httpRequest(config, step) {
     return result;
   }
 
-  // Operate on OpenAPI definition
-  if (step.openApi) {
-    // Get operation from OpenAPI definition
-    const statusCode = step.openApi.statusCode;
-    const exampleKey = step.openApi.exampleKey;
-    operation = await getOperation(
-      openApiDefinition,
-      step.openApi.operationId,
-      statusCode,
-      exampleKey,
-      step.openApi.server
-    );
-    log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
-
-    if (!operation) {
-      result.status = "FAIL";
-      result.description = `Couldn't find operation '${step.operationId}' in OpenAPI definition.`;
-      return result;
-    }
-    if (
-      step.openApi.useExample === "request" ||
-      step.openApi.useExample === "both"
-    ) {
-      // Set request info
-      request.url = operation.example.url;
-      request.method = operation.method;
-      step.method = request.method;
-      if (operation.example.request.parameters)
-        request.params = operation.example.request.parameters;
-      if (operation.example.request.headers)
-        request.headers = operation.example.request.headers;
-      if (step.openApi.requestHeaders)
-        request.headers = {
-          ...request.headers,
-          ...step.openApi.requestHeaders,
-        };
-      if (operation.example.request.data)
-        request.data = operation.example.request.data;
-    }
-    if (
-      step.openApi.useExample === "response" ||
-      step.openApi.useExample === "both"
-    ) {
-      // Set response info
-      step.responseHeaders = { ...operation.example.response.headers, ...step.responseHeaders };
-      step.responseData = { ...operation.example.response.data, ...step.responseData };
-    }
-    if (step.openApi.statusCode) {
-      step.statusCodes = [step.openApi.statusCode, ...step.statusCodes];
-    }
-  }
-
-  request.url = step.url || request.url;
-  step.url = request.url;
-  request.method = step.method;
-  request.timeout = step.timeout;
-  request.headers = { ...request.headers, ...step.requestHeaders };
-  step.requestHeaders = request.headers;
-  request.params = { ...request.params, ...step.requestParams };
-  step.requestParams = request.params;
-  request.data = { ...request.data, ...step.requestData };
-  step.requestData = request.data;
+  const request = {
+    url: step.url,
+    method: step.method,
+    headers: step.requestHeaders,
+    params: step.requestParams,
+    data: step.requestData,
+  };
 
   // Validate request payload against OpenAPI definition
   if (
@@ -268,7 +267,6 @@ async function httpRequest(config, step) {
       result.description =
         result.description +
         ` Expected response headers were present in actual response headers.`;
-      result.status = "FAIL";
     } else {
       result.description =
         result.description + " " + dataComparison.result.description;
