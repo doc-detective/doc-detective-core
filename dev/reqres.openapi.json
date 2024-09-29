@@ -29,10 +29,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/userRequest"
-              },
-              "example": {
-                "name": "morpheus",
-                "job": "leader"
               }
             }
           },
@@ -71,8 +67,7 @@
                 "required": true,
                 "schema": {
                   "type": "integer"
-                },
-                "example": 60
+                }
               }
             },
             "content": {
@@ -81,8 +76,7 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string",
-                      "example": "Missing name"
+                      "type": "string"
                     }
                   }
                 }
@@ -204,12 +198,10 @@
         "additionalProperties": false,
         "properties": {
           "name": {
-            "type": "string",
-            "example": "morpheus"
+            "type": "string"
           },
           "job": {
-            "type": "string",
-            "example": "leader"
+            "type": "string"
           }
         }
       }

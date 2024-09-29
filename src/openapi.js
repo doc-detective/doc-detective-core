@@ -144,7 +144,7 @@ function compileExample(
   // Request body
   if (operation.requestBody) {
     const requestBody = getExample(operation.requestBody, exampleKey);
-    if (requestBody) {
+    if (typeof requestBody != "undefined") {
       example.request.body = requestBody;
     }
   }
@@ -159,14 +159,18 @@ function compileExample(
   if (response.headers) {
     for (const header in response.headers) {
       const headerExample = getExample(response.headers[header], exampleKey);
-      if (headerExample) example.response.headers[header] = headerExample;
+      if (typeof headerExample != "undefined") example.response.headers[header] = headerExample;
     }
   }
 
   // Response body
-  const responseBody = getExample(response, exampleKey);
-  if (responseBody) {
-    example.response.body = responseBody;
+  if (response.content) {
+    for (const key in response.content) {
+      const responseBody = getExample(response.content[key], exampleKey);
+      if (typeof responseBody != "undefined") {
+        example.response.body = responseBody;
+      }
+    }
   }
 
   // Load environment variables
@@ -215,7 +219,7 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
  * @returns {object|null} - The example value.
  * @throws {Error} - If the definition is not provided.
  */
-function getExample(definition = {}, exampleKey = "") {
+function getExample(definition = {}, exampleKey = "", generateFromSchema = null) {
   // Debug
   // console.log({definition, exampleKey});
 
@@ -227,6 +231,27 @@ function getExample(definition = {}, exampleKey = "") {
     throw new Error("Definition is required.");
   }
 
+  // If there are no examples in the definition, generate example based on definition schema
+  if (generateFromSchema == null) {
+    generateFromSchema = !hasExamples(definition, exampleKey);
+  }
+
+  if (generateFromSchema && definition.type) {
+    if (definition.type === "object") {
+      example = generateObjectExample(definition, exampleKey, generateFromSchema);
+    } else if (definition.type === "array") {
+      example = generateArrayExample(definition.items, exampleKey, generateFromSchema);
+    } else if (definition.type === "string" && definition.enum) {
+      example = definition.enum[0];
+    } else if (definition.type === "string") {
+      example = "string";
+    } else if (definition.type === "number" || definition.type === "integer") {
+      example = 0;
+    } else if (definition.type === "boolean") {
+      example = true;
+    }
+    return example;
+  }
   if (
     definition.examples &&
     typeof exampleKey !== "undefined" &&
@@ -265,11 +290,11 @@ function getExample(definition = {}, exampleKey = "") {
     }
 
     if (schema.type === "object") {
-      example = generateObjectExample(schema, exampleKey);
+      example = generateObjectExample(schema, exampleKey, generateFromSchema);
     } else if (schema.type === "array") {
-      example = generateArrayExample(schema.items, exampleKey);
+      example = generateArrayExample(schema.items, exampleKey, generateFromSchema);
     } else {
-      example = getExample(schema, exampleKey);
+      example = getExample(schema, exampleKey, generateFromSchema);
     }
   }
 
@@ -284,10 +309,10 @@ function getExample(definition = {}, exampleKey = "") {
  * @param {string} exampleKey - The example key.
  * @returns {object} - The generated object example.
  */
-function generateObjectExample(schema = {}, exampleKey = "") {
+function generateObjectExample(schema = {}, exampleKey = "", generateFromSchema = null) {
   const example = {};
   for (const property in schema.properties) {
-    const objectExample = getExample(schema.properties[property], exampleKey);
+    const objectExample = getExample(schema.properties[property], exampleKey, generateFromSchema);
     if (objectExample) example[property] = objectExample;
   }
   return example;
@@ -300,12 +325,12 @@ function generateObjectExample(schema = {}, exampleKey = "") {
  * @param {string} exampleKey - The example key.
  * @returns {Array} - The generated array example.
  */
-function generateArrayExample(items = {}, exampleKey = "") {
+function generateArrayExample(items = {}, exampleKey = "", generateFromSchema = null) {
   // Debug
   // console.log({ items, exampleKey });
 
   const example = [];
-  const itemExample = getExample(items, exampleKey);
+  const itemExample = getExample(items, exampleKey, generateFromSchema);
   if (itemExample) example.push(itemExample);
 
   // Debug
@@ -313,12 +338,39 @@ function generateArrayExample(items = {}, exampleKey = "") {
   return example;
 }
 
-module.exports = { getOperation, loadOpenApiDefinition };
+/**
+ * Checks if the provided definition object contains any examples.
+ *
+ * @param {Object} [definition={}] - The object to traverse for examples.
+ * @param {string} [exampleKey=""] - The specific key to look for in the examples.
+ * @returns {boolean} - Returns true if examples are found, otherwise false.
+ */
+function hasExamples(definition = {}, exampleKey = "") {
+  const examples = [];
 
-// (async () => {
-//   const apiDefinition = require("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.openapi.json");
-//   const definition = await dereferenceOpenApiDefinition(apiDefinition);
-//   const operationId = "addUser";
-//   const operation = getOperation(definition, operationId, "", "");
-//   console.log(JSON.stringify(operation, null, 2));
-// })();
+  function traverse(obj) {
+    if (typeof obj !== "object" || obj === null) return;
+
+    if (obj.hasOwnProperty("example")) {
+      examples.push(obj.example);
+    }
+    if (
+      exampleKey &&
+      obj.hasOwnProperty("examples") &&
+      obj.examples.hasOwnProperty(exampleKey) &&
+      obj.examples[exampleKey].hasOwnProperty("value")
+    ) {
+      examples.push(obj.examples[exampleKey].value);
+    }
+
+    for (const key in obj) {
+      traverse(obj[key]);
+    }
+  }
+
+  traverse(definition);
+  if (examples.length) return true;
+  return false;
+}
+
+module.exports = { getOperation, loadOpenApiDefinition };
