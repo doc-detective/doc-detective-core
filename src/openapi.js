@@ -1,4 +1,5 @@
 const { fetchFile, loadEnvs } = require("./utils");
+const { JSONSchemaFaker } = require("json-schema-faker");
 
 /**
  * Dereferences an OpenAPI definition.
@@ -159,7 +160,8 @@ function compileExample(
   if (response.headers) {
     for (const header in response.headers) {
       const headerExample = getExample(response.headers[header], exampleKey);
-      if (typeof headerExample != "undefined") example.response.headers[header] = headerExample;
+      if (typeof headerExample != "undefined")
+        example.response.headers[header] = headerExample;
     }
   }
 
@@ -219,7 +221,11 @@ function getExampleParameters(operation = {}, type = "", exampleKey = "") {
  * @returns {object|null} - The example value.
  * @throws {Error} - If the definition is not provided.
  */
-function getExample(definition = {}, exampleKey = "", generateFromSchema = null) {
+function getExample(
+  definition = {},
+  exampleKey = "",
+  generateFromSchema = null
+) {
   // Debug
   // console.log({definition, exampleKey});
 
@@ -237,21 +243,12 @@ function getExample(definition = {}, exampleKey = "", generateFromSchema = null)
   }
 
   if (generateFromSchema && definition.type) {
-    if (definition.type === "object") {
-      example = generateObjectExample(definition, exampleKey, generateFromSchema);
-    } else if (definition.type === "array") {
-      example = generateArrayExample(definition.items, exampleKey, generateFromSchema);
-    } else if (definition.type === "string" && definition.enum) {
-      example = definition.enum[0];
-    } else if (definition.type === "string") {
-      example = "string";
-    } else if (definition.type === "number" || definition.type === "integer") {
-      example = 0;
-    } else if (definition.type === "boolean") {
-      example = true;
-    }
-    return example;
+    try {
+      example = JSONSchemaFaker.generate(definition);
+      if (example) return example;
+    } catch (e) {}
   }
+
   if (
     definition.examples &&
     typeof exampleKey !== "undefined" &&
@@ -292,7 +289,11 @@ function getExample(definition = {}, exampleKey = "", generateFromSchema = null)
     if (schema.type === "object") {
       example = generateObjectExample(schema, exampleKey, generateFromSchema);
     } else if (schema.type === "array") {
-      example = generateArrayExample(schema.items, exampleKey, generateFromSchema);
+      example = generateArrayExample(
+        schema.items,
+        exampleKey,
+        generateFromSchema
+      );
     } else {
       example = getExample(schema, exampleKey, generateFromSchema);
     }
@@ -309,10 +310,18 @@ function getExample(definition = {}, exampleKey = "", generateFromSchema = null)
  * @param {string} exampleKey - The example key.
  * @returns {object} - The generated object example.
  */
-function generateObjectExample(schema = {}, exampleKey = "", generateFromSchema = null) {
+function generateObjectExample(
+  schema = {},
+  exampleKey = "",
+  generateFromSchema = null
+) {
   const example = {};
   for (const property in schema.properties) {
-    const objectExample = getExample(schema.properties[property], exampleKey, generateFromSchema);
+    const objectExample = getExample(
+      schema.properties[property],
+      exampleKey,
+      generateFromSchema
+    );
     if (objectExample) example[property] = objectExample;
   }
   return example;
@@ -325,7 +334,11 @@ function generateObjectExample(schema = {}, exampleKey = "", generateFromSchema 
  * @param {string} exampleKey - The example key.
  * @returns {Array} - The generated array example.
  */
-function generateArrayExample(items = {}, exampleKey = "", generateFromSchema = null) {
+function generateArrayExample(
+  items = {},
+  exampleKey = "",
+  generateFromSchema = null
+) {
   // Debug
   // console.log({ items, exampleKey });
 

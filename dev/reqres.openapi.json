@@ -78,6 +78,27 @@
                   "properties": {
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "isDone": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "job": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "job"]
                     }
                   }
                 }

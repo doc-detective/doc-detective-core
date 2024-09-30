@@ -173,9 +173,9 @@ async function httpRequest(config, step) {
     // Mock response
     if (
       JSON.stringify(step.responseData) == "{}" &&
-      JSON.stringify(operation.example.response.data) != "{}"
+      JSON.stringify(operation.example.response.body) != "{}"
     ) {
-      response.data = operation.example.response.data;
+      response.data = operation.example.response.body;
     } else {
       response.data = step.responseData;
     }
