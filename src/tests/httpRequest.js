@@ -75,33 +75,54 @@ async function httpRequest(config, step) {
     ) {
       step.url = operation.example.url;
       step.method = operation.method;
-      step.requestParams = {
-        ...operation.example.request.parameters,
-        ...step.requestParams,
-      };
-      step.requestHeaders = {
-        ...operation.example.request.headers,
-        ...step.openApi.requestHeaders,
-        ...step.requestHeaders,
-      };
-      step.requestData = {
-        ...operation.example.request.body,
-        ...step.requestData,
-      };
+      if (
+        step.requestParams ||
+        Object.keys(operation.example.request.parameters).length > 0
+      )
+        step.requestParams = {
+          ...operation.example.request.parameters,
+          ...step.requestParams,
+        };
+      if (
+        step.requestHeaders ||
+        step.openApi.requestHeaders ||
+        Object.keys(operation.example.request.headers).length > 0
+      )
+        step.requestHeaders = {
+          ...operation.example.request.headers,
+          ...step.openApi.requestHeaders,
+          ...step.requestHeaders,
+        };
+      if (
+        step.requestData ||
+        Object.keys(operation.example.request.body).length > 0
+      )
+        step.requestData = {
+          ...operation.example.request.body,
+          ...step.requestData,
+        };
     }
     // Set response info
     if (
       step.openApi.useExample === "response" ||
       step.openApi.useExample === "both"
     ) {
-      step.responseHeaders = {
-        ...operation.example.response.headers,
-        ...step.responseHeaders,
-      };
-      step.responseData = {
-        ...operation.example.response.body,
-        ...step.responseData,
-      };
+      if (
+        step.responseHeaders ||
+        Object.keys(operation.example.response.headers).length > 0
+      )
+        step.responseHeaders = {
+          ...operation.example.response.headers,
+          ...step.responseHeaders,
+        };
+      if (
+        step.responseData ||
+        Object.keys(operation.example.response.body).length > 0
+      )
+        step.responseData = {
+          ...operation.example.response.body,
+          ...step.responseData,
+        };
     }
     // Set status code
     if (step.openApi.statusCode) {
