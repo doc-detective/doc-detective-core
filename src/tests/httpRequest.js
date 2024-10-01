@@ -75,25 +75,25 @@ async function httpRequest(config, step) {
     ) {
       step.url = operation.example.url;
       step.method = operation.method;
-      if (operation.example.request.parameters)
-        step.requestParams = operation.example.request.parameters;
-      if (operation.example.request.headers)
-        step.requestHeaders = operation.example.request.headers;
-      if (step.openApi.requestHeaders)
-        step.requestHeaders = step.requestHeaders
-          ? {
-              ...step.requestHeaders,
-              ...step.openApi.requestHeaders,
-            }
-          : step.openApi.requestHeaders;
-      if (operation.example.request.body)
-        step.requestData = operation.example.request.body;
+      step.requestParams = {
+        ...operation.example.request.parameters,
+        ...step.requestParams,
+      };
+      step.requestHeaders = {
+        ...operation.example.request.headers,
+        ...step.openApi.requestHeaders,
+        ...step.requestHeaders,
+      };
+      step.requestData = {
+        ...operation.example.request.body,
+        ...step.requestData,
+      };
     }
+    // Set response info
     if (
       step.openApi.useExample === "response" ||
       step.openApi.useExample === "both"
     ) {
-      // Set response info
       step.responseHeaders = {
         ...operation.example.response.headers,
         ...step.responseHeaders,
@@ -103,6 +103,7 @@ async function httpRequest(config, step) {
         ...step.responseData,
       };
     }
+    // Set status code
     if (step.openApi.statusCode) {
       step.statusCodes = step.statusCodes
         ? [step.openApi.statusCode, ...step.statusCodes]
@@ -249,8 +250,7 @@ async function httpRequest(config, step) {
     let dataComparison = objectExistsInObject(step.responseData, response.data);
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
-      result.description +=
-        ` Expected response data was present in actual response data.`;
+      result.description += ` Expected response data was present in actual response data.`;
     } else {
       result.status = "FAIL";
       result.description =
@@ -266,8 +266,7 @@ async function httpRequest(config, step) {
     );
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
-      result.description +=
-        ` Expected response headers were present in actual response headers.`;
+      result.description += ` Expected response headers were present in actual response headers.`;
     } else {
       result.description =
         result.description + " " + dataComparison.result.description;
@@ -288,8 +287,7 @@ async function httpRequest(config, step) {
         result.description + ` Set '$${variable.name}' environment variable.`;
     } else {
       if (result.status != "FAIL") result.status = "WARNING";
-      result.description +=
-        ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
+      result.description += ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
   }
 
@@ -331,8 +329,7 @@ async function httpRequest(config, step) {
           fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
         }
         result.status = "FAIL";
-        result.description +=
-          ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
+        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
         return result;
       }
 
