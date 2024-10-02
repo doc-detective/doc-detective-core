@@ -1,5 +1,6 @@
 const { fetchFile, loadEnvs } = require("./utils");
 const { JSONSchemaFaker } = require("json-schema-faker");
+const { readFile } = require("doc-detective-common");
 
 /**
  * Dereferences an OpenAPI definition.
@@ -14,13 +15,12 @@ async function loadOpenApiDefinition(definitionPath = "") {
   }
   const parser = require("@apidevtools/json-schema-ref-parser");
 
-  // If URL is provided, load the definition from the URL
-  if (definitionPath.startsWith("https://")) {
-    const fetch = await fetchFile(definitionPath);
-    definitionPath = fetch.path;
-  }
+  // Load the definition from the URL or local file path
+  const definition = await readFile(definitionPath);
 
-  const dereferencedDefinition = await parser.dereference(definitionPath);
+  // Dereference the definition
+  const dereferencedDefinition = await parser.dereference(definition);
+
   return dereferencedDefinition;
 }
 

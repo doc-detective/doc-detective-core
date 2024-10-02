@@ -59,7 +59,7 @@ async function main() {
       openApi: [
         {
           name: "reqres",
-          definitionPath: "dev/reqres.openapi.json",
+          definitionPath: "dev/reqres.openapi.yaml",
           requestHeaders: {
             "Content-Type": "application/json",
           },
