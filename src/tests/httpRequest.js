@@ -9,7 +9,7 @@ const { log, calculatePercentageDifference } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest(config, step) {
+async function httpRequest(config, step, openApiDefinitions = []) {
   let result = { status: "", description: "" };
   let openApiDefinition;
   let operation;
@@ -21,17 +21,17 @@ async function httpRequest(config, step) {
       openApiDefinition = await loadOpenApiDefinition(
         step.openApi.definitionPath
       );
-    } else if (step.openApi.name && config?.integrations?.openApi) {
+    } else if (step.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config
-      integration = config.integrations.openApi.find(
+      integration = openApiDefinitions.find(
         (openApiConfig) => openApiConfig.name === step.openApi.name
       );
       openApiDefinition = integration.definition;
       step.openApi = { ...integration, ...step.openApi };
       delete step.openApi.definition;
-    } else if (config?.integrations?.openApi) {
+    } else if (openApiDefinitions.length > 0) {
       // Identify first definition that contains the operation
-      for (const openApiConfig of config.integrations.openApi) {
+      for (const openApiConfig of openApiDefinitions) {
         for (const path in openApiConfig.definition.paths) {
           for (const operation in openApiConfig.definition.paths[path]) {
             if (

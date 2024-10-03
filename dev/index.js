@@ -56,15 +56,6 @@ async function main() {
       markup: [],
     },
     integrations: {
-      openApi: [
-        {
-          name: "reqres",
-          definitionPath: "dev/reqres.openapi.yaml",
-          requestHeaders: {
-            "Content-Type": "application/json",
-          },
-        }
-      ]
     },
     telemetry: {
       send: false,

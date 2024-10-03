@@ -1,5 +1,14 @@
 {
   "id": "httpRequest_OpenAPI support",
+  "openApi": [
+    {
+      "name": "reqres",
+      "definitionPath": "reqres.openapi.yaml",
+      "requestHeaders": {
+        "Content-Type": "application/json"
+      }
+    }
+  ],
   "tests": [
     {
       "steps": [

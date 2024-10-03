@@ -19,6 +19,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const uuid = require("uuid");
 const { setAppiumHome } = require("./appium");
+const { loadOpenApiDefinition } = require("./openapi");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -270,6 +271,23 @@ async function runSpecs(config, specs) {
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
 
+    // Capture all OpenAPI definitions
+    const openApiDefinitions = [];
+    if (config?.integrations?.openApi?.length > 0)
+      openApiDefinitions.push(...config.integrations.openApi);
+    if (spec?.openApi?.length > 0) {
+      for (const definition of spec.openApi) {
+        // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
+        if (openApiDefinitions.find((def) => def.name === definition.name)) {
+          log(config, "warning", `Skipping OpenAPI definition '${definition.name}' in spec '${spec.id}'. A definition with the same name is already loaded.`);
+          continue;
+        }
+        const openApiDefinition = await loadOpenApiDefinition(definition.definitionPath);
+        definition.definition = openApiDefinition;
+        openApiDefinitions.push(definition);
+      }
+    }
+
     // Iterates tests
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.id}`);
@@ -382,7 +400,7 @@ async function runSpecs(config, specs) {
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step,null,2)}`);
 
-          const stepResult = await runStep(config, context, step, driver);
+          const stepResult = await runStep(config, context, step, driver, { openApiDefinitions });
           log(
             config,
             "debug",
@@ -489,7 +507,7 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep(config, context, step, driver) {
+async function runStep(config, context, step, driver, options = {}) {
   let actionResult;
   // Load values from environment variables
   step = loadEnvs(step);
@@ -527,7 +545,7 @@ async function runStep(config, context, step, driver) {
       actionResult = await checkLink(config, step);
       break;
     case "httpRequest":
-      actionResult = await httpRequest(config, step);
+      actionResult = await httpRequest(config, step, options?.openApiDefinitions);
       break;
     default:
       actionResult = { status: "FAIL", description: "Unsupported action." };

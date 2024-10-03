@@ -1,6 +1,7 @@
-const { fetchFile, loadEnvs } = require("./utils");
+const { loadEnvs } = require("./utils");
 const { JSONSchemaFaker } = require("json-schema-faker");
 const { readFile } = require("doc-detective-common");
+const parser = require("@apidevtools/json-schema-ref-parser");
 
 /**
  * Dereferences an OpenAPI definition.
@@ -13,7 +14,6 @@ async function loadOpenApiDefinition(definitionPath = "") {
   if (!definitionPath) {
     throw new Error("OpenAPI definition is required.");
   }
-  const parser = require("@apidevtools/json-schema-ref-parser");
 
   // Load the definition from the URL or local file path
   const definition = await readFile(definitionPath);
