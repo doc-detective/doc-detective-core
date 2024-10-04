@@ -3,7 +3,7 @@
   "openApi": [
     {
       "name": "reqres",
-      "definitionPath": "reqres.openapi.yaml",
+      "descriptionPath": "reqres.openapi.yaml",
       "requestHeaders": {
         "Content-Type": "application/json"
       }

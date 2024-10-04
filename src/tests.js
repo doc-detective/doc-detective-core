@@ -282,7 +282,7 @@ async function runSpecs(config, specs) {
           log(config, "warning", `Skipping OpenAPI definition '${definition.name}' in spec '${spec.id}'. A definition with the same name is already loaded.`);
           continue;
         }
-        const openApiDefinition = await loadOpenApiDefinition(definition.definitionPath);
+        const openApiDefinition = await loadOpenApiDefinition(definition.descriptionPath);
         definition.definition = openApiDefinition;
         openApiDefinitions.push(definition);
       }
