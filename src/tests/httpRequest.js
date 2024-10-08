@@ -16,10 +16,10 @@ async function httpRequest(config, step, openApiDefinitions = []) {
 
   // Identify OpenAPI definition
   if (step.openApi) {
-    if (step.openApi.definitionPath) {
+    if (step.openApi.descriptionPath) {
       // Load OpenAPI definition from step
       openApiDefinition = await loadOpenApiDefinition(
-        step.openApi.definitionPath
+        step.openApi.descriptionPath
       );
     } else if (step.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config

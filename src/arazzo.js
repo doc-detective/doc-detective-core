@@ -20,7 +20,7 @@ function translateArazzoToDocDetective(arazzoDescription) {
     if (source.type === "openapi") {
       const openApiDefinition = {
         name: source.name,
-        definitionPath: source.url,
+        descriptionPath: source.url,
       };
       docDetectiveSpec.openApi.push(openApiDefinition);
     }

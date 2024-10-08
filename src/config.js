@@ -100,7 +100,7 @@ async function loadOpenApiDefinitions(config) {
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
       openApiConfig.definition = await loadOpenApiDefinition(
-        openApiConfig.definitionPath
+        openApiConfig.descriptionPath
       );
     }
   }
