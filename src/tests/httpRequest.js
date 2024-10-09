@@ -129,6 +129,11 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.statusCodes = step.statusCodes
         ? [step.openApi.statusCode, ...step.statusCodes]
         : [step.openApi.statusCode];
+    } else {
+      successCodes = Object.keys(operation.definition.responses).filter((code) => code.startsWith("2"));
+      step.statusCodes = step.statusCodes
+        ? [...successCodes, ...step.statusCodes]
+        : successCodes;
     }
   }
 
