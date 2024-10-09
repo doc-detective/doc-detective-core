@@ -32,9 +32,8 @@ async function main() {
     output: ".",
     recursive: true,
     logLevel: "debug",
-    relativePathBase: "file",
     runTests: {
-      input: "./dev/dev.spec.json",
+      input: "./test/artifacts/httpRequest_openApi.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
@@ -44,8 +43,12 @@ async function main() {
       downloadDirectory: ".",
       contexts: [
         {
+          app: { name: "chrome", options: { headless: false } },
+          platforms: ["mac", "linux"],
+        },
+        {
           app: { name: "chrome", options: { headless: true } },
-          platforms: ["windows", "mac", "linux"],
+          platforms: ["windows"],
         },
       ],
     },
@@ -55,7 +58,21 @@ async function main() {
       output: ".",
       markup: [],
     },
+    suggestTests: {
+      recursive: true,
+      input: ".",
+      output: ".",
+      markup: [],
+    },
     integrations: {
+      openApi: [
+        {
+          name: "reqres_live",
+          descriptionPath: "./test/artifacts/reqres.openapi.yaml",
+          server: "https://reqres.in/api",
+          useExample: "request",
+        },
+      ],
     },
     telemetry: {
       send: false,
