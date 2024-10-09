@@ -4,15 +4,15 @@ const { readFile } = require("doc-detective-common");
 const parser = require("@apidevtools/json-schema-ref-parser");
 
 /**
- * Dereferences an OpenAPI definition.
- *
- * @param {String} descriptionPath - The OpenAPI definition to be dereferenced.
- * @returns {Promise<Object>} - The dereferenced OpenAPI definition.
+ * Dereferences an OpenAPI or Arazzo description
+ * 
+ * @param {String} descriptionPath - The OpenAPI or Arazzo description to be dereferenced.
+ * @returns {Promise<Object>} - The dereferenced OpenAPI or Arazzo description.
  */
-async function loadOpenApiDefinition(descriptionPath = "") {
+async function loadDescription(descriptionPath = "") {
   // Error handling
   if (!descriptionPath) {
-    throw new Error("OpenAPI definition is required.");
+    throw new Error("Description is required.");
   }
 
   // Load the definition from the URL or local file path
@@ -386,4 +386,4 @@ function hasExamples(definition = {}, exampleKey = "") {
   return false;
 }
 
-module.exports = { getOperation, loadOpenApiDefinition };
+module.exports = { getOperation, loadDescription };

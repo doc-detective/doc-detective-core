@@ -19,7 +19,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const uuid = require("uuid");
 const { setAppiumHome } = require("./appium");
-const { loadOpenApiDefinition } = require("./openapi");
+const { loadDescription } = require("./openapi");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -284,7 +284,7 @@ async function runSpecs(config, specs) {
     if (spec?.openApi?.length > 0) {
       for (const definition of spec.openApi) {
         // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
-        const openApiDefinition = await loadOpenApiDefinition(
+        const openApiDefinition = await loadDescription(
           definition.descriptionPath
         );
         definition.definition = openApiDefinition;
@@ -315,7 +315,7 @@ async function runSpecs(config, specs) {
       if (test?.openApi?.length > 0) {
         for (const definition of test.openApi) {
           // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
-          const openApiDefinition = await loadOpenApiDefinition(
+          const openApiDefinition = await loadDescription(
             definition.descriptionPath
           );
           definition.definition = openApiDefinition;

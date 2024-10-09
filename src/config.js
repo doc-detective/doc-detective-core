@@ -8,7 +8,7 @@ const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
 const geckodriver = require("geckodriver");
 const { setAppiumHome } = require("./appium");
-const { loadOpenApiDefinition } = require("./openapi");
+const { loadDescription } = require("./openapi");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -91,15 +91,15 @@ async function setConfig(config) {
   // Detect current environment.
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
-  await loadOpenApiDefinitions(config);
+  await loadDescriptions(config);
   
   return config;
 }
 
-async function loadOpenApiDefinitions(config) {
+async function loadDescriptions(config) {
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
-      openApiConfig.definition = await loadOpenApiDefinition(
+      openApiConfig.definition = await loadDescription(
         openApiConfig.descriptionPath
       );
     }
