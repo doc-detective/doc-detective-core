@@ -77,7 +77,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.method = operation.method;
       if (
         step.requestParams ||
-        Object.keys(operation.example.request.parameters).length > 0
+        JSON.stringify(operation.example.request.parameters) != "{}"
       )
         step.requestParams = {
           ...operation.example.request.parameters,
@@ -86,7 +86,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       if (
         step.requestHeaders ||
         step.openApi.requestHeaders ||
-        Object.keys(operation.example.request.headers).length > 0
+        JSON.stringify(operation.example.request.headers) != "{}"
       )
         step.requestHeaders = {
           ...operation.example.request.headers,
@@ -95,7 +95,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
         };
       if (
         step.requestData ||
-        Object.keys(operation.example.request.body).length > 0
+        JSON.stringify(operation.example.request.body) != "{}"
       )
         step.requestData = {
           ...operation.example.request.body,
@@ -109,7 +109,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     ) {
       if (
         step.responseHeaders ||
-        Object.keys(operation.example.response.headers).length > 0
+        JSON.stringify(operation.example.response.headers) != "{}"
       )
         step.responseHeaders = {
           ...operation.example.response.headers,
@@ -117,7 +117,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
         };
       if (
         step.responseData ||
-        Object.keys(operation.example.response.body).length > 0
+        JSON.stringify(operation.example.response.body) != "{}"
       )
         step.responseData = {
           ...operation.example.response.body,
