@@ -84,9 +84,11 @@ function getDriverCapabilities(config, name, options) {
     case "edge":
       // Set Chrome(ium) capabilities
       if (config.environment.apps.find((app) => app.name === name)) {
-        const chromium = config.environment.apps.find((app) => app.name === name);
+        const chromium = config.environment.apps.find(
+          (app) => app.name === name
+        );
         if (!chromium) break;
-        
+
         browserName = name === "edge" ? "MicrosoftEdge" : "chrome";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
@@ -247,7 +249,11 @@ async function runSpecs(config, specs) {
     // Set Appium home directory
     setAppiumHome();
     // Start Appium server
-    appium = spawn("npx", ["appium"], { shell: true, windowsHide: true, cwd: path.join(__dirname, "..")});
+    appium = spawn("npx", ["appium"], {
+      shell: true,
+      windowsHide: true,
+      cwd: path.join(__dirname, ".."),
+    });
     appium.stdout.on("data", (data) => {
       //   console.log(`stdout: ${data}`);
     });
@@ -278,12 +284,16 @@ async function runSpecs(config, specs) {
     if (spec?.openApi?.length > 0) {
       for (const definition of spec.openApi) {
         // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
-        if (openApiDefinitions.find((def) => def.name === definition.name)) {
-          log(config, "warning", `Skipping OpenAPI definition '${definition.name}' in spec '${spec.id}'. A definition with the same name is already loaded.`);
-          continue;
-        }
-        const openApiDefinition = await loadOpenApiDefinition(definition.descriptionPath);
+        const openApiDefinition = await loadOpenApiDefinition(
+          definition.descriptionPath
+        );
         definition.definition = openApiDefinition;
+        const existingDefinitionIndex = openApiDefinitions.findIndex(
+          (def) => def.name === definition.name
+        );
+        if (existingDefinitionIndex > -1) {
+          openApiDefinitions.splice(existingDefinitionIndex, 1);
+        }
         openApiDefinitions.push(definition);
       }
     }
@@ -300,6 +310,24 @@ async function runSpecs(config, specs) {
 
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
+
+      // Capture test-level OpenAPI definitions
+      if (test?.openApi?.length > 0) {
+        for (const definition of test.openApi) {
+          // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
+          const openApiDefinition = await loadOpenApiDefinition(
+            definition.descriptionPath
+          );
+          definition.definition = openApiDefinition;
+          const existingDefinitionIndex = openApiDefinitions.findIndex(
+            (def) => def.name === definition.name
+          );
+          if (existingDefinitionIndex > -1) {
+            openApiDefinitions.splice(existingDefinitionIndex, 1);
+          }
+          openApiDefinitions.push(definition);
+        }
+      }
 
       // Iterate contexts
       // TODO: Support both serial and parallel execution
@@ -359,19 +387,28 @@ async function runSpecs(config, specs) {
           } catch (error) {
             try {
               // If driver fails to start, try again as headless
-              log(config, "warning", `Failed to start context '${context.app?.name}' on '${platform}'. Retrying as headless.`);
-              if (typeof context.app.options === "undefined") context.app.options = {};
+              log(
+                config,
+                "warning",
+                `Failed to start context '${context.app?.name}' on '${platform}'. Retrying as headless.`
+              );
+              if (typeof context.app.options === "undefined")
+                context.app.options = {};
               context.app.options.headless = true;
               caps = getDriverCapabilities(config, context.app.name, {
                 path: context.app?.path,
                 width: context.app?.options?.width || 1200,
                 height: context.app?.options?.height || 800,
-                headless: context.app?.options?.headless === false ? false : true,
-              })
+                headless:
+                  context.app?.options?.headless === false ? false : true,
+              });
               driver = await driverStart(caps);
             } catch (error) {
-              let errorMessage = `Failed to start context '${context.app?.name}' on '${platform}'.`
-              if (context.app?.name === "safari") errorMessage = errorMessage + " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+              let errorMessage = `Failed to start context '${context.app?.name}' on '${platform}'.`;
+              if (context.app?.name === "safari")
+                errorMessage =
+                  errorMessage +
+                  " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
               log(config, "error", errorMessage);
               contextReport = {
                 result: { status: "SKIPPED", description: errorMessage },
@@ -398,9 +435,11 @@ async function runSpecs(config, specs) {
         for (let step of test.steps) {
           // Set step id if not defined
           if (!step.id) step.id = `${uuid.v4()}`;
-          log(config, "debug", `STEP:\n${JSON.stringify(step,null,2)}`);
+          log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const stepResult = await runStep(config, context, step, driver, { openApiDefinitions });
+          const stepResult = await runStep(config, context, step, driver, {
+            openApiDefinitions,
+          });
           log(
             config,
             "debug",
@@ -424,7 +463,7 @@ async function runSpecs(config, specs) {
         // Parse step results to calc context result
 
         // If any step fails, context fails
-      if (contextReport.steps.find((step) => step.result === "FAIL"))
+        if (contextReport.steps.find((step) => step.result === "FAIL"))
           contextResult = "FAIL";
         // If any step warns, context warns
         else if (contextReport.steps.find((step) => step.result === "WARNING"))
@@ -446,7 +485,7 @@ async function runSpecs(config, specs) {
           // Close driver
           try {
             await driver.deleteSession();
-          } catch { }
+          } catch {}
         }
       }
 
@@ -545,7 +584,11 @@ async function runStep(config, context, step, driver, options = {}) {
       actionResult = await checkLink(config, step);
       break;
     case "httpRequest":
-      actionResult = await httpRequest(config, step, options?.openApiDefinitions);
+      actionResult = await httpRequest(
+        config,
+        step,
+        options?.openApiDefinitions
+      );
       break;
     default:
       actionResult = { status: "FAIL", description: "Unsupported action." };
@@ -573,7 +616,7 @@ async function appiumIsReady() {
     try {
       let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
-    } catch { }
+    } catch {}
   }
   return isReady;
 }

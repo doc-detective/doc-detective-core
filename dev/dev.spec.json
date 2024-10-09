@@ -1,25 +1,22 @@
 {
   "id": "httpRequest_OpenAPI support",
-  "openApi": [
-    {
-      "name": "reqres",
-      "descriptionPath": "reqres.openapi.yaml",
-      "requestHeaders": {
-        "Content-Type": "application/json"
-      }
-    }
-  ],
   "tests": [
     {
+      "openApi": [
+        {
+          "name": "reqres",
+          "descriptionPath": "reqres.openapi.yaml",
+          "server": "https://reqres.in/api",
+          "useExample": "both",
+          "mockResponse": true
+        }
+      ],
       "steps": [
         {
           "action": "httpRequest",
           "openApi": {
             "operationId": "addUser",
-            "server": "https://reqres.in/api",
-            "useExample": "both",
-            "statusCode": 400,
-            "mockResponse": true
+            "statusCode": 400
           }
         }
       ]
