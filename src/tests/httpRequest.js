@@ -18,9 +18,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
   if (step.openApi) {
     if (step.openApi.descriptionPath) {
       // Load OpenAPI definition from step
-      openApiDefinition = await loadDescription(
-        step.openApi.descriptionPath
-      );
+      openApiDefinition = await loadDescription(step.openApi.descriptionPath);
     } else if (step.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config
       integration = openApiDefinitions.find(
@@ -227,7 +225,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       result.status = "FAIL";
       result.description = `Returned ${
         response.status
-      }. Expected one of ${JSON.stringify(step.statusCodes)}`;
+      }. Expected one of ${JSON.stringify(step.statusCodes)}.`;
     }
   }
 
