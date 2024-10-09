@@ -5,13 +5,13 @@ const { uuid } = require("uuidv4");
  * @param {Object} arazzoDescription - The Arazzo description object
  * @returns {Object} - The Doc Detective test specification object
  */
-function translateArazzoToDocDetective(arazzoDescription) {
+function workflowToTest(arazzoDescription, workflowId, inputs) {
   // Initialize the Doc Detective test specification
-  const docDetectiveSpec = {
+  const test = {
     id: arazzoDescription.info.title || `${uuid()}`,
     description:
       arazzoDescription.info.description || arazzoDescription.info.summary,
-    tests: [],
+    steps: [],
     openApi: [],
   };
 
@@ -22,122 +22,79 @@ function translateArazzoToDocDetective(arazzoDescription) {
         name: source.name,
         descriptionPath: source.url,
       };
-      docDetectiveSpec.openApi.push(openApiDefinition);
+      test.openApi.push(openApiDefinition);
     }
   });
 
-  // Iterate through each workflow in the Arazzo description
-  arazzoDescription.workflows.forEach((workflow) => {
-    const test = {
-      id: workflow.workflowId || `${uuid()}`,
-      description: workflow.description || workflow.summary,
-      steps: [],
+  // Find workflow by ID
+  const workflow = arazzoDescription.workflows.find(
+    (workflow) => workflow.workflowId === workflowId
+  );
+
+  // Translate each step in the workflow to a Doc Detective step
+  workflow.steps.forEach((workflowStep) => {
+    const docDetectiveStep = {
+      action: "httpRequest",
     };
 
-    // Translate each step in the workflow to a Doc Detective step
-    workflow.steps.forEach((step) => {
-      const docDetectiveStep = translateStep(step);
-      if (docDetectiveStep) {
-        test.steps.push(docDetectiveStep);
-      }
-    });
+    if (workflowStep.operationId) {
+      // Translate API operation steps
+      docDetectiveStep.openApi = { operationId: workflowStep.operationId };
+    } else if (workflowStep.operationPath) {
+      // Handle operation path references (not yet supported in Doc Detective)
+      console.warn(
+        `Operation path references arne't yet supported in Doc Detective: ${workflowStep.operationPath}`
+      );
+      return;
+    } else if (workflowStep.workflowId) {
+      // Handle workflow references (not yet supported in Doc Detective)
+      console.warn(
+        `Workflow references arne't yet supported in Doc Detective: ${workflowStep.workflowId}`
+      );
+      return;
+    } else {
+      // Handle unsupported step types
+      console.warn(`Unsupported step type: ${JSON.stringify(workflowStep)}`);
+      return;
+    }
 
-    docDetectiveSpec.tests.push(test);
+    // Add parameters
+    if (workflowStep.parameters) {
+      docDetectiveStep.requestParams = {};
+      workflowStep.parameters.forEach((param) => {
+        if (param.in === "query") {
+          docDetectiveStep.requestParams[param.name] = param.value;
+        } else if (param.in === "header") {
+          if (!docDetectiveStep.requestHeaders)
+            docDetectiveStep.requestHeaders = {};
+          docDetectiveStep.requestHeaders[param.name] = param.value;
+        }
+        // Note: path parameters would require modifying the URL, which is not handled in this simple translation
+      });
+    }
+
+    // Add request body if present
+    if (workflowStep.requestBody) {
+      docDetectiveStep.requestData = workflowStep.requestBody.payload;
+    }
+
+    // Translate success criteria to response validation
+    if (workflowStep.successCriteria) {
+      docDetectiveStep.responseData = {};
+      workflowStep.successCriteria.forEach((criterion) => {
+        if (criterion.condition.startsWith("$statusCode")) {
+          docDetectiveStep.statusCodes = [
+            parseInt(criterion.condition.split("==")[1].trim()),
+          ];
+        } else if (criterion.context === "$response.body") {
+          // This is a simplification; actual JSONPath translation would be more complex
+          docDetectiveStep.responseData[criterion.condition] = true;
+        }
+      });
+    }
+
+    test.steps.push(docDetectiveStep);
   });
 
-  return docDetectiveSpec;
+  return test;
 }
-
-/**
- * Translates an Arazzo step to a Doc Detective step
- * @param {Object} arazzoStep - The Arazzo step object
- * @returns {Object|null} - The Doc Detective step object or null if not supported
- */
-function translateStep(arazzoStep) {
-  // Handle different types of steps based on the action
-  if (arazzoStep.operationId) {
-    // Translate API operation steps
-    return translateApiStep(arazzoStep);
-  } else if (arazzoStep.operationPath) {
-    // Handle operation path references (not directly supported in Doc Detective)
-    console.warn(
-      `Operation path references are not directly supported in Doc Detective: ${arazzoStep.operationPath}`
-    );
-    return null;
-  } else if (arazzoStep.workflowId) {
-    // Handle workflow references (not directly supported in Doc Detective)
-    console.warn(
-      `Workflow references are not directly supported in Doc Detective: ${arazzoStep.workflowId}`
-    );
-    return null;
-  }
-
-  // Handle unsupported step types
-  console.warn(`Unsupported step type: ${JSON.stringify(arazzoStep)}`);
-  return null;
-}
-
-/**
- * Translates an Arazzo API step to a Doc Detective step
- * @param {Object} arazzoStep - The Arazzo API step object
- * @returns {Object} - The Doc Detective step object
- */
-function translateApiStep(arazzoStep) {
-  const docDetectiveStep = {
-    action: "httpRequest",
-    openApi: { operationId: arazzoStep.operationId },
-  };
-
-  // Add parameters
-  if (arazzoStep.parameters) {
-    docDetectiveStep.requestParams = {};
-    arazzoStep.parameters.forEach((param) => {
-      if (param.in === "query") {
-        docDetectiveStep.requestParams[param.name] = param.value;
-      } else if (param.in === "header") {
-        if (!docDetectiveStep.requestHeaders)
-          docDetectiveStep.requestHeaders = {};
-        docDetectiveStep.requestHeaders[param.name] = param.value;
-      }
-      // Note: path parameters would require modifying the URL, which is not handled in this simple translation
-    });
-  }
-
-  // Add request body if present
-  if (arazzoStep.requestBody) {
-    docDetectiveStep.requestData = arazzoStep.requestBody.payload;
-  }
-
-  // Translate success criteria to response validation
-  if (arazzoStep.successCriteria) {
-    docDetectiveStep.responseData = {};
-    arazzoStep.successCriteria.forEach((criterion) => {
-      if (criterion.condition.startsWith("$statusCode")) {
-        docDetectiveStep.statusCodes = [
-          parseInt(criterion.condition.split("==")[1].trim()),
-        ];
-      } else if (criterion.context === "$response.body") {
-        // This is a simplification; actual JSONPath translation would be more complex
-        docDetectiveStep.responseData[criterion.condition] = true;
-      }
-    });
-  }
-
-  return docDetectiveStep;
-}
-
-/**
- * Determines the HTTP method for an Arazzo step
- * @param {Object} arazzoStep - The Arazzo step object
- * @returns {string} - The HTTP method (defaulting to 'get')
- */
-function determineHttpMethod(arazzoStep) {
-  // This is a simplification; in a real implementation, you'd need to look up the method
-  // from the referenced OpenAPI specification or derive it from the operationId
-  return "get";
-}
-
-// Example usage:
-// const arazzoDescription = { /* Your Arazzo description object */ };
-// const docDetectiveSpec = translateArazzoToDocDetective(arazzoDescription);
-// console.log(JSON.stringify(docDetectiveSpec, null, 2));
