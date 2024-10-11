@@ -5,7 +5,7 @@ const parser = require("@apidevtools/json-schema-ref-parser");
 
 /**
  * Dereferences an OpenAPI or Arazzo description
- * 
+ *
  * @param {String} descriptionPath - The OpenAPI or Arazzo description to be dereferenced.
  * @returns {Promise<Object>} - The dereferenced OpenAPI or Arazzo description.
  */
@@ -54,7 +54,15 @@ function getOperation(
     for (const method in definition.paths[path]) {
       if (definition.paths[path][method].operationId === operationId) {
         const operation = definition.paths[path][method];
-        server = server || definition.servers[0].url;
+        if (!server) {
+          if (definition.servers && definition.servers.length > 0) {
+            server = definition.servers[0].url;
+          } else {
+            throw new Error(
+              "No server URL provided and no servers defined in the OpenAPI definition."
+            );
+          }
+        }
         const example = compileExample(
           operation,
           server + path,
@@ -80,7 +88,11 @@ function getSchemas(definition = {}, responseCode = "") {
       ].schema;
   }
   if (!responseCode) {
-    responseCode = Object.keys(definition.responses)[0];
+    if (definition.responses && Object.keys(definition.responses).length > 0) {
+      responseCode = Object.keys(definition.responses)[0];
+    } else {
+      throw new Error("No responses defined for the operation.");
+    }
   }
   schemas.response =
     definition.responses[responseCode].content[
@@ -246,7 +258,9 @@ function getExample(
     try {
       example = JSONSchemaFaker.generate(definition);
       if (example) return example;
-    } catch (e) {}
+    } catch (error) {
+      console.warn(`Error generating example: ${error}`);
+    }
   }
 
   if (
@@ -369,9 +383,9 @@ function hasExamples(definition = {}, exampleKey = "") {
     }
     if (
       exampleKey &&
-      obj.hasOwnProperty("examples") &&
-      obj.examples.hasOwnProperty(exampleKey) &&
-      obj.examples[exampleKey].hasOwnProperty("value")
+      Object.hasOwn(obj, "examples") &&
+      Object.hasOwn(obj.examples, exampleKey) &&
+      Object.hasOwn(obj.examples[exampleKey], "value")
     ) {
       examples.push(obj.examples[exampleKey].value);
     }
