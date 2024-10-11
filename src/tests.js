@@ -283,11 +283,19 @@ async function runSpecs(config, specs) {
       openApiDefinitions.push(...config.integrations.openApi);
     if (spec?.openApi?.length > 0) {
       for (const definition of spec.openApi) {
-        // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
-        const openApiDefinition = await loadDescription(
-          definition.descriptionPath
-        );
-        definition.definition = openApiDefinition;
+        try {
+          const openApiDefinition = await loadDescription(
+            definition.descriptionPath
+          );
+          definition.definition = openApiDefinition;
+        } catch (error) {
+          log(
+            config,
+            "error",
+            `Failed to load OpenAPI definition from ${definition.descriptionPath}: ${error.message}`
+          );
+          continue; // Skip this definition
+        }
         const existingDefinitionIndex = openApiDefinitions.findIndex(
           (def) => def.name === definition.name
         );
@@ -314,11 +322,19 @@ async function runSpecs(config, specs) {
       // Capture test-level OpenAPI definitions
       if (test?.openApi?.length > 0) {
         for (const definition of test.openApi) {
-          // If an OpenAPI definition with a matching name is already in openApiDefinitions, skip it
-          const openApiDefinition = await loadDescription(
-            definition.descriptionPath
-          );
-          definition.definition = openApiDefinition;
+          try {
+            const openApiDefinition = await loadDescription(
+              definition.descriptionPath
+            );
+            definition.definition = openApiDefinition;
+          } catch (error) {
+            log(
+              config,
+              "error",
+              `Failed to load OpenAPI definition from ${definition.descriptionPath}: ${error.message}`
+            );
+            continue; // Skip this definition
+          }
           const existingDefinitionIndex = openApiDefinitions.findIndex(
             (def) => def.name === definition.name
           );
@@ -376,7 +392,7 @@ async function runSpecs(config, specs) {
             path: context.app?.path,
             width: context.app?.options?.width || 1200,
             height: context.app?.options?.height || 800,
-            headless: context.app?.options?.headless === false ? false : true,
+            headless: context.app?.options?.headless !== false,
           });
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
@@ -399,8 +415,7 @@ async function runSpecs(config, specs) {
                 path: context.app?.path,
                 width: context.app?.options?.width || 1200,
                 height: context.app?.options?.height || 800,
-                headless:
-                  context.app?.options?.headless === false ? false : true,
+                headless: context.app?.options?.headless !== false,
               });
               driver = await driverStart(caps);
             } catch (error) {
@@ -485,7 +500,13 @@ async function runSpecs(config, specs) {
           // Close driver
           try {
             await driver.deleteSession();
-          } catch {}
+          } catch (error) {
+            log(
+              config,
+              "error",
+              `Failed to delete driver session: ${error.message}`
+            );
+          }
         }
       }
 
