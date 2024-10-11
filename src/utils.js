@@ -532,7 +532,6 @@ async function parseTests(config, files) {
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
-      console.log("foobar1")
       const validation = validate("spec_v2", spec, false);
       if (!validation.valid) {
         log(
