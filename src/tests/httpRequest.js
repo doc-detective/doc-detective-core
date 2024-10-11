@@ -26,7 +26,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       );
       openApiDefinition = integration.definition;
       step.openApi = { ...integration, ...step.openApi };
-      step.openApi.definition = undefined;
+      delete step.openApi.definition;
     } else if (openApiDefinitions.length > 0) {
       // Identify first definition that contains the operation
       for (const openApiConfig of openApiDefinitions) {
@@ -38,7 +38,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
             ) {
               openApiDefinition = openApiConfig.definition;
               step.openApi = { ...openApiConfig, ...step.openApi };
-              step.openApi.definition = undefined;
+              delete step.openApi.definition;
               break;
             }
           }
