@@ -1,4 +1,4 @@
-const { uuid } = require("uuidv4");
+const { v4: uuid } = require("uuid");
 
 /**
  * Translates an Arazzo description into a Doc Detective test specification
@@ -30,6 +30,11 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
   const workflow = arazzoDescription.workflows.find(
     (workflow) => workflow.workflowId === workflowId
   );
+
+  if (!workflow) {
+    console.warn(`Workflow with ID ${workflowId} not found.`);
+    return;
+  }
 
   // Translate each step in the workflow to a Doc Detective step
   workflow.steps.forEach((workflowStep) => {
