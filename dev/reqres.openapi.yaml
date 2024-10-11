@@ -19,7 +19,7 @@ paths:
       description: Add a new user
       operationId: addUser
       requestBody:
-        description: Create a new pet in the store
+        description: Create a new user
         content:
           application/json:
             schema:
@@ -43,12 +43,6 @@ paths:
                     job: the-one
         '400':
           description: Invalid input
-          headers:
-            X-Rate-Limit:
-              description: The number of allowed requests in the current period
-              required: true
-              schema:
-                type: integer
           content:
             application/json:
               schema:
@@ -58,20 +52,6 @@ paths:
                     type: string
                   message:
                     type: string
-                  isDone:
-                    type: boolean
-                  count:
-                    type: integer
-                  data:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      job:
-                        type: string
-                    required:
-                    - name
-                    - job
     get:
       tags:
       - Test
