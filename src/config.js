@@ -92,16 +92,28 @@ async function setConfig(config) {
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
   await loadDescriptions(config);
-  
+
   return config;
 }
 
 async function loadDescriptions(config) {
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
-      openApiConfig.definition = await loadDescription(
-        openApiConfig.descriptionPath
-      );
+      try {
+        openApiConfig.definition = await loadDescription(
+          openApiConfig.descriptionPath
+        );
+      } catch (error) {
+        log(
+          config,
+          "error",
+          `Failed to load OpenAPI description from ${openApiConfig.descriptionPath}: ${error.message}`
+        );
+        // Remove the failed OpenAPI configuration
+        config.integrations.openApi = config.integrations.openApi.filter(
+          (item) => item !== openApiConfig
+        );
+      }
     }
   }
 }
