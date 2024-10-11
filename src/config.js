@@ -8,6 +8,7 @@ const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
 const geckodriver = require("geckodriver");
 const { setAppiumHome } = require("./appium");
+const { loadDescription } = require("./openapi");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
@@ -90,8 +91,31 @@ async function setConfig(config) {
   // Detect current environment.
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
+  await loadDescriptions(config);
 
   return config;
+}
+
+async function loadDescriptions(config) {
+  if (config?.integrations?.openApi) {
+    for (const openApiConfig of config.integrations.openApi) {
+      try {
+        openApiConfig.definition = await loadDescription(
+          openApiConfig.descriptionPath
+        );
+      } catch (error) {
+        log(
+          config,
+          "error",
+          `Failed to load OpenAPI description from ${openApiConfig.descriptionPath}: ${error.message}`
+        );
+        // Remove the failed OpenAPI configuration
+        config.integrations.openApi = config.integrations.openApi.filter(
+          (item) => item !== openApiConfig
+        );
+      }
+    }
+  }
 }
 
 // Detect aspects of the environment running Doc Detective.

@@ -36,6 +36,16 @@
     "output": ".",
     "markup": []
   },
+  "integrations": {
+    "openApi": [
+      {
+        "name": "reqres_live",
+        "descriptionPath": "./test/artifacts/reqres.openapi.yaml",
+        "server": "https://reqres.in/api",
+        "useExample": "request"
+      }
+    ]
+  },
   "telemetry": {
     "send": false
   }

@@ -1,0 +1,65 @@
+{
+  "id": "httpRequest_OpenAPI support",
+  "openApi": [
+    {
+      "name": "reqres",
+      "descriptionPath": "./test/artifacts/reqres.openapi.yaml",
+      "server": "https://reqres.in/api",
+      "useExample": "request",
+      "mockResponse": true
+    }
+  ],
+  "tests": [
+    {
+      "description": "Config-level OpenAPI config",
+      "steps": [
+        {
+          "description": "Live request",
+          "action": "httpRequest",
+          "openApi": {
+            "name":"reqres_live",
+            "operationId": "addUser"
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test-level OpenAPI config",
+      "openApi": [
+        {
+          "name": "reqres",
+          "descriptionPath": "./test/artifacts/reqres.openapi.json",
+          "server": "https://reqres.in/api",
+          "useExample": "request",
+          "mockResponse": true
+        }
+      ],
+      "steps": [
+        {
+          "description": "Mock response",
+          "action": "httpRequest",
+          "openApi": {
+            "operationId": "addUser",
+            "statusCode": 400
+          }
+        }
+      ]
+    },
+    {
+      "description": "Step-level OpenAPI config",
+      "steps": [
+        {
+          "action": "httpRequest",
+          "openApi": {
+            "descriptionPath": "./test/artifacts/reqres.openapi.json",
+            "server": "https://reqres.in/api",
+            "useExample": "request",
+            "mockResponse": true,
+            "operationId": "addUser",
+            "statusCode": 400
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,7 @@ exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
 exports.calculatePercentageDifference = calculatePercentageDifference;
+exports.fetchFile = fetchFile;
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
@@ -130,7 +131,7 @@ function isValidSourceFile(config, files, source) {
   // Is JSON but isn't a valid spec-formatted JSON object
   if (path.extname(source) === ".json") {
     const jsonContent = fs.readFileSync(source).toString();
-    let json;
+    let json = {};
     try {
       json = JSON.parse(jsonContent);
     } catch {
@@ -141,7 +142,7 @@ function isValidSourceFile(config, files, source) {
       );
       return false;
     }
-    const validation = validate("spec_v2", json);
+    const validation = validate("spec_v2", json, false);
     if (!validation.valid) {
       log(config, "warning", validation);
       log(
@@ -214,7 +215,7 @@ async function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
-      // Resolve to catch any relative setup or cleanup paths
+        // Resolve to catch any relative setup or cleanup paths
       content = await resolvePaths(config, content, file);
 
       for (const test of content.tests) {
@@ -235,7 +236,7 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, step);
+          const validation = validate(`${step.action}_v2`, { ...step}, false);
           if (!validation.valid) {
             log(
               config,
@@ -247,7 +248,7 @@ async function parseTests(config, files) {
           return true;
         });
       }
-      const validation = validate("spec_v2", content);
+      const validation = validate("spec_v2", content, false);
       if (!validation.valid) {
         log(config, "warning", validation);
         log(
@@ -511,7 +512,7 @@ async function parseTests(config, files) {
           );
           // Filter out steps that don't pass validation
           steps = steps.filter((step) => {
-            const validation = validate(`${step.action}_v2`, step);
+            const validation = validate(`${step.action}_v2`, step, false);
             if (!validation.valid) {
               log(
                 config,
@@ -531,7 +532,7 @@ async function parseTests(config, files) {
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
-      const validation = validate("spec_v2", spec);
+      const validation = validate("spec_v2", spec, false);
       if (!validation.valid) {
         log(
           config,
