@@ -21,24 +21,24 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       openApiDefinition = await loadDescription(step.openApi.descriptionPath);
     } else if (step.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config
-      integration = openApiDefinitions.find(
+      let integration = openApiDefinitions.find(
         (openApiConfig) => openApiConfig.name === step.openApi.name
       );
       openApiDefinition = integration.definition;
       step.openApi = { ...integration, ...step.openApi };
-      delete step.openApi.definition;
+      step.openApi.definition = undefined;
     } else if (openApiDefinitions.length > 0) {
       // Identify first definition that contains the operation
       for (const openApiConfig of openApiDefinitions) {
         for (const path in openApiConfig.definition.paths) {
-          for (const operation in openApiConfig.definition.paths[path]) {
+          for (const method in openApiConfig.definition.paths[path]) {
             if (
-              openApiConfig.definition.paths[path][operation].operationId ===
+              openApiConfig.definition.paths[path][method].operationId ===
               step.openApi.operationId
             ) {
               openApiDefinition = openApiConfig.definition;
               step.openApi = { ...openApiConfig, ...step.openApi };
-              delete step.openApi.definition;
+              step.openApi.definition = undefined;
               break;
             }
           }
@@ -61,7 +61,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     );
     if (!operation) {
       result.status = "FAIL";
-      result.description = `Couldn't find operation '${step.operationId}' in OpenAPI definition.`;
+      result.description = `Couldn't find operation '${step.openApi.operationId}' in OpenAPI definition.`;
       return result;
     }
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
@@ -328,7 +328,10 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file
-      fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+      await fs.promises.writeFile(
+        filePath,
+        JSON.stringify(response.data, null, 2)
+      );
       result.description += ` Saved output to file.`;
     } else {
       if (step.overwrite == "false") {
@@ -349,7 +352,10 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       if (percentDiff > step.maxVariation) {
         if (step.overwrite == "byVariation") {
           // Overwrite file
-          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+          await fs.promises.writeFile(
+            filePath,
+            JSON.stringify(response.data, null, 2)
+          );
         }
         result.status = "FAIL";
         result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
