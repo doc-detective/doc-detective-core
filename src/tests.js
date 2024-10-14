@@ -453,7 +453,14 @@ async function runSpecs(config, specs) {
         }
 
         // Iterates steps
+        let skipRemainingSteps = false;
         for (let step of test.steps) {
+          if (skipRemainingSteps) {
+            step = { ...step, result: "SKIPPED" };
+            contextReport.steps.push(step);
+            report.summary.steps.skipped++;
+            continue;
+          }
           // Set step id if not defined
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
@@ -481,7 +488,7 @@ async function runSpecs(config, specs) {
           report.summary.steps[stepReport.result.toLowerCase()]++;
           if (stepReport.result === "FAIL" && testOnFail === "stop") {
             // If step fails, skip remaining steps
-            break;
+            skipRemainingSteps = true;
           }
         }
 
