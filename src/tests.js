@@ -277,6 +277,9 @@ async function runSpecs(config, specs) {
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
 
+    // Set onFail default
+    const specOnFail = spec.onFail || config?.runTests?.onFail;
+
     // Capture all OpenAPI definitions
     const openApiDefinitions = [];
     if (config?.integrations?.openApi?.length > 0)
@@ -318,6 +321,9 @@ async function runSpecs(config, specs) {
 
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
+
+      // Set onFail default
+      const testOnFail = test.onFail || specOnFail;
 
       // Capture test-level OpenAPI definitions
       if (test?.openApi?.length > 0) {
@@ -473,6 +479,10 @@ async function runSpecs(config, specs) {
           };
           contextReport.steps.push(stepReport);
           report.summary.steps[stepReport.result.toLowerCase()]++;
+          if (stepReport.result === "FAIL" && test.onFail === "stop") {
+            // If step fails, skip remaining steps
+            break;
+          }
         }
 
         // Parse step results to calc context result
