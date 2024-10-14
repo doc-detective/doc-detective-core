@@ -32,8 +32,8 @@ const driverActions = [
   "find",
   "typeKeys",
   "saveScreenshot",
-  // "startRecording",
-  // "stopRecording",
+  "startRecording",
+  "stopRecording",
 ];
 
 // Get Appium driver capabilities and apply options.
