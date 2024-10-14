@@ -479,7 +479,7 @@ async function runSpecs(config, specs) {
           };
           contextReport.steps.push(stepReport);
           report.summary.steps[stepReport.result.toLowerCase()]++;
-          if (stepReport.result === "FAIL" && test.onFail === "stop") {
+          if (stepReport.result === "FAIL" && testOnFail === "stop") {
             // If step fails, skip remaining steps
             break;
           }
