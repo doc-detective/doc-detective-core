@@ -461,19 +461,46 @@ async function runSpecs(config, specs) {
             report.summary.steps.skipped++;
             continue;
           }
+
           // Set step id if not defined
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const stepResult = await runStep(config, context, step, driver, {
-            openApiDefinitions,
-          });
-          log(
-            config,
-            "debug",
-            `RESULT: ${stepResult.status}, ${stepResult.description}`
-          );
+          const retries =
+            step?.retries ||
+            test?.retries ||
+            spec?.retries ||
+            config?.runTests?.retries ||
+            0;
+          const retryDelay =
+            step?.retryDelay ||
+            test?.retryDelay ||
+            spec?.retryDelay ||
+            config?.runTests?.retryDelay ||
+            0;
 
+          // Attempt step, including retries
+          for (let attempt = 0; attempt <= 1 + retries; attempt++) {
+            // Retry delay
+            if (attempt > 0 && retryDelay > 0) {
+              await new Promise((resolve) => setTimeout(resolve, retryDelay));
+            }
+
+            // Run step
+            const stepResult = await runStep(config, context, step, driver, {
+              openApiDefinitions,
+            });
+            log(
+              config,
+              "debug",
+              `RESULT: ${stepResult.status}, ${stepResult.description}`
+            );
+
+            // If step passes, break from retry loop
+            if (stepResult.status !== "FAIL") break;
+          }
+
+          // Parse step result
           stepResult.result = stepResult.status;
           stepResult.resultDescription = stepResult.description;
           delete stepResult.status;
