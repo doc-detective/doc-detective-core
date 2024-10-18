@@ -1,6 +1,8 @@
 {
   "tests": [
     {
+      "retryLimit": 3,
+      "retryDelay": 1000,
       "steps": [
         {
           "action": "runShell",
