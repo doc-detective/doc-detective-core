@@ -284,18 +284,18 @@ async function runSpecs(config, specs) {
       config?.runTests?.onFail?.spec ||
       config?.runTests?.onFail ||
       "continue";
-    // const specRetryLimit =
-    //   spec?.retryLimit?.spec ||
-    //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
-    //   config?.runTests?.retryLimit.spec ||
-    //   config?.runTests?.retryLimit ||
-    //   0;
-    // const specRetryDelay =
-    //   spec?.retryDelay?.spec ||
-    //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
-    //   config?.runTests?.retryDelay.spec ||
-    //   config?.runTests?.retryDelay ||
-    //   0;
+    const specRetryLimit =
+      spec?.retryLimit?.spec ||
+      (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+      config?.runTests?.retryLimit.spec ||
+      config?.runTests?.retryLimit ||
+      0;
+    const specRetryDelay =
+      spec?.retryDelay?.spec ||
+      (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+      config?.runTests?.retryDelay.spec ||
+      config?.runTests?.retryDelay ||
+      0;
 
     // Capture all OpenAPI definitions
     const openApiDefinitions = [];
@@ -348,22 +348,22 @@ async function runSpecs(config, specs) {
         config?.runTests?.onFail?.test ||
         config?.runTests?.onFail ||
         "continue";
-      // const testRetryLimit =
-      //   test?.retryLimit?.test ||
-      //   (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
-      //   spec?.retryLimit?.test ||
-      //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
-      //   config?.runTests?.retryLimit?.test ||
-      //   config?.runTests?.retryLimit ||
-      //   0;
-      // const testRetryDelay =
-      //   test?.retryDelay?.test ||
-      //   (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
-      //   spec?.retryDelay?.test ||
-      //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
-      //   config?.runTests?.retryDelay?.test ||
-      //   config?.runTests?.retryDelay ||
-      //   0;
+      const testRetryLimit =
+        test?.retryLimit?.test ||
+        (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
+        spec?.retryLimit?.test ||
+        (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+        config?.runTests?.retryLimit?.test ||
+        config?.runTests?.retryLimit ||
+        0;
+      const testRetryDelay =
+        test?.retryDelay?.test ||
+        (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
+        spec?.retryDelay?.test ||
+        (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+        config?.runTests?.retryDelay?.test ||
+        config?.runTests?.retryDelay ||
+        0;
 
       // Capture test-level OpenAPI definitions
       if (test?.openApi?.length > 0) {
@@ -516,33 +516,33 @@ async function runSpecs(config, specs) {
             config?.runTests?.onFail?.step ||
             config?.runTests?.onFail ||
             "continue";
-          // const stepRetryLimit =
-          //   step?.retryLimit ||
-          //   test?.retryLimit?.step ||
-          //   (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
-          //   spec?.retryLimit?.step ||
-          //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
-          //   config?.runTests?.retryLimit?.step ||
-          //   config?.runTests?.retryLimit ||
-          //   0;
-          // const stepRetryDelay =
-          //   step?.retryDelay ||
-          //   test?.retryDelay?.step ||
-          //   (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
-          //   spec?.retryDelay?.step ||
-          //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
-          //   config?.runTests?.retryDelay?.step ||
-          //   config?.runTests?.retryDelay ||
-          //   0;
+          const stepRetryLimit =
+            step?.retryLimit ||
+            test?.retryLimit?.step ||
+            (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
+            spec?.retryLimit?.step ||
+            (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+            config?.runTests?.retryLimit?.step ||
+            config?.runTests?.retryLimit ||
+            0;
+          const stepRetryDelay =
+            step?.retryDelay ||
+            test?.retryDelay?.step ||
+            (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
+            spec?.retryDelay?.step ||
+            (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+            config?.runTests?.retryDelay?.step ||
+            config?.runTests?.retryDelay ||
+            0;
 
           // Attempt step, including retries
-          // let stepRetries = 0;
+          let stepRetries = 0;
           let stepResult = {};
-          // for (let i = 0; i < stepRetryLimit; i++) {
-          //   // Retry delay
-          //   if (i > 0 && stepRetryDelay > 0) {
-          //     await new Promise((resolve) => setTimeout(resolve, stepRetryDelay));
-          //   }
+          for (let i = 0; i < stepRetryLimit; i++) {
+            // Retry delay
+            if (i > 0 && stepRetryDelay > 0) {
+              await new Promise((resolve) => setTimeout(resolve, stepRetryDelay));
+            }
 
             // Run step
             stepResult = await runStep(config, context, step, driver, {
@@ -555,16 +555,16 @@ async function runSpecs(config, specs) {
             );
 
             // If step passes, break from retry loop
-          //   if (stepResult.status !== "FAIL" || stepRetries >= stepRetryLimit) break;
-          //   stepRetries++;
-          // }
+            if (stepResult.status !== "FAIL" || stepRetries >= stepRetryLimit) break;
+            stepRetries++;
+          }
 
           // Parse step result
           stepResult.result = stepResult.status;
           stepResult.resultDescription = stepResult.description;
           delete stepResult.status;
           delete stepResult.description;
-          // stepResult.retries = stepRetries;
+          stepResult.retries = stepRetries;
 
           // Add step result to report
           const stepReport = {
