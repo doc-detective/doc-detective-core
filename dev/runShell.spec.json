@@ -1,35 +1,16 @@
 {
   "tests": [
     {
-      "contexts": [
-        {
-          "app": { "name": "firefox" },
-          "platforms": ["windows"]
-        }
-      ],
       "steps": [
         {
           "action": "runShell",
-          "command": "echo dev | find \"dev\"",
-          "output": "dev"
-        }
-      ]
-    },
-    {
-      "contexts": [
-        {
-          "app": { "name": "firefox" },
-          "platforms": ["mac", "linux"]
-        }
-      ],
-      "steps": [
+          "command": "exit 1"
+        },
         {
           "action": "runShell",
-          "command": "echo dev | grep dev",
-          "output": "dev"
+          "command": "exit 0"
         }
       ]
-
     }
   ]
 }

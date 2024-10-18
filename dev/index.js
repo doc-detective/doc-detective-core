@@ -33,8 +33,9 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/httpRequest_openApi.spec.json",
+      input: "./dev/runShell.spec.json",
       output: ".",
+      onFail: "stop",
       setup: "",
       cleanup: "",
       recursive: true,
