@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const Ajv = require("ajv");
 const { getOperation, loadDescription } = require("../openapi");
-const { log, calculatePercentageDifference } = require("../utils");
+const { log, calculatePercentageDifference, loadEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
@@ -136,6 +136,9 @@ async function httpRequest(config, step, openApiDefinitions = []) {
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
+
+  // Load environment variables
+  step = await loadEnvs(step);
 
   // Validate step payload
   isValidStep = validate("httpRequest_v2", step);
