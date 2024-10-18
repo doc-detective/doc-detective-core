@@ -277,8 +277,25 @@ async function runSpecs(config, specs) {
     // Conditionally override contexts
     const specContexts = spec.contexts || configContexts;
 
-    // Set onFail default
-    const specOnFail = spec.onFail || config?.runTests?.onFail;
+    // Set onFail/retryLimit/retryDelay
+    const specOnFail =
+      spec?.onFail?.spec ||
+      (typeof spec?.onFail === "string" ? spec?.onFail : null) ||
+      config?.runTests?.onFail?.spec ||
+      config?.runTests?.onFail ||
+      "continue";
+    // const specRetryLimit =
+    //   spec?.retryLimit?.spec ||
+    //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+    //   config?.runTests?.retryLimit.spec ||
+    //   config?.runTests?.retryLimit ||
+    //   0;
+    // const specRetryDelay =
+    //   spec?.retryDelay?.spec ||
+    //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+    //   config?.runTests?.retryDelay.spec ||
+    //   config?.runTests?.retryDelay ||
+    //   0;
 
     // Capture all OpenAPI definitions
     const openApiDefinitions = [];
@@ -322,8 +339,31 @@ async function runSpecs(config, specs) {
       // Conditionally override contexts
       const testContexts = test.contexts || specContexts;
 
-      // Set onFail default
-      const testOnFail = test.onFail || specOnFail;
+      // Set onFail/retryLimit/retryDelay
+      const testOnFail =
+        test?.onFail?.test ||
+        (typeof test?.onFail === "number" ? test?.onFail : null) ||
+        spec?.onFail?.test ||
+        (typeof spec?.onFail === "string" ? spec?.onFail : null) ||
+        config?.runTests?.onFail?.test ||
+        config?.runTests?.onFail ||
+        "continue";
+      // const testRetryLimit =
+      //   test?.retryLimit?.test ||
+      //   (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
+      //   spec?.retryLimit?.test ||
+      //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+      //   config?.runTests?.retryLimit?.test ||
+      //   config?.runTests?.retryLimit ||
+      //   0;
+      // const testRetryDelay =
+      //   test?.retryDelay?.test ||
+      //   (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
+      //   spec?.retryDelay?.test ||
+      //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+      //   config?.runTests?.retryDelay?.test ||
+      //   config?.runTests?.retryDelay ||
+      //   0;
 
       // Capture test-level OpenAPI definitions
       if (test?.openApi?.length > 0) {
@@ -466,28 +506,46 @@ async function runSpecs(config, specs) {
           if (!step.id) step.id = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const retries =
-            step?.retries ||
-            test?.retries ||
-            spec?.retries ||
-            config?.runTests?.retries ||
-            0;
-          const retryDelay =
-            step?.retryDelay ||
-            test?.retryDelay ||
-            spec?.retryDelay ||
-            config?.runTests?.retryDelay ||
-            0;
+          // Set onFail/retryLimit/retryDelay
+          const stepOnFail =
+            step?.onFail ||
+            test?.onFail?.step ||
+            (typeof test?.onFail === "number" ? test?.onFail : null) ||
+            spec?.onFail?.step ||
+            (typeof spec?.onFail === "string" ? spec?.onFail : null) ||
+            config?.runTests?.onFail?.step ||
+            config?.runTests?.onFail ||
+            "continue";
+          // const stepRetryLimit =
+          //   step?.retryLimit ||
+          //   test?.retryLimit?.step ||
+          //   (typeof test?.retryLimit === "number" ? test?.retryLimit : null) ||
+          //   spec?.retryLimit?.step ||
+          //   (typeof spec?.retryLimit === "number" ? spec?.retryLimit : null) ||
+          //   config?.runTests?.retryLimit?.step ||
+          //   config?.runTests?.retryLimit ||
+          //   0;
+          // const stepRetryDelay =
+          //   step?.retryDelay ||
+          //   test?.retryDelay?.step ||
+          //   (typeof test?.retryDelay === "number" ? test?.retryDelay : null) ||
+          //   spec?.retryDelay?.step ||
+          //   (typeof spec?.retryDelay === "number" ? spec?.retryDelay : null) ||
+          //   config?.runTests?.retryDelay?.step ||
+          //   config?.runTests?.retryDelay ||
+          //   0;
 
           // Attempt step, including retries
-          for (let attempt = 0; attempt <= 1 + retries; attempt++) {
-            // Retry delay
-            if (attempt > 0 && retryDelay > 0) {
-              await new Promise((resolve) => setTimeout(resolve, retryDelay));
-            }
+          // let stepRetries = 0;
+          let stepResult = {};
+          // for (let i = 0; i < stepRetryLimit; i++) {
+          //   // Retry delay
+          //   if (i > 0 && stepRetryDelay > 0) {
+          //     await new Promise((resolve) => setTimeout(resolve, stepRetryDelay));
+          //   }
 
             // Run step
-            const stepResult = await runStep(config, context, step, driver, {
+            stepResult = await runStep(config, context, step, driver, {
               openApiDefinitions,
             });
             log(
@@ -497,14 +555,16 @@ async function runSpecs(config, specs) {
             );
 
             // If step passes, break from retry loop
-            if (stepResult.status !== "FAIL") break;
-          }
+          //   if (stepResult.status !== "FAIL" || stepRetries >= stepRetryLimit) break;
+          //   stepRetries++;
+          // }
 
           // Parse step result
           stepResult.result = stepResult.status;
           stepResult.resultDescription = stepResult.description;
           delete stepResult.status;
           delete stepResult.description;
+          // stepResult.retries = stepRetries;
 
           // Add step result to report
           const stepReport = {
@@ -513,7 +573,7 @@ async function runSpecs(config, specs) {
           };
           contextReport.steps.push(stepReport);
           report.summary.steps[stepReport.result.toLowerCase()]++;
-          if (stepReport.result === "FAIL" && testOnFail === "stop") {
+          if (stepReport.result === "FAIL" && stepOnFail === "stop") {
             // If step fails, skip remaining steps
             skipRemainingSteps = true;
           }
