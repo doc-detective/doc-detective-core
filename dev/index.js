@@ -3,9 +3,11 @@
 // const wdio = require("webdriverio");
 // const { spawnCommand } = require("./src/utils");
 const { runTests, runCoverage, suggestTests } = require("../src");
-const { validate, schemas } = require("doc-detective-common");
+const { validate, schemas, readFile } = require("doc-detective-common");
 const { execCommand, spawnCommand } = require("../src/utils");
 const path = require("path");
+const { workflowToTest } = require("../src/arazzo");
+const { loadDescription } = require("../src/openapi");
 
 main();
 // const { spawn } = require("child_process");
@@ -26,6 +28,11 @@ main();
 // });
 
 async function main() {
+  arazzo = await loadDescription("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.arazzo.yml");
+  arazzo = await workflowToTest(arazzo, "loginUserAndRetrievePet", {username: "test1", password: "test2"});
+  console.log(arazzo);
+  process.exit();
+
   json = {
     envVariables: "",
     input: ".",

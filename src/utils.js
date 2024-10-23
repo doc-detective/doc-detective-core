@@ -6,6 +6,7 @@ const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate, resolvePaths } = require("doc-detective-common");
+const { workflowToTest } = require("./arazzo");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;

@@ -1,5 +1,9 @@
 const { v4: uuid } = require("uuid");
 
+module.exports = {
+  workflowToTest,
+};
+
 /**
  * Translates an Arazzo description into a Doc Detective test specification
  * @param {Object} arazzoDescription - The Arazzo description object
@@ -11,8 +15,8 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
     id: arazzoDescription.info.title || `${uuid()}`,
     description:
       arazzoDescription.info.description || arazzoDescription.info.summary,
-    steps: [],
-    openApi: [],
+      openApi: [],
+      steps: [],
   };
 
   arazzoDescription.sourceDescriptions.forEach((source) => {
