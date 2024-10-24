@@ -3,6 +3,8 @@ const { JSONSchemaFaker } = require("json-schema-faker");
 const { readFile } = require("doc-detective-common");
 const parser = require("@apidevtools/json-schema-ref-parser");
 
+JSONSchemaFaker.option({requiredOnly: true})
+
 /**
  * Dereferences an OpenAPI or Arazzo description
  *
@@ -251,7 +253,12 @@ function getExample(
 
   // If there are no examples in the definition, generate example based on definition schema
   if (generateFromSchema == null) {
-    generateFromSchema = !hasExamples(definition, exampleKey);
+    const hasExamples = checkForExamples(definition, exampleKey);
+    if (!hasExamples && (!exampleKey || definition.required)) {
+      generateFromSchema = true;
+    } else {
+      generateFromSchema = false;
+    }
   }
 
   if (generateFromSchema && definition.type) {
@@ -372,7 +379,7 @@ function generateArrayExample(
  * @param {string} [exampleKey=""] - The specific key to look for in the examples.
  * @returns {boolean} - Returns true if examples are found, otherwise false.
  */
-function hasExamples(definition = {}, exampleKey = "") {
+function checkForExamples(definition = {}, exampleKey = "") {
   const examples = [];
 
   function traverse(obj) {
