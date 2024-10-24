@@ -254,11 +254,7 @@ function getExample(
   // If there are no examples in the definition, generate example based on definition schema
   if (generateFromSchema == null) {
     const hasExamples = checkForExamples(definition, exampleKey);
-    if (!hasExamples && (!exampleKey || definition.required)) {
-      generateFromSchema = true;
-    } else {
-      generateFromSchema = false;
-    }
+    generateFromSchema = !hasExamples && (definition.required || !exampleKey);
   }
 
   if (generateFromSchema && definition.type) {
