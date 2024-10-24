@@ -136,7 +136,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
-  
+
   // Load environment variables
   step = await loadEnvs(step);
 
@@ -195,8 +195,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       .catch((error) => {
         return { error };
       });
-    if (response.error) 
-      response = response.error.response;
+    if (response?.error?.response) response = response.error.response;
     result.actualResponseData = response.data;
   } else {
     // Mock response
