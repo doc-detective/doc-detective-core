@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const Ajv = require("ajv");
 const { getOperation, loadDescription } = require("../openapi");
-const { log, calculatePercentageDifference } = require("../utils");
+const { log, calculatePercentageDifference, loadEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
@@ -136,6 +136,9 @@ async function httpRequest(config, step, openApiDefinitions = []) {
 
   // Make sure there's a protocol
   if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
+  
+  // Load environment variables
+  step = await loadEnvs(step);
 
   // Validate step payload
   isValidStep = validate("httpRequest_v2", step);
@@ -187,12 +190,14 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     // Perform request
     response = await axios(request)
       .then((response) => {
-        result.actualResponseData = response.data;
         return response;
       })
       .catch((error) => {
         return { error };
       });
+    if (response.error) 
+      response = response.error.response;
+    result.actualResponseData = response.data;
   } else {
     // Mock response
     if (
@@ -206,14 +211,6 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     result.actualResponseData = response.data;
     response.status = step.statusCodes[0];
     response.headers = step.responseHeaders;
-  }
-
-  // If request returned an error
-  if (response.error) {
-    result.status = "FAIL";
-    result.actualResponseData = response.error.response?.data;
-    result.description = `Error: ${JSON.stringify(response.error.message)}`;
-    return result;
   }
 
   // Compare status codes
