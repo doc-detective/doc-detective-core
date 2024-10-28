@@ -66,15 +66,25 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     }
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
 
-    // Set request info
+    // Set request info from OpenAPI config
+    // URL
+    if (!step.url) step.url = operation.example.url;
+    // Method
+    step.method = operation.method;
+    // Headers
+    if ( step.openApi.requestHeaders )
+      step.requestHeaders = {
+        ...operation.example.request.headers,
+        ...step.openApi.requestHeaders,
+        ...step.requestHeaders,
+      };
+
+    // Set request info from example
     if (
       step.openApi.useExample === "request" ||
       step.openApi.useExample === "both"
     ) {
-      step.url = operation.example.url;
-      step.method = operation.method;
       if (
-        step.requestParams ||
         JSON.stringify(operation.example.request.parameters) != "{}"
       )
         step.requestParams = {
@@ -82,8 +92,6 @@ async function httpRequest(config, step, openApiDefinitions = []) {
           ...step.requestParams,
         };
       if (
-        step.requestHeaders ||
-        step.openApi.requestHeaders ||
         JSON.stringify(operation.example.request.headers) != "{}"
       )
         step.requestHeaders = {
@@ -92,7 +100,6 @@ async function httpRequest(config, step, openApiDefinitions = []) {
           ...step.requestHeaders,
         };
       if (
-        step.requestData ||
         JSON.stringify(operation.example.request.body) != "{}"
       )
         step.requestData = {
