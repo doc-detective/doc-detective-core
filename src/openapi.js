@@ -3,7 +3,7 @@ const { JSONSchemaFaker } = require("json-schema-faker");
 const { readFile } = require("doc-detective-common");
 const parser = require("@apidevtools/json-schema-ref-parser");
 
-JSONSchemaFaker.option({requiredOnly: true})
+JSONSchemaFaker.option({ requiredOnly: true });
 
 /**
  * Dereferences an OpenAPI or Arazzo description
@@ -254,7 +254,9 @@ function getExample(
   // If there are no examples in the definition, generate example based on definition schema
   if (generateFromSchema == null) {
     const hasExamples = checkForExamples(definition, exampleKey);
-    generateFromSchema = !hasExamples && (definition.required || !exampleKey);
+    generateFromSchema =
+      !hasExamples &&
+      (definition.required || definition?.schema?.required || !exampleKey);
   }
 
   if (generateFromSchema && definition.type) {
