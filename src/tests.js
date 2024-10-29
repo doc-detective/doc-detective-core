@@ -244,24 +244,32 @@ async function runSpecs(config, specs) {
   // Determine which apps are required
   const appiumRequired = isAppiumRequired(specs);
 
-  // Warm up Appium
+  // Warm up Appium only if required
   if (appiumRequired) {
-    // Set Appium home directory
-    setAppiumHome();
-    // Start Appium server
-    appium = spawn("npx", ["appium"], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, ".."),
-    });
-    appium.stdout.on("data", (data) => {
-      //   console.log(`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data) => {
-      //   console.error(`stderr: ${data}`);
-    });
-    await appiumIsReady();
-    log(config, "debug", "Appium is ready.");
+    try {
+      // Set Appium home directory
+      setAppiumHome();
+      // Start Appium server
+      appium = spawn("npx", ["appium"], {
+        shell: true,
+        windowsHide: true,
+        cwd: path.join(__dirname, ".."),
+      });
+      appium.stdout.on("data", (data) => {
+        log(config, "debug", `Appium stdout: ${data}`);
+      });
+      appium.stderr.on("data", (data) => {
+        log(config, "error", `Appium stderr: ${data}`);
+      });
+      await appiumIsReady();
+      log(config, "debug", "Appium is ready.");
+    } catch (error) {
+      log(config, "error", `Failed to start Appium server: ${error.message}`);
+      return {
+        status: "FAIL",
+        description: "Failed to start Appium server.",
+      };
+    }
   }
 
   // Iterate specs
@@ -637,7 +645,9 @@ async function appiumIsReady() {
     try {
       let resp = await axios.get("http://0.0.0.0:4723/sessions");
       if (resp.status === 200) isReady = true;
-    } catch {}
+    } catch (error) {
+      log(config, "error", `Error checking Appium server readiness: ${error.message}`);
+    }
   }
   return isReady;
 }
