@@ -72,11 +72,10 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     // Method
     step.method = operation.method;
     // Headers
-    if ( step.openApi.requestHeaders )
+    if (step.openApi.requestHeaders)
       step.requestHeaders = {
-        ...operation.example.request.headers,
         ...step.openApi.requestHeaders,
-        ...step.requestHeaders,
+        ...(step.requestHeaders || {}),
       };
 
     // Set request info from example
@@ -84,27 +83,20 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.openApi.useExample === "request" ||
       step.openApi.useExample === "both"
     ) {
-      if (
-        JSON.stringify(operation.example.request.parameters) != "{}"
-      )
+      if (JSON.stringify(operation.example.request.parameters) != "{}")
         step.requestParams = {
           ...operation.example.request.parameters,
-          ...step.requestParams,
+          ...(step.requestParams || {}),
         };
-      if (
-        JSON.stringify(operation.example.request.headers) != "{}"
-      )
+      if (JSON.stringify(operation.example.request.headers) != "{}")
         step.requestHeaders = {
           ...operation.example.request.headers,
-          ...step.openApi.requestHeaders,
-          ...step.requestHeaders,
+          ...(step.requestHeaders || {}),
         };
-      if (
-        JSON.stringify(operation.example.request.body) != "{}"
-      )
+      if (JSON.stringify(operation.example.request.body) != "{}")
         step.requestData = {
           ...operation.example.request.body,
-          ...step.requestData,
+          ...(step.requestData || {}),
         };
     }
     // Set response info
@@ -118,7 +110,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       )
         step.responseHeaders = {
           ...operation.example.response.headers,
-          ...step.responseHeaders,
+          ...(step.responseHeaders || {}),
         };
       if (
         step.responseData ||
@@ -126,14 +118,12 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       )
         step.responseData = {
           ...operation.example.response.body,
-          ...step.responseData,
+          ...(step.responseData || {}),
         };
     }
     // Set status code
     if (step.openApi.statusCode) {
-      step.statusCodes = step.statusCodes
-        ? [step.openApi.statusCode, ...step.statusCodes]
-        : [step.openApi.statusCode];
+      step.statusCodes = [step.openApi.statusCode, ...(step.statusCodes || [])];
     } else if (!step.statusCodes) {
       step.statusCodes = Object.keys(operation.definition.responses).filter(
         (code) => code.startsWith("2")
