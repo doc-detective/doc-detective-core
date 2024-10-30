@@ -83,17 +83,17 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.openApi.useExample === "request" ||
       step.openApi.useExample === "both"
     ) {
-      if (JSON.stringify(operation.example.request.parameters) != "{}")
+      if (Object.keys(operation.example.request.parameters).length > 0)
         step.requestParams = {
           ...operation.example.request.parameters,
           ...(step.requestParams || {}),
         };
-      if (JSON.stringify(operation.example.request.headers) != "{}")
+      if (Object.keys(operation.example.request.headers).length > 0)
         step.requestHeaders = {
           ...operation.example.request.headers,
           ...(step.requestHeaders || {}),
         };
-      if (JSON.stringify(operation.example.request.body) != "{}")
+      if (Object.keys(operation.example.request.body).length > 0)
         step.requestData = {
           ...operation.example.request.body,
           ...(step.requestData || {}),
@@ -104,18 +104,12 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.openApi.useExample === "response" ||
       step.openApi.useExample === "both"
     ) {
-      if (
-        step.responseHeaders ||
-        JSON.stringify(operation.example.response.headers) != "{}"
-      )
+      if (Object.keys(operation.example.response.headers).length > 0)
         step.responseHeaders = {
           ...operation.example.response.headers,
           ...(step.responseHeaders || {}),
         };
-      if (
-        step.responseData ||
-        JSON.stringify(operation.example.response.body) != "{}"
-      )
+      if (Object.keys(operation.example.response.body).length > 0)
         step.responseData = {
           ...operation.example.response.body,
           ...(step.responseData || {}),
