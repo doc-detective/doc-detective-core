@@ -66,38 +66,37 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     }
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
 
-    // Set request info
+    // Set request info from OpenAPI config
+    // URL
+    if (!step.url) step.url = operation.example.url;
+    // Method
+    step.method = operation.method;
+    // Headers
+    if (step.openApi.requestHeaders)
+      step.requestHeaders = {
+        ...step.openApi.requestHeaders,
+        ...(step.requestHeaders || {}),
+      };
+
+    // Set request info from example
     if (
       step.openApi.useExample === "request" ||
       step.openApi.useExample === "both"
     ) {
-      step.url = operation.example.url;
-      step.method = operation.method;
-      if (
-        step.requestParams ||
-        JSON.stringify(operation.example.request.parameters) != "{}"
-      )
+      if (Object.keys(operation.example.request.parameters).length > 0)
         step.requestParams = {
           ...operation.example.request.parameters,
-          ...step.requestParams,
+          ...(step.requestParams || {}),
         };
-      if (
-        step.requestHeaders ||
-        step.openApi.requestHeaders ||
-        JSON.stringify(operation.example.request.headers) != "{}"
-      )
+      if (Object.keys(operation.example.request.headers).length > 0)
         step.requestHeaders = {
           ...operation.example.request.headers,
-          ...step.openApi.requestHeaders,
-          ...step.requestHeaders,
+          ...(step.requestHeaders || {}),
         };
-      if (
-        step.requestData ||
-        JSON.stringify(operation.example.request.body) != "{}"
-      )
+      if (Object.keys(operation.example.request.body).length > 0)
         step.requestData = {
           ...operation.example.request.body,
-          ...step.requestData,
+          ...(step.requestData || {}),
         };
     }
     // Set response info
@@ -105,28 +104,20 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       step.openApi.useExample === "response" ||
       step.openApi.useExample === "both"
     ) {
-      if (
-        step.responseHeaders ||
-        JSON.stringify(operation.example.response.headers) != "{}"
-      )
+      if (Object.keys(operation.example.response.headers).length > 0)
         step.responseHeaders = {
           ...operation.example.response.headers,
-          ...step.responseHeaders,
+          ...(step.responseHeaders || {}),
         };
-      if (
-        step.responseData ||
-        JSON.stringify(operation.example.response.body) != "{}"
-      )
+      if (Object.keys(operation.example.response.body).length > 0)
         step.responseData = {
           ...operation.example.response.body,
-          ...step.responseData,
+          ...(step.responseData || {}),
         };
     }
     // Set status code
     if (step.openApi.statusCode) {
-      step.statusCodes = step.statusCodes
-        ? [step.openApi.statusCode, ...step.statusCodes]
-        : [step.openApi.statusCode];
+      step.statusCodes = [step.openApi.statusCode, ...(step.statusCodes || [])];
     } else if (!step.statusCodes) {
       step.statusCodes = Object.keys(operation.definition.responses).filter(
         (code) => code.startsWith("2")

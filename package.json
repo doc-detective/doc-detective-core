@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "2.18.1",
+  "version": "2.18.2",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -48,7 +48,7 @@
     "prompt-sync": "^4.2.0",
     "sharp": "^0.33.5",
     "tree-kill": "^1.2.2",
-    "uuid": "^10.0.0",
+    "uuid": "^11.0.2",
     "webdriverio": "^8.40.5"
   },
   "optionalDependencies": {
@@ -83,6 +83,6 @@
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
-    "mocha": "^10.7.3"
+    "mocha": "^10.8.1"
   }
 }
