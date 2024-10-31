@@ -97,6 +97,7 @@ async function setConfig(config) {
 }
 
 async function loadDescriptions(config) {
+  // Load OpenAPI descriptions
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
       try {
@@ -109,9 +110,28 @@ async function loadDescriptions(config) {
           "error",
           `Failed to load OpenAPI description from ${openApiConfig.descriptionPath}: ${error.message}`
         );
-        // Remove the failed OpenAPI configuration
         config.integrations.openApi = config.integrations.openApi.filter(
           (item) => item !== openApiConfig
+        );
+      }
+    }
+  }
+
+  // Load Arazzo descriptions
+  if (config?.integrations?.arazzo) {
+    for (const arazzoConfig of config.integrations.arazzo) {
+      try {
+        arazzoConfig.definition = await loadDescription(
+          arazzoConfig.descriptionPath
+        );
+      } catch (error) {
+        log(
+          config,
+          "error",
+          `Failed to load Arazzo description from ${arazzoConfig.descriptionPath}: ${error.message}`
+        );
+        config.integrations.arazzo = config.integrations.arazzo.filter(
+          (item) => item !== arazzoConfig
         );
       }
     }
