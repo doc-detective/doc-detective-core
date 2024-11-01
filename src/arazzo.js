@@ -1,4 +1,5 @@
 const { v4: uuid } = require("uuid");
+const { validate } = require("doc-detective-common");
 
 module.exports = {
   workflowToTest,
@@ -15,8 +16,8 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
     id: arazzoDescription.info.title || `${uuid()}`,
     description:
       arazzoDescription.info.description || arazzoDescription.info.summary,
-      openApi: [],
-      steps: [],
+    openApi: [],
+    steps: [],
   };
 
   arazzoDescription.sourceDescriptions.forEach((source) => {
@@ -104,6 +105,18 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
 
     test.steps.push(docDetectiveStep);
   });
+
+  // Validate the test against the JSON schema
+  const validation = validate("test_v2", test, false);
+  if (!validation.valid) {
+    log(config, "warning", validation);
+    log(
+      config,
+      "warning",
+      `Test generated from Arazzo description is invalid. Skipping.`
+    );
+    return {};
+  }
 
   return test;
 }
