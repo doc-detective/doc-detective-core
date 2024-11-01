@@ -112,8 +112,8 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
     log(config, "warning", validation);
     log(
       config,
-      "warning",
-      `Test generated from Arazzo description is invalid. Skipping.`
+      "debug",
+      `Test generated from Arazzo description is invalid.`
     );
     return {};
   }
