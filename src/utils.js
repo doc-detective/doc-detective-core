@@ -222,10 +222,52 @@ async function parseTests(config, files) {
 
       // Check if this is an Arazzo workflow description
       for (const test in content.tests) {
-        if (test.name || test.descriptionPath || test.workflowId) {
-          log(config, "debug", "Processing Arazzo workflow description");
+        if (test.name || test.workflowId || test.descriptionPath) {
+          let arazzoDescription = null;
+          let configArazzoDescriptions = config?.integrations?.arazzo || [];
+          if (test.descriptionPath) {
+            arazzoDescription = await loadDescription(test.descriptionPath);
+          } else if (test.name && configArazzoDescriptions.length > 0) {
+            let integration = configArazzoDescriptions.find(
+              (integration) => integration.name === test.name
+            );
+            arazzoDescription = integration.definition;
+          } else if (test.workflowId && configArazzoDescriptions.length > 0) {
+            let integration = configArazzoDescriptions.find(
+              (integration) => integration.workflowId === test.workflowId
+            );
+            arazzoDescription = integration.definition;
+          }
+          if (!arazzoDescription) {
+            log(
+              config,
+              "warning",
+              `Valid Arazzo description not found for ${
+                test.name || test.workflowId || test.descriptionPath
+              }. Skipping.`
+            );
+            return false;
+          }
+          if (!workflowId) {
+            // If no workflowId, set it to the first workflowId in the Arazzo description
+            test.workflowId = arazzoDescription.workflows[0].workflowId;
+          }
+
+          log(
+            config,
+            "debug",
+            `Processing Arazzo workflow description: ${arazzoDescription?.info?.title}`
+          );
           // Transform each workflow into a test specification
-          const test = workflowToTest(test, test.workflowId);
+          test = workflowToTest(arazzoDescription, test.workflowId);
+          if (test.length === 0) {
+            log(
+              config,
+              "warning",
+              `Test generated from Arazzo description are invalid. Skipping file.`
+            );
+            return false;
+          }
         }
       }
 
