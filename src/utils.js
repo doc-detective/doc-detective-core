@@ -216,8 +216,18 @@ async function parseTests(config, files) {
     if (extension === ".json") {
       // Process JSON
       content = JSON.parse(content);
-        // Resolve to catch any relative setup or cleanup paths
+
+      // Resolve to catch any relative setup or cleanup paths
       content = await resolvePaths(config, content, file);
+
+      // Check if this is an Arazzo workflow description
+      for (const test in content.tests) {
+        if (test.name || test.descriptionPath || test.workflowId) {
+          log(config, "debug", "Processing Arazzo workflow description");
+          // Transform each workflow into a test specification
+          const test = workflowToTest(test, test.workflowId);
+        }
+      }
 
       for (const test of content.tests) {
         // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
@@ -237,7 +247,7 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, { ...step}, false);
+          const validation = validate(`${step.action}_v2`, { ...step }, false);
           if (!validation.valid) {
             log(
               config,
