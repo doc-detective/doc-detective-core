@@ -28,10 +28,10 @@ main();
 // });
 
 async function main() {
-  arazzo = await loadDescription("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.arazzo.yml");
-  arazzo = await workflowToTest(arazzo, "loginUserAndRetrievePet", {username: "test1", password: "test2"});
-  console.log(arazzo);
-  process.exit();
+  // arazzo = await loadDescription("C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.arazzo.yml");
+  // arazzo = await workflowToTest(arazzo, "loginUserAndRetrievePet", {username: "test1", password: "test2"});
+  // console.log(arazzo);
+  // process.exit();
 
   json = {
     envVariables: "",
