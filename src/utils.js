@@ -7,6 +7,8 @@ const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate, resolvePaths } = require("doc-detective-common");
 const { workflowToTest } = require("./arazzo");
+const { loadDescription } = require("./openapi");
+const { loadEnvs } = require("./utils/loadEnvs");
 
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
@@ -14,7 +16,6 @@ exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.log = log;
 exports.timestamp = timestamp;
-exports.loadEnvs = loadEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
@@ -221,7 +222,7 @@ async function parseTests(config, files) {
       content = await resolvePaths(config, content, file);
 
       // Check if this is an Arazzo workflow description
-      for (const test in content.tests) {
+      for (const test of content.tests) {
         if (test.name || test.workflowId || test.descriptionPath) {
           let arazzoDescription = null;
           let configArazzoDescriptions = config?.integrations?.arazzo || [];
@@ -248,7 +249,7 @@ async function parseTests(config, files) {
             );
             return false;
           }
-          if (!workflowId) {
+          if (!test.workflowId) {
             // If no workflowId, set it to the first workflowId in the Arazzo description
             test.workflowId = arazzoDescription.workflows[0].workflowId;
           }
@@ -259,8 +260,8 @@ async function parseTests(config, files) {
             `Processing Arazzo workflow description: ${arazzoDescription?.info?.title}`
           );
           // Transform each workflow into a test specification
-          test = workflowToTest(arazzoDescription, test.workflowId, test.inputs);
-          if (test.length === 0) {
+          const arazzoTest = workflowToTest(arazzoDescription, test.workflowId, test.inputs);
+          if (arazzoTest.length === 0) {
             log(
               config,
               "warning",
@@ -268,6 +269,8 @@ async function parseTests(config, files) {
             );
             return false;
           }
+          // Replace test in content with Arazzo test
+          content.tests[content.tests.indexOf(test)] = arazzoTest;
         }
       }
 
@@ -657,50 +660,6 @@ async function log(config, level, message) {
       console.log(JSON.stringify(message, null, 2));
     }
   }
-}
-
-function loadEnvs(stringOrObject) {
-  if (!stringOrObject) return stringOrObject;
-  if (typeof stringOrObject === "object") {
-    // Iterate through object and recursively resolve variables
-    Object.keys(stringOrObject).forEach((key) => {
-      // Resolve all variables in key value
-      stringOrObject[key] = loadEnvs(stringOrObject[key]);
-    });
-  } else if (typeof stringOrObject === "string") {
-    // Load variable from string
-    variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
-    matches = stringOrObject.match(variableRegex);
-    // If no matches, return string
-    if (!matches) return stringOrObject;
-    // Iterate matches
-    matches.forEach((match) => {
-      // Check if is declared variable
-      value = process.env[match.substring(1)];
-      if (value) {
-        // If match is the entire string instead of just being a substring, try to convert value to object
-        try {
-          if (
-            match.length === stringOrObject.length &&
-            typeof JSON.parse(stringOrObject) === "object"
-          ) {
-            value = JSON.parse(value);
-          }
-        } catch {}
-        // Attempt to load additional variables in value
-        value = loadEnvs(value);
-        // Replace match with variable value
-        if (typeof value === "string") {
-          // Replace match with value. Supports whole- and sub-string matches.
-          stringOrObject = stringOrObject.replace(match, value);
-        } else if (typeof value === "object") {
-          // If value is an object, replace match with object
-          stringOrObject = value;
-        }
-      }
-    });
-  }
-  return stringOrObject;
 }
 
 function timestamp() {

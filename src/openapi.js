@@ -1,4 +1,4 @@
-const { loadEnvs } = require("./utils");
+const { loadEnvs } = require("./utils/loadEnvs");
 const { JSONSchemaFaker } = require("json-schema-faker");
 const { readFile } = require("doc-detective-common");
 const parser = require("@apidevtools/json-schema-ref-parser");

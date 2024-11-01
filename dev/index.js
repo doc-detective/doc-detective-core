@@ -40,7 +40,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/httpRequest_openApi.spec.json",
+      input: "./test/artifacts/httpRequest_arazzo.spec.json",
       output: ".",
       setup: "",
       cleanup: "",

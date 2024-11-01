@@ -1,6 +1,7 @@
 const os = require("os");
 const { validate } = require("doc-detective-common");
-const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
+const { log, spawnCommand, setEnvs } = require("./utils");
+const { loadEnvs } = require("./utils/loadEnvs");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");

@@ -1,0 +1,13 @@
+{
+  "id": "httpRequest_OpenAPI support",
+  "tests": [
+    {
+      "name": "CreateUser",
+      "descriptionPath": "C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\dev\\reqres.arazzo.json",
+      "inputs": {
+        "name": "John Doe",
+        "email": "johndoe@acme.com"
+      }
+    }
+  ]
+}

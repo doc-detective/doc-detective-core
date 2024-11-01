@@ -1,0 +1,66 @@
+{
+  "arazzo": "1.0.0",
+  "info": {
+    "title": "Reqres API tests",
+    "summary": "This Arazzo Description showcases the workflow for how to purchase a pet through a sequence of API calls",
+    "description": "This Arazzo Description walks you through the workflow and steps of `searching` for, `selecting`, and `purchasing` an available pet.\n",
+    "version": "0.0.1"
+  },
+  "sourceDescriptions": [
+    {
+      "name": "reqres",
+      "url": "C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective-core\\test\\artifacts\\reqres.openapi.json",
+      "type": "openapi"
+    }
+  ],
+  "workflows": [
+    {
+      "workflowId": "Add user",
+      "summary": "Add a new user",
+      "description": "",
+      "inputs": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "steps": [
+        {
+          "stepId": "addUser",
+          "description": "This step demonstrates the user login step",
+          "operationId": "addUser",
+          "parameters": [
+            {
+              "name": "username",
+              "in": "query",
+              "value": "$inputs.username"
+            },
+            {
+              "name": "password",
+              "in": "query",
+              "value": "$inputs.password"
+            }
+          ],
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ],
+          "outputs": {
+            "tokenExpires": "$response.header.X-Expires-After",
+            "rateLimit": "$response.header.X-Rate-Limit",
+            "sessionToken": "$response.body"
+          }
+        }
+      ],
+      "outputs": {
+        "available": "$steps.getPetStep.availablePets"
+      }
+    }
+  ]
+}
