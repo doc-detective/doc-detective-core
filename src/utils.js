@@ -259,7 +259,7 @@ async function parseTests(config, files) {
             `Processing Arazzo workflow description: ${arazzoDescription?.info?.title}`
           );
           // Transform each workflow into a test specification
-          test = workflowToTest(arazzoDescription, test.workflowId);
+          test = workflowToTest(arazzoDescription, test.workflowId, test.inputs);
           if (test.length === 0) {
             log(
               config,
