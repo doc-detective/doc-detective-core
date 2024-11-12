@@ -26,7 +26,7 @@ async function installBrowsers() {
   const cacheDir = path.resolve("browser-snapshots");
 
   // Install Chrome and ChromeDriver
-  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("chrome") || specifiedBrowsers.includes("chromedriver")) {
+  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("chrome")) {
     try {
       console.log("Installing Chrome browser and ChromeDriver binary");
       let browser = "chrome";
@@ -58,7 +58,7 @@ async function installBrowsers() {
   }
 
   // Install Firefox and Geckodriver
-  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("firefox") || specifiedBrowsers.includes("geckodriver")) {
+  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("firefox")) {
     try {
       console.log("Installing Firefox browser and Geckodriver binary");
       let browser = "firefox";
@@ -90,7 +90,7 @@ async function installBrowsers() {
   }
 
   // Install EdgeDriver
-  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("edgedriver")) {
+  if (specifiedBrowsers.length === 0 || specifiedBrowsers.includes("edge")) {
     try {
       console.log("Installing EdgeDriver binary");
       const edgeDriverPath = await edgedriver.download();
