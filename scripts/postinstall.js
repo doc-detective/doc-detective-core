@@ -1,5 +1,4 @@
 const path = require("path");
-const { spawnCommand } = require("../src/utils");
 const browsers = require("@puppeteer/browsers");
 const geckodriver = require("geckodriver");
 const edgedriver = require("edgedriver");
@@ -12,9 +11,9 @@ async function main() {
 main();
 
 async function installBrowsers() {
-  // Check if DOC_DETECTIVE_BROWSER environment variable is set
-  const specifiedBrowsers = process.env.DOC_DETECTIVE_BROWSER
-    ? process.env.DOC_DETECTIVE_BROWSER.split(",").map((browser) => browser.trim().toLowerCase())
+  // Check if DOC_DETECTIVE_BROWSERS environment variable is set
+  const specifiedBrowsers = process.env.DOC_DETECTIVE_BROWSERS
+    ? process.env.DOC_DETECTIVE_BROWSERS.split(",").map((browser) => browser.trim().toLowerCase())
     : [];
 
   // Move to doc-detective-core directory to correctly set browser snapshot directory
