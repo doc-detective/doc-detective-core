@@ -39,7 +39,11 @@ async function installBrowsers() {
         buildId,
         cacheDir,
       });
+    } catch (e) {
+      console.error("Chrome install failed:", e.message);
+    }
 
+    try {
       browser = "chromedriver";
       buildId = await browsers.resolveBuildId(
         browser,
@@ -52,7 +56,7 @@ async function installBrowsers() {
         cacheDir,
       });
     } catch (e) {
-      console.log("Chrome or ChromeDriver download not available.");
+      console.error("ChromeDriver install failed:", e.message);
     }
   }
 
@@ -71,7 +75,11 @@ async function installBrowsers() {
         buildId,
         cacheDir,
       });
+    } catch (e) {
+      console.error("Firefox install failed:", e.message)
+    }
 
+    try {
       if (__dirname.includes("AppData\\Roaming\\")) {
         // Running from global install on Windows
         binPath = path.join(__dirname.split("node_modules")[0]);
@@ -84,7 +92,7 @@ async function installBrowsers() {
       process.env.GECKODRIVER_CACHE_DIR = binPath;
       const geckoInstall = await geckodriver.download();
     } catch (e) {
-      console.log("Firefox or Geckodriver download not available.");
+      console.error("Geckodriver install failed:", e.message);
     }
   }
 
@@ -94,7 +102,7 @@ async function installBrowsers() {
       console.log("Installing EdgeDriver binary");
       const edgeDriverPath = await edgedriver.download();
     } catch (e) {
-      console.log("Edge browser not available.");
+      console.error("Edge browser not available:", e.message);
     }
   }
 
