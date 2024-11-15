@@ -11,8 +11,9 @@ function workflowToTest(arazzoDescription, workflowId, inputs) {
     id: arazzoDescription.info.title || `${uuid()}`,
     description:
       arazzoDescription.info.description || arazzoDescription.info.summary,
-    steps: [],
     openApi: [],
+    onStepFail: "stop",
+    steps: [],
   };
 
   arazzoDescription.sourceDescriptions.forEach((source) => {
