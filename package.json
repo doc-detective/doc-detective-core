@@ -36,7 +36,7 @@
     "appium-geckodriver": "^1.4.0",
     "appium-safari-driver": "^3.5.18",
     "axios": "^1.7.7",
-    "doc-detective-common": "^1.21.1-dev.0",
+    "doc-detective-common": "^1.21.1-dev.2",
     "dotenv": "^16.4.5",
     "edgedriver": "^6.1.1",
     "geckodriver": "^5.0.0",
@@ -49,7 +49,7 @@
     "sharp": "^0.33.5",
     "tree-kill": "^1.2.2",
     "uuid": "^11.0.3",
-    "webdriverio": "^9.2.12"
+    "webdriverio": "^9.2.14"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/darwin-arm64": "4.1.5",
