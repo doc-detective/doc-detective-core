@@ -68,7 +68,7 @@
     "@img/sharp-libvips-linux-arm64": "1.0.6",
     "@img/sharp-libvips-linux-ppc64": "1.0.6",
     "@img/sharp-libvips-linux-s390x": "1.0.6",
-    "@img/sharp-libvips-linux-x64": "1.0.4",
+    "@img/sharp-libvips-linux-x64": "1.0.6",
     "@img/sharp-libvips-linuxmusl-arm64": "1.0.4",
     "@img/sharp-libvips-linuxmusl-x64": "1.0.4",
     "@img/sharp-linux-arm": "0.33.5",
