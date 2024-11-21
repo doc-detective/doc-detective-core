@@ -461,6 +461,12 @@ async function runSpecs(config, specs) {
             `RESULT: ${stepResult.status}, ${stepResult.description}`
           );
 
+          // If onStepFail is set to "stop" and step fails, stop the test
+          if (config?.runTests?.onStepFail === "stop" && stepResult.status === "FAIL") {
+            log(config, "error", `Stopping test. Step failed: ${stepResult.description}`);
+            break;
+          }
+
           stepResult.result = stepResult.status;
           stepResult.resultDescription = stepResult.description;
           delete stepResult.status;
