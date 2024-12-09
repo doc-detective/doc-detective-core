@@ -83,6 +83,6 @@
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
-    "mocha": "^10.8.1"
+    "mocha": "^11.0.1"
   }
 }
