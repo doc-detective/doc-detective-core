@@ -1,23 +1,10 @@
 {
-  "id": "httpRequest_OpenAPI support",
   "tests": [
     {
-      "openApi": [
-        {
-          "name": "reqres",
-          "descriptionPath": "reqres.openapi.yaml",
-          "server": "https://reqres.in/api",
-          "useExample": "both",
-          "mockResponse": true
-        }
-      ],
       "steps": [
         {
-          "action": "httpRequest",
-          "openApi": {
-            "operationId": "addUser",
-            "statusCode": 400
-          }
+          "action": "goTo",
+          "url": "https://www.google.com"
         }
       ]
     }

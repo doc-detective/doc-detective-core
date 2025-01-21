@@ -53,6 +53,7 @@ function getDriverCapabilities(config, name, options) {
       capabilities = {
         platformName: config.environment.platform,
         "appium:automationName": "Gecko",
+        "wdio:enforceWebDriverClassic": true,
         browserName: "MozillaFirefox",
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
@@ -76,6 +77,7 @@ function getDriverCapabilities(config, name, options) {
         capabilities = {
           platformName: "Mac",
           "appium:automationName": "Safari",
+          "wdio:enforceWebDriverClassic": true,
           browserName: "Safari",
         };
       }
@@ -102,6 +104,7 @@ function getDriverCapabilities(config, name, options) {
           "appium:automationName": "Chromium",
           "appium:executable": options.driverPath || chromium.driver,
           browserName,
+          "wdio:enforceWebDriverClassic": true,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
@@ -202,6 +205,34 @@ function getDefaultContexts(config) {
     }
   }
   return contexts;
+}
+
+// Set window size to match target viewport size
+async function setViewportSize(context, driver) {
+  if (
+    context.app?.options?.viewport_width ||
+    context.app?.options?.viewport_height
+  ) {
+    // Get window size
+    const windowSize = await driver.executeScript(
+      "return { width: window.outerWidth, height: window.outerHeight }",[]
+    );
+    // Get viewport size, not window size
+    const viewportSize = await driver.executeScript(
+      "return { width: window.innerWidth, height: window.innerHeight }",[]
+    );
+    // Calculate difference between target and current viewport sizes
+    const widthDiff = context.app?.options?.viewport_width - viewportSize.width;
+    const heightDiff =
+      context.app?.options?.viewport_height - viewportSize.height;
+    // Target viewport size
+    const targetWindowSize = {
+      width: context.app?.options?.viewport_width ? windowSize.width + widthDiff : windowSize.width,
+      height: context.app?.options?.viewport_height ? windowSize.height + heightDiff : windowSize.height,
+    };
+    // Resize window
+    await driver.setWindowSize(targetWindowSize.width, targetWindowSize.height);
+  }
 }
 
 // Iterate through and execute test specifications and contained tests.
@@ -435,7 +466,16 @@ async function runSpecs(config, specs) {
             }
           }
 
-          if (context.app?.options?.width || context.app?.options?.height) {
+          if (
+            context.app?.options?.viewport_width ||
+            context.app?.options?.viewport_height
+          ) {
+            // Set driver viewport size
+            await setViewportSize(context, driver);
+          } else if (
+            context.app?.options?.width ||
+            context.app?.options?.height
+          ) {
             // Get driver window size
             const windowSize = await driver.getWindowSize();
             // Resize window if necessary
