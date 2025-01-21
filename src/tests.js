@@ -95,6 +95,7 @@ function getDriverCapabilities(config, name, options) {
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
+        args.push(`--no-sandbox`);
         // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
         if (process.env.CONTAINER) args.push("--no-sandbox");
