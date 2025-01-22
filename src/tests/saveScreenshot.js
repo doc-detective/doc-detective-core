@@ -54,6 +54,11 @@ async function saveScreenshot(config, step, driver) {
     }
   }
 
+  if (step.crop) {
+    const element = await driver.$(step.crop.selector);
+    await element.scrollIntoView();
+  }
+
   try {
     // If recording is true, hide cursor
     if (config.recording) {
@@ -95,10 +100,10 @@ async function saveScreenshot(config, step, driver) {
     const element = await driver.$(step.crop.selector);
 
     // Get the bounding rectangle of the element
-    const rect = {
-      ...(await element.getSize()),
-      ...(await element.getLocation()),
-    };
+
+    const rect = await driver.execute((el) => {
+      return el.getBoundingClientRect();
+    }, element);
     log(config, "debug", { rect });
 
     // Calculate the padding based on the provided padding values
@@ -125,28 +130,34 @@ async function saveScreenshot(config, step, driver) {
 
     // Create a new PNG object with the dimensions of the cropped area
     const croppedPath = path.join(dir, "cropped.png");
-    sharp(filePath)
-      .extract({
-        left: rect.x,
-        top: rect.y,
-        width: rect.width,
-        height: rect.height,
-      })
-      .toFile(croppedPath, (err, info) => {
-        if (err) {
-          result.status = "FAIL";
-          result.description = `Couldn't crop image. ${err}`;
-          return result;
-        }
-      });
-    
-      // Wait for the file to be written
-    while (!fs.existsSync(croppedPath)) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    try {
+      sharp(filePath)
+        .extract({
+          left: rect.x,
+          top: rect.y,
+          width: rect.width,
+          height: rect.height,
+        })
+        .toFile(croppedPath, (err, info) => {
+          if (err) {
+            result.status = "FAIL";
+            result.description = `Couldn't crop image. ${err}`;
+            return result;
+          }
+        });
 
-    // Replace the original file with the cropped file
-    fs.renameSync(croppedPath, filePath);
+      // Wait for the file to be written
+      while (!fs.existsSync(croppedPath)) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      // Replace the original file with the cropped file
+      fs.renameSync(croppedPath, filePath);
+    } catch (error) {
+      result.status = "FAIL";
+      result.description = `Couldn't crop image. ${error}`;
+      return result;
+    }
   }
 
   // If file already exists
