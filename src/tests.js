@@ -14,6 +14,7 @@ const { startRecording } = require("./tests/startRecording");
 const { stopRecording } = require("./tests/stopRecording");
 const { setVariables } = require("./tests/setVariables");
 const { httpRequest } = require("./tests/httpRequest");
+const { runCode } = require("./tests/runCode");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -601,6 +602,9 @@ async function runStep(config, context, step, driver, options = {}) {
     case "runShell":
       actionResult = await runShell(config, step);
       break;
+    case "runCode":
+      actionResult = await runCode(config, step);
+      break
     case "checkLink":
       actionResult = await checkLink(config, step);
       break;
