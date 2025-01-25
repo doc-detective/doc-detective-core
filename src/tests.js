@@ -96,7 +96,7 @@ function getDriverCapabilities(config, name, options) {
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
-        if (process.env.CONTAINER) args.push("--no-sandbox");
+        if (process.platform === "linux") args.push("--no-sandbox");
         // Set capabilities
         capabilities = {
           platformName: config.environment.platform,
