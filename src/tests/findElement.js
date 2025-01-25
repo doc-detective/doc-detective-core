@@ -89,8 +89,9 @@ async function findElement(config, step, driver) {
   // Click element
   if (step.click) {
     try {
+      const button = step.click.button || "left";
       // TODO: Split into separate action with button and coordinates options. https://webdriver.io/docs/api/element/click
-      await element.click();
+      await element.click({ button });
       result.description = result.description + " Clicked element.";
     } catch {
       // Couldn't click
