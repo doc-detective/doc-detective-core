@@ -5,6 +5,10 @@
         {
           "action": "goTo",
           "url": "https://www.google.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "path": "google.png"
         }
       ]
     }
