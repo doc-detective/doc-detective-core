@@ -153,6 +153,12 @@ async function saveScreenshot(config, step, driver) {
   // If overwrite is true, replace old file with new file
   // If overwrite is byVariance, compare files and replace if variance is greater than threshold
   if (existFilePath) {
+    if (step.overwrite == "true") {
+      // Replace old file with new file
+      result.description += ` Overwrote existing file.`;
+      fs.renameSync(filePath, existFilePath);
+      return result;
+    }
     let percentDiff;
 
     // Perform numerical pixel diff with pixelmatch
@@ -202,12 +208,6 @@ async function saveScreenshot(config, step, driver) {
           fs.unlinkSync(filePath);
         }
       }
-    }
-
-    if (step.overwrite == "true") {
-      // Replace old file with new file
-      result.description += ` Overwrote existing file.`;
-      fs.renameSync(filePath, existFilePath);
     }
   }
 
