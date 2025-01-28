@@ -215,25 +215,30 @@ async function setViewportSize(context, driver) {
     context.app?.options?.viewport_width ||
     context.app?.options?.viewport_height
   ) {
-    // Get window size
-    const windowSize = await driver.executeScript(
-      "return { width: window.outerWidth, height: window.outerHeight }",[]
-    );
     // Get viewport size, not window size
     const viewportSize = await driver.executeScript(
-      "return { width: window.innerWidth, height: window.innerHeight }",[]
+      "return { width: window.innerWidth, height: window.innerHeight }",
+      []
     );
-    // Calculate difference between target and current viewport sizes
-    const widthDiff = context.app?.options?.viewport_width - viewportSize.width;
-    const heightDiff =
-      context.app?.options?.viewport_height - viewportSize.height;
-    // Target viewport size
-    const targetWindowSize = {
-      width: context.app?.options?.viewport_width ? windowSize.width + widthDiff : windowSize.width,
-      height: context.app?.options?.viewport_height ? windowSize.height + heightDiff : windowSize.height,
-    };
-    // Resize window
-    await driver.setWindowSize(targetWindowSize.width, targetWindowSize.height);
+    // Get window size
+    const windowSize = await driver.getWindowSize();
+    // Get viewport size delta
+    const deltaWidth =
+      (context.app?.options?.viewport_width || viewportSize.width) -
+      viewportSize.width;
+    const deltaHeight =
+      (context.app?.options?.viewport_height || viewportSize.height) -
+      viewportSize.height;
+    // Resize window if necessary
+    await driver.setWindowSize(
+      windowSize.width + deltaWidth,
+      windowSize.height + deltaHeight
+    );
+    // Confirm viewport size
+    const finalViewportSize = await driver.executeScript(
+      "return { width: window.innerWidth, height: window.innerHeight }",
+      []
+    );
   }
 }
 
@@ -645,7 +650,7 @@ async function runStep(config, context, step, driver, options = {}) {
       break;
     case "runCode":
       actionResult = await runCode(config, step);
-      break
+      break;
     case "checkLink":
       actionResult = await checkLink(config, step);
       break;
