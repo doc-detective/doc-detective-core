@@ -54,6 +54,7 @@ function getDriverCapabilities(config, name, options) {
       capabilities = {
         platformName: config.environment.platform,
         "appium:automationName": "Gecko",
+        "wdio:enforceWebDriverClassic": true,
         browserName: "MozillaFirefox",
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
@@ -77,6 +78,7 @@ function getDriverCapabilities(config, name, options) {
         capabilities = {
           platformName: "Mac",
           "appium:automationName": "Safari",
+          "wdio:enforceWebDriverClassic": true,
           browserName: "Safari",
         };
       }
@@ -94,6 +96,7 @@ function getDriverCapabilities(config, name, options) {
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
+        args.push(`--no-sandbox`);
         // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
         if (process.platform === "linux") args.push("--no-sandbox");
@@ -103,6 +106,7 @@ function getDriverCapabilities(config, name, options) {
           "appium:automationName": "Chromium",
           "appium:executable": options.driverPath || chromium.driver,
           browserName,
+          "wdio:enforceWebDriverClassic": true,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
@@ -203,6 +207,39 @@ function getDefaultContexts(config) {
     }
   }
   return contexts;
+}
+
+// Set window size to match target viewport size
+async function setViewportSize(context, driver) {
+  if (
+    context.app?.options?.viewport_width ||
+    context.app?.options?.viewport_height
+  ) {
+    // Get viewport size, not window size
+    const viewportSize = await driver.executeScript(
+      "return { width: window.innerWidth, height: window.innerHeight }",
+      []
+    );
+    // Get window size
+    const windowSize = await driver.getWindowSize();
+    // Get viewport size delta
+    const deltaWidth =
+      (context.app?.options?.viewport_width || viewportSize.width) -
+      viewportSize.width;
+    const deltaHeight =
+      (context.app?.options?.viewport_height || viewportSize.height) -
+      viewportSize.height;
+    // Resize window if necessary
+    await driver.setWindowSize(
+      windowSize.width + deltaWidth,
+      windowSize.height + deltaHeight
+    );
+    // Confirm viewport size
+    const finalViewportSize = await driver.executeScript(
+      "return { width: window.innerWidth, height: window.innerHeight }",
+      []
+    );
+  }
 }
 
 // Iterate through and execute test specifications and contained tests.
@@ -436,7 +473,16 @@ async function runSpecs(config, specs) {
             }
           }
 
-          if (context.app?.options?.width || context.app?.options?.height) {
+          if (
+            context.app?.options?.viewport_width ||
+            context.app?.options?.viewport_height
+          ) {
+            // Set driver viewport size
+            await setViewportSize(context, driver);
+          } else if (
+            context.app?.options?.width ||
+            context.app?.options?.height
+          ) {
             // Get driver window size
             const windowSize = await driver.getWindowSize();
             // Resize window if necessary
@@ -604,7 +650,7 @@ async function runStep(config, context, step, driver, options = {}) {
       break;
     case "runCode":
       actionResult = await runCode(config, step);
-      break
+      break;
     case "checkLink":
       actionResult = await checkLink(config, step);
       break;
