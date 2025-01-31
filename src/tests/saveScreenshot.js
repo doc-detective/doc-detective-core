@@ -166,11 +166,25 @@ async function saveScreenshot(config, step, driver) {
       const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
       const img2 = PNG.sync.read(fs.readFileSync(filePath));
 
-      // Compare wight and height of images
-      if (img1.height !== img2.height || img1.width !== img2.width) {
+      // Compare aspect ratio of images
+      if (Math.round((img1.width / img1.height) * 100) / 100 !== Math.round((img2.width / img2.height) * 100) / 100) {
         result.status = "FAIL";
-        result.description = `Couldn't compare images. Images are not the same size.`;
+        result.description = `Couldn't compare images. Images have different aspect ratios.`;
         return result;
+      }
+
+      // Resize images to same size
+      if (img1.width !== img2.width || img1.height !== img2.height) {
+        const width = Math.min(img1.width, img2.width);
+        const height = Math.min(img1.height, img2.height);
+        const img1Resized = sharp(img1.data, { raw: { width: img1.width, height: img1.height, channels: 4 } })
+          .resize(width, height)
+          .toBuffer();
+        const img2Resized = sharp(img2.data, { raw: { width: img2.width, height: img2.height, channels: 4 } })
+          .resize(width, height)
+          .toBuffer();
+        img1.data = img1Resized;
+        img2.data = img2Resized;
       }
 
       const { width, height } = img1;
