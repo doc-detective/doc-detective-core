@@ -35,9 +35,7 @@ function createTempScript(code, language) {
   try {
     fs.writeFileSync(tmpFile, code);
   } catch (error) {
-    result.status = "FAIL";
-    result.description = `Failed to create temporary script: ${error.message}`;
-    return result;
+    throw new Error(`Failed to create temporary script: ${error.message}`);  
   }
   return tmpFile;
 }
@@ -61,7 +59,15 @@ async function runCode(config, step) {
   }
 
   // Create temporary script file
-  let scriptPath = createTempScript(step.code, step.language);
+
+  let scriptPath;
+  try {
+    scriptPath = createTempScript(step.code, step.language);
+  } catch (error) {
+    result.status = "FAIL";
+    result.description = error.message;
+    return result;
+  }
   log(config, "debug", `Created temporary script at: ${scriptPath}`);
 
   try {
