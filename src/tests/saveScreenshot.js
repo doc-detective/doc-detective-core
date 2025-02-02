@@ -183,7 +183,13 @@ async function saveScreenshot(config, step, driver) {
 
       // Wait for the file to be written
       while (!fs.existsSync(croppedPath)) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        const retryLimit = 50;
+        if (--retryLimit === 0) {
+          result.status = "FAIL";
+          result.description = `Couldn't write cropped image to file.`;
+          return result;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       // Replace the original file with the cropped file
