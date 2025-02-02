@@ -173,13 +173,7 @@ async function saveScreenshot(config, step, driver) {
           width: rect.width,
           height: rect.height,
         })
-        .toFile(croppedPath, (err, info) => {
-          if (err) {
-            result.status = "FAIL";
-            result.description = `Couldn't crop image. ${err}`;
-            return result;
-          }
-        });
+        .toFile(croppedPath);
 
       // Wait for the file to be written
       let retryLimit = 50;
