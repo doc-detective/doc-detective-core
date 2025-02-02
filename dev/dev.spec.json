@@ -1,23 +1,21 @@
 {
-  "id": "httpRequest_OpenAPI support",
   "tests": [
     {
-      "openApi": [
-        {
-          "name": "reqres",
-          "descriptionPath": "reqres.openapi.yaml",
-          "server": "https://reqres.in/api",
-          "useExample": "both",
-          "mockResponse": true
-        }
-      ],
+      "id": "saveScreenshot_selector",
+      "description": "Save a screenshot of a specific element",
       "steps": [
         {
-          "action": "httpRequest",
-          "openApi": {
-            "operationId": "addUser",
-            "statusCode": 400
-          }
+          "action": "goTo",
+          "url": "http://www.duckduckgo.com"
+        },
+        {
+          "action": "saveScreenshot",
+          "crop": {
+            "selector": "#searchbox_homepage",
+            "padding": 10
+          },
+          "path": "test/artifacts/saveScreenshot_selector.png",
+          "overwrite": "true"
         }
       ]
     }
