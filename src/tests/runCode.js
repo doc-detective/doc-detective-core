@@ -32,7 +32,13 @@ function createTempScript(code, language) {
   }
   const tmpDir = os.tmpdir();
   const tmpFile = path.join(tmpDir, `doc-detective-${Date.now()}${extension}`);
-  fs.writeFileSync(tmpFile, code);
+  try {
+    fs.writeFileSync(tmpFile, code);
+  } catch (error) {
+    result.status = "FAIL";
+    result.description = `Failed to create temporary script: ${error.message}`;
+    return result;
+  }
   return tmpFile;
 }
 
