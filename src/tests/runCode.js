@@ -100,8 +100,6 @@ async function runCode(config, step) {
     if (step.file) delete shellStep.file;
     if (step.group) delete shellStep.group;
 
-    console.log("shellStep", shellStep);
-
     // Execute script using runShell
     const shellResult = await runShell(config, shellStep);
 
