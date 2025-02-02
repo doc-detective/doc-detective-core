@@ -232,18 +232,23 @@ async function saveScreenshot(config, step, driver) {
       if (img1.width !== img2.width || img1.height !== img2.height) {
         const width = Math.min(img1.width, img2.width);
         const height = Math.min(img1.height, img2.height);
-        const img1Resized = sharp(img1.data, {
+
+        const img1ResizedBuffer = await sharp(img1.data, {
           raw: { width: img1.width, height: img1.height, channels: 4 },
         })
           .resize(width, height)
           .toBuffer();
-        const img2Resized = sharp(img2.data, {
+        const img2ResizedBuffer = await sharp(img2.data, {
           raw: { width: img2.width, height: img2.height, channels: 4 },
         })
           .resize(width, height)
           .toBuffer();
-        img1.data = img1Resized;
-        img2.data = img2Resized;
+
+        // Convert resized buffers to PNG objects
+        const resizedImg1 = PNG.sync.read(img1ResizedBuffer);
+        const resizedImg2 = PNG.sync.read(img2ResizedBuffer);
+        img1.data = resizedImg1.data;
+        img2.data = resizedImg2.data;
       }
 
       const { width, height } = img1;
