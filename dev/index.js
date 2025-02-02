@@ -46,8 +46,6 @@ async function main() {
           app: {
             name: "firefox",
             options: {
-              viewport_width: 600,
-              viewport_height: 600,
               headless: false,
             },
           },
