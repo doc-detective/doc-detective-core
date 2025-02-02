@@ -182,8 +182,8 @@ async function saveScreenshot(config, step, driver) {
         });
 
       // Wait for the file to be written
+      let retryLimit = 50;
       while (!fs.existsSync(croppedPath)) {
-        let retryLimit = 50;
         if (--retryLimit === 0) {
           result.status = "FAIL";
           result.description = `Couldn't write cropped image to file.`;
