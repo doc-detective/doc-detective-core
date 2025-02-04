@@ -22,7 +22,7 @@
           "action": "saveScreenshot",
           "path": "screenshot2.png",
           "maxVariation": 5,
-          "overwrite": "true"      
+          "overwrite": "byVariation"      
         }
       ]
     }

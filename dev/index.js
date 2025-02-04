@@ -33,7 +33,7 @@ async function main() {
     recursive: true,
     logLevel: "debug",
     runTests: {
-      input: "./test/artifacts/httpRequest_openApi.spec.json",
+      input: "./dev/dev.spec.json",
       output: ".",
       setup: "",
       cleanup: "",
@@ -43,12 +43,13 @@ async function main() {
       downloadDirectory: ".",
       contexts: [
         {
-          app: { name: "chrome", options: { headless: false } },
+          app: {
+            name: "firefox",
+            options: {
+              headless: false,
+            },
+          },
           platforms: ["mac", "linux"],
-        },
-        {
-          app: { name: "chrome", options: { headless: true } },
-          platforms: ["windows"],
         },
       ],
     },
