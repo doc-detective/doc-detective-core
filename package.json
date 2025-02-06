@@ -29,7 +29,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^11.9.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@puppeteer/browsers": "^2.7.0",
+    "@puppeteer/browsers": "^2.7.1",
     "ajv": "^8.16.0",
     "appium": "^2.15.0",
     "appium-chromium-driver": "1.5.0",
@@ -49,7 +49,7 @@
     "sharp": "^0.33.5",
     "tree-kill": "^1.2.2",
     "uuid": "^11.0.5",
-    "webdriverio": "^9.7.2"
+    "webdriverio": "8.41.0"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/darwin-arm64": "4.1.5",
