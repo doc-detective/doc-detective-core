@@ -39,7 +39,13 @@ const defaultAppIDs = {
   },
 };
 
-// Validate config and set extra internal-only values.
+/**
+ * Sets up and validates the configuration object for Doc Detective
+ * @async
+ * @param {Object} config - The configuration object to process
+ * @returns {Promise<Object>} The processed and validated configuration object
+ * @throws Will exit process with code 1 if configuration is invalid
+ */
 async function setConfig(config) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
@@ -48,7 +54,7 @@ async function setConfig(config) {
   config = replaceEnvs(config);
 
   // Validate inbound `config`.
-  const validityCheck = validate("config_v2", config);
+  const validityCheck = validate("config_v3", config);
   if (!validityCheck.valid) {
     // TODO: Improve error message reporting.
     log(
@@ -62,31 +68,9 @@ async function setConfig(config) {
   // Standardize value formats
   // Convert `input` into array
   if (typeof config.input === "string") config.input = [config.input];
-  if (config.runTests) {
-    // Convert `runTests.input` into array
-    if (config.runTests.input && typeof config.runTests.input === "string")
-      config.runTests.input = [config.runTests.input];
-    // Convert `runTests.setup` into array
-    if (config.runTests.setup && typeof config.runTests.setup === "string")
-      config.runTests.setup = [config.runTests.setup];
-    // Convert `runTests.cleanup` into array
-    if (config.runTests.cleanup && typeof config.runTests.cleanup === "string")
-      config.runTests.cleanup = [config.runTests.cleanup];
-  } else {
-    // If `runTests` is not defined, set it to an empty object.
-    config.runTests = {};
-  }
-  // Set download/media directories
-  config.runTests.downloadDirectory =
-    config.runTests?.downloadDirectory ||
-    config.runTests?.output ||
-    config.output;
-  config.runTests.downloadDirectory = path.resolve(
-    config.runTests.downloadDirectory
-  );
-  config.runTests.mediaDirectory =
-    config.runTests?.mediaDirectory || config.runTests?.output || config.output;
-  config.runTests.mediaDirectory = path.resolve(config.runTests.mediaDirectory);
+  if (typeof config.beforeAny === "string")
+    config.beforeAny = [config.beforeAny];
+  if (typeof config.afterAll === "string") config.afterAll = [config.afterAll];
 
   // Detect current environment.
   config.environment = getEnvironment();
@@ -96,6 +80,18 @@ async function setConfig(config) {
   return config;
 }
 
+/**
+ * Loads OpenAPI descriptions for all configured OpenAPI integrations.
+ *
+ * @async
+ * @param {Object} config - The configuration object.
+ * @returns {Promise<void>} - A promise that resolves when all descriptions are loaded.
+ *
+ * @remarks
+ * This function modifies the input config object by:
+ * 1. Adding a 'definition' property to each OpenAPI configuration with the loaded description.
+ * 2. Removing any OpenAPI configurations where the description failed to load.
+ */
 async function loadDescriptions(config) {
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
