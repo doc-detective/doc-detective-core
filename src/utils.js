@@ -7,7 +7,7 @@ const uuid = require("uuid");
 const { spawn } = require("child_process");
 const { validate, resolvePaths } = require("doc-detective-common");
 
-exports.setFiles = setFiles;
+exports.qualityFiles = qualityFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
 exports.loadEnvs = loadEnvs;
@@ -59,23 +59,23 @@ async function fetchFile(fileURL) {
   }
 }
 
-// Set array of test files
-async function setFiles(config) {
+// Inspect and qualify files as valid inputs
+async function qualityFiles({config}) {
   let dirs = [];
   let files = [];
   let sequence = [];
 
   // Determine source sequence
-  const setup = config.runTests.setup;
+  const setup = config.beforeAny;
   if (setup) sequence = sequence.concat(setup);
-  const input = config.runTests.input || config.input;
+  const input = config.input;
   sequence = sequence.concat(input);
-  const cleanup = config.runTests.cleanup;
+  const cleanup = config.afterAll;
   if (cleanup) sequence = sequence.concat(cleanup);
 
   for (let source of sequence) {
-    // Check if file or directory
     log(config, "debug", `source: ${source}`);
+    // Check if source is a URL
     let isURL = source.startsWith("http://") || source.startsWith("https://");
     // If URL, fetch file and place in temp directory
     if (isURL) {
@@ -86,6 +86,7 @@ async function setFiles(config) {
       }
       source = fetch.path;
     }
+    // Check if source is a file or directory
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
@@ -100,7 +101,7 @@ async function setFiles(config) {
       for (const dir of dirs) {
         fs.readdirSync(dir).forEach((object) => {
           const content = path.resolve(dir + "/" + object);
-          // Exclude node_modules
+          // Exclude node_modules for local installs
           if (content.includes("node_modules")) return;
           // Check if file or directory
           const isFile = fs.statSync(content).isFile();
