@@ -1,5 +1,5 @@
 const { validate } = require("doc-detective-common");
-const { setEnvs } = require("../utils");
+const { loadEnvs } = require("../utils");
 
 exports.setVariables = setVariables;
 
@@ -16,7 +16,7 @@ async function setVariables(config, step) {
   }
 
   // Run action
-  setResult = setEnvs(step.path);
+  setResult = loadEnvs(step.path);
   if (setResult === "FAIL") {
     // FAIL: Error setting variables
     result.status = "FAIL";

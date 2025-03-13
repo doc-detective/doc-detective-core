@@ -10,7 +10,7 @@ const { validate, resolvePaths } = require("doc-detective-common");
 exports.setFiles = setFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
-exports.setEnvs = setEnvs;
+exports.loadEnvs = loadEnvs;
 exports.log = log;
 exports.timestamp = timestamp;
 exports.replaceEnvs = replaceEnvs;
@@ -560,7 +560,16 @@ async function outputResults(path, results, config) {
   log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
-async function setEnvs(envsFile) {
+/**
+ * Loads environment variables from a specified .env file.
+ * 
+ * @async
+ * @param {string} envsFile - Path to the environment variables file.
+ * @returns {Promise<Object>} An object containing the operation result.
+ * @returns {string} returns.status - "PASS" if environment variables were loaded successfully, "FAIL" otherwise.
+ * @returns {string} returns.description - A description of the operation result.
+ */
+async function loadEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     require("dotenv").config({ path: envsFile, override: true });
