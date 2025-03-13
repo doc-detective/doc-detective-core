@@ -6,7 +6,6 @@ const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
-const geckodriver = require("geckodriver");
 const { setAppiumHome } = require("./appium");
 const { loadDescription } = require("./openapi");
 
@@ -54,7 +53,7 @@ async function setConfig(config) {
   config = replaceEnvs(config);
 
   // Validate inbound `config`.
-  const validityCheck = validate("config_v3", config);
+  const validityCheck = validate({schemaKey: "config_v3", object: config});
   if (!validityCheck.valid) {
     // TODO: Improve error message reporting.
     log(
@@ -64,6 +63,7 @@ async function setConfig(config) {
     );
     process.exit(1);
   }
+  config = validityCheck.object;
 
   // Standardize value formats
   // Convert `input` into array
