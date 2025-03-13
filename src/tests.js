@@ -12,7 +12,7 @@ const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
 const { startRecording } = require("./tests/startRecording");
 const { stopRecording } = require("./tests/stopRecording");
-const { setVariables } = require("./tests/setVariables");
+const { loadVariables } = require("./tests/loadVariables");
 const { httpRequest } = require("./tests/httpRequest");
 const { runCode } = require("./tests/runCode");
 const fs = require("fs");
@@ -642,8 +642,8 @@ async function runStep(config, context, step, driver, options = {}) {
     case "wait":
       actionResult = await wait(config, step);
       break;
-    case "setVariables":
-      actionResult = await setVariables(config, step);
+    case "loadVariables":
+      actionResult = await loadVariables(step);
       break;
     case "runShell":
       actionResult = await runShell(config, step);
