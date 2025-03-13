@@ -20,7 +20,7 @@ const supportMessage = `
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
   // Set config
-  config = await setConfig(config);
+  config = await setConfig({config});
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 

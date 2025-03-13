@@ -45,7 +45,7 @@ const defaultAppIDs = {
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
-async function setConfig(config) {
+async function setConfig({config}) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
 
