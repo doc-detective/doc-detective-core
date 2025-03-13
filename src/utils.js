@@ -13,7 +13,7 @@ exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.log = log;
 exports.timestamp = timestamp;
-exports.loadEnvs = loadEnvs;
+exports.replaceEnvs = replaceEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
@@ -606,13 +606,13 @@ async function log(config, level, message) {
   }
 }
 
-function loadEnvs(stringOrObject) {
+function replaceEnvs(stringOrObject) {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
     // Iterate through object and recursively resolve variables
     Object.keys(stringOrObject).forEach((key) => {
       // Resolve all variables in key value
-      stringOrObject[key] = loadEnvs(stringOrObject[key]);
+      stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
     // Load variable from string
@@ -635,7 +635,7 @@ function loadEnvs(stringOrObject) {
           }
         } catch {}
         // Attempt to load additional variables in value
-        value = loadEnvs(value);
+        value = replaceEnvs(value);
         // Replace match with variable value
         if (typeof value === "string") {
           // Replace match with value. Supports whole- and sub-string matches.

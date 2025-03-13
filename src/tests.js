@@ -1,6 +1,6 @@
 const kill = require("tree-kill");
 const wdio = require("webdriverio");
-const { log, loadEnvs } = require("./utils");
+const { log, replaceEnvs } = require("./utils");
 const axios = require("axios");
 const { instantiateCursor } = require("./tests/moveTo");
 const { goTo } = require("./tests/goTo");
@@ -617,7 +617,7 @@ async function runSpecs(config, specs) {
 async function runStep(config, context, step, driver, options = {}) {
   let actionResult;
   // Load values from environment variables
-  step = loadEnvs(step);
+  step = replaceEnvs(step);
   switch (step.action) {
     case "goTo":
       actionResult = await goTo(config, step, driver);
