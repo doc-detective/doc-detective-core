@@ -91,7 +91,7 @@ async function qualityFiles({config}) {
     let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (isFile && isValidSourceFile(config, files, source)) {
+    if (isFile && isValidSourceFile({config, files, source})) {
       // Passes all checks
       files.push(path.resolve(source));
     } else if (isDir) {
@@ -107,7 +107,7 @@ async function qualityFiles({config}) {
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           // Add to files or dirs array
-          if (isFile && isValidSourceFile(config, files, content)) {
+          if (isFile && isValidSourceFile({config, files, source: content})) {
             files.push(path.resolve(content));
           } else if (isDir && (config.runTests.recursive || config.recursive)) {
             // recursive set to true
@@ -120,7 +120,8 @@ async function qualityFiles({config}) {
   return files;
 }
 
-function isValidSourceFile(config, files, source) {
+// Check if a source file is valid based on fileType definitions
+function isValidSourceFile({config, files, source}) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
   let allowedExtensions = [".json"];
