@@ -45,7 +45,7 @@ const defaultAppIDs = {
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
-async function setConfig({config}) {
+async function setConfig({ config }) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
 
@@ -53,7 +53,7 @@ async function setConfig({config}) {
   config = replaceEnvs(config);
 
   // Validate inbound `config`.
-  const validityCheck = validate({schemaKey: "config_v3", object: config});
+  const validityCheck = validate({ schemaKey: "config_v3", object: config });
   if (!validityCheck.valid) {
     // TODO: Improve error message reporting.
     log(
@@ -68,9 +68,20 @@ async function setConfig({config}) {
   // Standardize value formats
   // Convert `input` into array
   if (typeof config.input === "string") config.input = [config.input];
-  if (typeof config.beforeAny === "string")
-    config.beforeAny = [config.beforeAny];
-  if (typeof config.afterAll === "string") config.afterAll = [config.afterAll];
+  if (typeof config.beforeAny === "string") {
+    if (config.beforeAny === "") {
+      config.beforeAny = [];
+    } else {
+      config.beforeAny = [config.beforeAny];
+    }
+  }
+  if (typeof config.afterAll === "string") {
+    if (config.afterAll === "") {
+      config.afterAll = [];
+    } else {
+      config.afterAll = [config.afterAll];
+    }
+  }
 
   // Detect current environment.
   config.environment = getEnvironment();
