@@ -124,7 +124,7 @@ async function qualityFiles({config}) {
 function isValidSourceFile({config, files, source}) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
-  let allowedExtensions = [".json"];
+  let allowedExtensions = ["json"];
   config.fileTypes.forEach((fileType) => {
     allowedExtensions = allowedExtensions.concat(fileType.extensions);
   });
@@ -144,7 +144,7 @@ function isValidSourceFile({config, files, source}) {
       );
       return false;
     }
-    const validation = validate("spec_v2", json, false);
+    const validation = validate({schemaKey: "spec_v3", object: json, addDefaults: false});
     if (!validation.valid) {
       log(config, "warning", validation);
       log(
@@ -154,36 +154,37 @@ function isValidSourceFile({config, files, source}) {
       );
       return false;
     }
-    // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
+    // TODO: Move `before` and `after checking out of is and into a broader test validation function
+    // If any objects in `tests` array have `before` or `after` property, make sure those files exist
     for (const test of json.tests) {
-      if (test.setup) {
-        let setupPath = "";
+      if (test.before) {
+        let beforePath = "";
         if (config.relativePathBase === "file") {
-          setupPath = path.resolve(path.dirname(source), test.setup);
+          beforePath = path.resolve(path.dirname(source), test.setup);
         } else {
-          setupPath = path.resolve(test.setup);
+          beforePath = path.resolve(test.setup);
         }
-        if (!fs.existsSync(setupPath)) {
+        if (!fs.existsSync(beforePath)) {
           log(
             config,
             "debug",
-            `${setupPath} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+            `${beforePath} is specified to run before a test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
       }
-      if (test.cleanup) {
-        let cleanupPath = "";
+      if (test.after) {
+        let afterPath = "";
         if (config.relativePathBase === "file") {
-          cleanupPath = path.resolve(path.dirname(source), test.cleanup);
+          afterPath = path.resolve(path.dirname(source), test.cleanup);
         } else {
-          cleanupPath = path.resolve(test.cleanup);
+          afterPath = path.resolve(test.cleanup);
         }
-        if (!fs.existsSync(cleanupPath)) {
+        if (!fs.existsSync(afterPath)) {
           log(
             config,
             "debug",
-            `${cleanupPath} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+            `${afterPath} is specified to run after a test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
@@ -191,7 +192,8 @@ function isValidSourceFile({config, files, source}) {
     }
   }
   // If extension isn't in list of allowed extensions
-  if (!allowedExtensions.includes(path.extname(source))) {
+  const extension = path.extname(source).substring(1);
+  if (!allowedExtensions.includes(extension)) {
     log(
       config,
       "debug",
