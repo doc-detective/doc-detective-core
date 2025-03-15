@@ -206,7 +206,7 @@ function isValidSourceFile({config, files, source}) {
 }
 
 // Parse files for tests
-async function parseTests(config, files) {
+async function parseTests({config, files}) {
   let specs = [];
 
   // Loop through files
@@ -220,18 +220,18 @@ async function parseTests(config, files) {
       // Process JSON
       content = JSON.parse(content);
         // Resolve to catch any relative setup or cleanup paths
-      content = await resolvePaths(config, content, file);
+      content = await resolvePaths({config: config, object: content, filePath: file});
 
       for (const test of content.tests) {
-        // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
-        if (test.setup) {
-          const setupContent = fs.readFileSync(test.setup).toString();
+        // If any objects in `tests` array have `before` property, add `tests[0].steps` of before to the beginning of the object's `steps` array.
+        if (test.before) {
+          const setupContent = fs.readFileSync(test.before).toString();
           const setup = JSON.parse(setupContent);
           test.steps = setup.tests[0].steps.concat(test.steps);
         }
-        // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
-        if (test.cleanup) {
-          const cleanupContent = fs.readFileSync(test.cleanup).toString();
+        // If any objects in `tests` array have `after` property, add `tests[0].steps` of after to the end of the object's `steps` array.
+        if (test.after) {
+          const cleanupContent = fs.readFileSync(test.after).toString();
           const cleanup = JSON.parse(cleanupContent);
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
@@ -240,7 +240,7 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, { ...step}, false);
+          const validation = validate({schemaKey: `step_v3`, object: { ...step}, addDefaults: false});
           if (!validation.valid) {
             log(
               config,
@@ -252,7 +252,7 @@ async function parseTests(config, files) {
           return true;
         });
       }
-      const validation = validate("spec_v2", content, false);
+      const validation = validate({schemaKey: "spec_v3", object: content, addDefaults: false});
       if (!validation.valid) {
         log(config, "warning", validation);
         log(
@@ -262,8 +262,10 @@ async function parseTests(config, files) {
         );
         return false;
       }
+      // Make sure that object is now a valid v3 spec
+      content = validation.object;
       // Resolve previously unapplied defaults
-      content = await resolvePaths(config, content, file);
+      content = await resolvePaths({config: config, object: content, filePath: file});
       specs.push(content);
     } else {
       // Process non-JSON
@@ -545,7 +547,7 @@ async function parseTests(config, files) {
         );
       } else {
         // Resolve paths
-        spec = await resolvePaths(config, spec, file);
+        spec = await resolvePaths({config: config, object: spec, filePath: file});
         specs.push(spec);
       }
     }
