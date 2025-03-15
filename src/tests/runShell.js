@@ -1,4 +1,4 @@
-const { validate, resolvePaths } = require("doc-detective-common");
+const { validate } = require("doc-detective-common");
 const { spawnCommand, log, calculatePercentageDifference } = require("../utils");
 const fs = require("fs");
 const path = require("path");
