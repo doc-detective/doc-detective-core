@@ -60,7 +60,7 @@ async function fetchFile(fileURL) {
 }
 
 // Inspect and qualify files as valid inputs
-async function qualityFiles({config}) {
+async function qualityFiles({ config }) {
   let dirs = [];
   let files = [];
   let sequence = [];
@@ -91,7 +91,7 @@ async function qualityFiles({config}) {
     let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (isFile && isValidSourceFile({config, files, source})) {
+    if (isFile && isValidSourceFile({ config, files, source })) {
       // Passes all checks
       files.push(path.resolve(source));
     } else if (isDir) {
@@ -107,9 +107,9 @@ async function qualityFiles({config}) {
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           // Add to files or dirs array
-          if (isFile && isValidSourceFile({config, files, source: content})) {
+          if (isFile && isValidSourceFile({ config, files, source: content })) {
             files.push(path.resolve(content));
-          } else if (isDir && (config.recursive)) {
+          } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
           }
@@ -121,7 +121,7 @@ async function qualityFiles({config}) {
 }
 
 // Check if a source file is valid based on fileType definitions
-function isValidSourceFile({config, files, source}) {
+function isValidSourceFile({ config, files, source }) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
   let allowedExtensions = ["json"];
@@ -144,7 +144,11 @@ function isValidSourceFile({config, files, source}) {
       );
       return false;
     }
-    const validation = validate({schemaKey: "spec_v3", object: json, addDefaults: false});
+    const validation = validate({
+      schemaKey: "spec_v3",
+      object: json,
+      addDefaults: false,
+    });
     if (!validation.valid) {
       log(config, "warning", validation);
       log(
@@ -206,7 +210,7 @@ function isValidSourceFile({config, files, source}) {
 }
 
 // Parse files for tests
-async function parseTests({config, files}) {
+async function parseTests({ config, files }) {
   let specs = [];
 
   // Loop through files
@@ -219,8 +223,12 @@ async function parseTests({config, files}) {
     if (extension === "json") {
       // Process JSON
       content = JSON.parse(content);
-        // Resolve to catch any relative setup or cleanup paths
-      content = await resolvePaths({config: config, object: content, filePath: file});
+      // Resolve to catch any relative setup or cleanup paths
+      content = await resolvePaths({
+        config: config,
+        object: content,
+        filePath: file,
+      });
 
       for (const test of content.tests) {
         // If any objects in `tests` array have `before` property, add `tests[0].steps` of before to the beginning of the object's `steps` array.
@@ -240,7 +248,11 @@ async function parseTests({config, files}) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate({schemaKey: `step_v3`, object: { ...step}, addDefaults: false});
+          const validation = validate({
+            schemaKey: `step_v3`,
+            object: { ...step },
+            addDefaults: false,
+          });
           if (!validation.valid) {
             log(
               config,
@@ -252,7 +264,11 @@ async function parseTests({config, files}) {
           return true;
         });
       }
-      const validation = validate({schemaKey: "spec_v3", object: content, addDefaults: false});
+      const validation = validate({
+        schemaKey: "spec_v3",
+        object: content,
+        addDefaults: false,
+      });
       if (!validation.valid) {
         log(config, "warning", validation);
         log(
@@ -265,7 +281,11 @@ async function parseTests({config, files}) {
       // Make sure that object is now a valid v3 spec
       content = validation.object;
       // Resolve previously unapplied defaults
-      content = await resolvePaths({config: config, object: content, filePath: file});
+      content = await resolvePaths({
+        config: config,
+        object: content,
+        filePath: file,
+      });
       specs.push(content);
     } else {
       // Process non-JSON
@@ -288,9 +308,23 @@ async function parseTests({config, files}) {
           steps: [
             {
               runShell,
-            }
-          ]
+            },
+          ],
         };
+        // Validate test
+        const validation = validate({
+          schemaKey: "test_v3",
+          object: test,
+          addDefaults: false,
+        });
+        if (!validation.valid) {
+          log(
+            config,
+            "warning",
+            `Failed to convert ${file} to a runShell step: ${validation.errors}. Skipping.`
+          );
+          continue;
+        }
         spec.tests.push(test);
         continue;
       }
@@ -560,7 +594,11 @@ async function parseTests({config, files}) {
         );
       } else {
         // Resolve paths
-        spec = await resolvePaths({config: config, object: spec, filePath: file});
+        spec = await resolvePaths({
+          config: config,
+          object: spec,
+          filePath: file,
+        });
         specs.push(spec);
       }
     }
@@ -581,7 +619,7 @@ async function outputResults(path, results, config) {
 
 /**
  * Loads environment variables from a specified .env file.
- * 
+ *
  * @async
  * @param {string} envsFile - Path to the environment variables file.
  * @returns {Promise<Object>} An object containing the operation result.
