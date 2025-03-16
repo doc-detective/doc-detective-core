@@ -212,11 +212,11 @@ async function parseTests({config, files}) {
   // Loop through files
   for (const file of files) {
     log(config, "debug", `file: ${file}`);
-    const extension = path.extname(file);
+    const extension = path.extname(file).slice(1);
     let content = "";
     content = fs.readFileSync(file).toString();
 
-    if (extension === ".json") {
+    if (extension === "json") {
       // Process JSON
       content = JSON.parse(content);
         // Resolve to catch any relative setup or cleanup paths
@@ -270,12 +270,32 @@ async function parseTests({config, files}) {
     } else {
       // Process non-JSON
       let id = `${uuid.v4()}`;
-      let spec = { id, file, tests: [] };
+      let spec = { specId: id, contentPath: file, tests: [] };
       content = content.split("\n");
       let ignore = false;
-      fileType = config.fileTypes.find((fileType) =>
+      const fileType = config.fileTypes.find((fileType) =>
         fileType.extensions.includes(extension)
       );
+
+      // Process executables
+      if (fileType.runShell) {
+        // Substitute all instances of $1 with the file path
+        let runShell = JSON.stringify(fileType.runShell);
+        runShell = runShell.replace(/\$1/g, file);
+        runShell = JSON.parse(runShell);
+
+        const test = {
+          steps: [
+            {
+              runShell,
+            }
+          ]
+        };
+        spec.tests.push(test);
+        continue;
+      }
+
+      // Process content
       for (const line of content) {
         // console.log(line);
         if (line.includes(fileType.testStartStatementOpen)) {
@@ -480,13 +500,6 @@ async function parseTests({config, files}) {
                 let step = {};
                 if (typeof action === "string") {
                   step = JSON.parse(JSON.stringify(actionMap[action]));
-                } else if (action.name) {
-                  // TODO v3: Remove this block
-                  if (action.params) {
-                    step = { action: action.name, ...action.params };
-                  } else {
-                    step = { action: action.name };
-                  }
                 } else {
                   step = JSON.parse(JSON.stringify(action));
                 }
