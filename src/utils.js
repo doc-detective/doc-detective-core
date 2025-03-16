@@ -109,7 +109,7 @@ async function qualityFiles({config}) {
           // Add to files or dirs array
           if (isFile && isValidSourceFile({config, files, source: content})) {
             files.push(path.resolve(content));
-          } else if (isDir && (config.runTests.recursive || config.recursive)) {
+          } else if (isDir && (config.recursive)) {
             // recursive set to true
             dirs.push(content);
           }
