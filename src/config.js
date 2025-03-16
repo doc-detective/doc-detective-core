@@ -45,17 +45,17 @@ const defaultFileTypes = {
     name: "markdown",
     extensions: ["md", "markdown", "mdx"],
     inlineStatements: {
-      testStart: "<!--\\s*testStart\\s*(.*?)\\s*-->",
-      testEnd: "<!-- testEnd -->",
-      ignoreStart: "<!-- ignoreStart -->",
-      ignoreEnd: "<!-- ignoreEnd -->",
-      step: "<!--\\s*step\\s*(.*?)\\s*-->",
+      testStart: ["<!--\\s*testStart\\s*(.*?)\\s*-->"],
+      testEnd: ["<!-- testEnd -->"],
+      ignoreStart: ["<!-- ignoreStart -->"],
+      ignoreEnd: ["<!-- ignoreEnd -->"],
+      step: ["<!--\\s*step\\s*(.*?)\\s*-->"],
     },
     markup: [
       {
         name: "onscreenText",
-        regex: "\\*\\*.+?\\*\\*",
-        actions: "find",
+        regex: ["\\*\\*.+?\\*\\*"],
+        actions: ["find"],
       },
       {
         name: "runBash",
@@ -103,6 +103,21 @@ async function setConfig({ config }) {
   }
   config = validityCheck.object;
 
+  // Replace fileType strings with objects
+  config.fileTypes = config.fileTypes.map((fileType) => {
+    if (typeof fileType === "object") return fileType;
+    const fileTypeObject = defaultFileTypes[fileType];
+    if (typeof fileTypeObject !== "undefined") return fileTypeObject;
+    log(
+      config,
+      "error",
+      `Invalid config. "${fileType}" isn't a valid fileType value.`
+    );
+    process.exit(1);
+  });
+
+  // TODO: Combine extended fileTypes with overrides
+
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];
   if (typeof config.beforeAny === "string") {
@@ -122,21 +137,34 @@ async function setConfig({ config }) {
   if (typeof config.fileTypes === "string") {
     config.fileTypes = [config.fileTypes];
   }
-
-  // Replace fileType strings with objects
   config.fileTypes = config.fileTypes.map((fileType) => {
-    if (typeof fileType === "object") return fileType;
-    const fileTypeObject = defaultFileTypes[fileType];
-    if (typeof fileTypeObject !== "undefined") return fileTypeObject;
-    log(
-      config,
-      "error",
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-    process.exit(1);
-  });
+    if (fileType.inlineStatements) {
+      if (typeof fileType.inlineStatements.testStart === "string")
+        fileType.inlineStatements.testStart = [
+          fileType.inlineStatements.testStart,
+        ];
+      if (typeof fileType.inlineStatements.testEnd === "string")
+        fileType.inlineStatements.testEnd = [fileType.inlineStatements.testEnd];
+      if (typeof fileType.inlineStatements.ignoreStart === "string")
+        fileType.inlineStatements.ignoreStart = [
+          fileType.inlineStatements.ignoreStart,
+        ];
+      if (typeof fileType.inlineStatements.ignoreEnd === "string")
+        fileType.inlineStatements.ignoreEnd = [
+          fileType.inlineStatements.ignoreEnd,
+        ];
+      if (typeof fileType.inlineStatements.step === "string")
+        fileType.inlineStatements.step = [fileType.inlineStatements.step];
+    }
+    if (fileType.markup) {
+      fileType.markup = fileType.markup.map((markup) => {
+        if (typeof markup.regex === "string") markup.regex = [markup.regex];
+        return markup;
+      });
+    }
 
-  // TODO: Combine extended fileTypes with overrides
+    return fileType;
+  });
 
   // Detect current environment.
   config.environment = getEnvironment();
