@@ -38,6 +38,44 @@ const defaultAppIDs = {
   },
 };
 
+// List of default file type definitions
+// TODO: Add defaults for all supported files
+const defaultFileTypes = {
+  markdown_1_0: {
+    name: "markdown",
+    extensions: ["md", "markdown", "mdx"],
+    inlineStatements: {
+      testStart: "<!--\\s*testStart\\s*(.*?)\\s*-->",
+      testEnd: "<!-- testEnd -->",
+      ignoreStart: "<!-- ignoreStart -->",
+      ignoreEnd: "<!-- ignoreEnd -->",
+      step: "<!--\\s*step\\s*(.*?)\\s*-->",
+    },
+    markup: [
+      {
+        name: "onscreenText",
+        regex: "\\*\\*.+?\\*\\*",
+        actions: "find",
+      },
+      {
+        name: "runBash",
+        regex: ["```(?:bash)\\b\\s*\\n(?<code>.*?)(?=\\n```)"],
+        batchMatches: true,
+        actions: [
+          {
+            runCode: {
+              language: "bash",
+              code: "$1",
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+// Set keyword versions
+defaultFileTypes.markdown = defaultFileTypes["markdown_1_0"];
+
 /**
  * Sets up and validates the configuration object for Doc Detective
  * @async
@@ -66,7 +104,6 @@ async function setConfig({ config }) {
   config = validityCheck.object;
 
   // Standardize value formats
-  // Convert `input` into array
   if (typeof config.input === "string") config.input = [config.input];
   if (typeof config.beforeAny === "string") {
     if (config.beforeAny === "") {
@@ -82,10 +119,29 @@ async function setConfig({ config }) {
       config.afterAll = [config.afterAll];
     }
   }
+  if (typeof config.fileTypes === "string") {
+    config.fileTypes = [config.fileTypes];
+  }
+
+  // Replace fileType strings with objects
+  config.fileTypes = config.fileTypes.map((fileType) => {
+    if (typeof fileType === "object") return fileType;
+    const fileTypeObject = defaultFileTypes[fileType];
+    if (typeof fileTypeObject !== "undefined") return fileTypeObject;
+    log(
+      config,
+      "error",
+      `Invalid config. "${fileType}" isn't a valid fileType value.`
+    );
+    process.exit(1);
+  });
+
+  // TODO: Combine extended fileTypes with overrides
 
   // Detect current environment.
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
+  // TODO: Revise loadDescriptions() so it doesn't mutate the input but instead returns an updated object
   await loadDescriptions(config);
 
   return config;
