@@ -5,7 +5,11 @@ const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
-const { validate, resolvePaths } = require("doc-detective-common");
+const {
+  validate,
+  resolvePaths,
+  transformToSchemaKey,
+} = require("doc-detective-common");
 
 exports.qualityFiles = qualityFiles;
 exports.parseTests = parseTests;
@@ -209,6 +213,110 @@ function isValidSourceFile({ config, files, source }) {
   return true;
 }
 
+async function parseContent({ detectSteps, content, filePath, fileType }) {
+  const statements = [];
+  const statementTypes = [
+    "testStart",
+    "testEnd",
+    "ignoreStart",
+    "ignoreEnd",
+    "step",
+  ];
+
+  // Test for each statement type
+  statementTypes.forEach((statementType) => {
+    fileType.inlineStatements[statementType].forEach((statementRegex) => {
+      const regex = new RegExp(statementRegex, "g");
+      const matches = [...content.matchAll(regex)];
+      matches.forEach((match) => {
+        // Add 'type' property to each match
+        match.type = statementType;
+        // Add 'sortIndex' property to each match
+        match.sortIndex = match[1]
+          ? match.index + match[1].length
+          : match.index;
+      });
+      statements.push(...matches);
+    });
+  });
+
+  if (detectSteps && fileType.markup) {
+    // TODO
+  }
+
+  // Sort statements by index
+  statements.sort((a, b) => a.sortIndex - b.sortIndex);
+
+  // Process statements into tests and steps
+  const spec = { specId: `${uuid.v4()}`, contentPath: filePath, tests: [] };
+  let testId = `${uuid.v4()}`;
+  let ignore = false;
+  let currentIndex = 0;
+
+  statements.forEach((statement) => {
+    let test = "";
+    currentIndex = statement.sortIndex;
+    switch (statement.type) {
+      case "testStart":
+        // Test start statement
+        test = JSON.parse(statement[1]) || JSON.parse(statement[0]);
+
+        // If v2 schema, convert to v3
+        if (test.id || test.file || test.setup || test.cleanup) {
+          // Add temporary step to pass validation
+          test.steps = [{ action: "goTo", url: "https://doc-detective.com" }];
+          test = transformToSchemaKey({
+            object: test,
+            currentSchema: "test_v2",
+            targetSchema: "test_v3",
+          });
+          // Remove temporary step
+          test.steps = [];
+        }
+
+        if (test.testId) {
+          // If the testId already exists, update the variable
+          testId = `${test.testId}`;
+        } else {
+          // If the testId doesn't exist, set it
+          test.testId = `${testId}`;
+        }
+        spec.tests.push(test);
+        break;
+      case "testEnd":
+        // Test end statement
+        testId = `${uuid.v4()}`;
+        ignore = false;
+        break;
+      case "ignoreStart":
+        // Ignore start statement
+        ignore = true;
+        break;
+      case "ignoreEnd":
+        // Ignore end statement
+        ignore = false;
+        break;
+      case "step":
+        // Step statement
+        test = spec.tests.find((test) => test.testId === testId);
+        let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
+        // Make sure is valid v3 step schema
+        valid = validate({schemaKey: "step_v3", object: step, addDefaults: false});
+        if (!valid) {
+          log(config, "warning", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
+          return false;
+        }
+        step = valid.object;
+        test.steps.push(step);
+        break;
+      default:
+        break;
+    }
+  });
+
+  return test;
+}
+
 // Parse files for tests
 async function parseTests({ config, files }) {
   let specs = [];
@@ -291,7 +399,6 @@ async function parseTests({ config, files }) {
       // Process non-JSON
       let id = `${uuid.v4()}`;
       let spec = { specId: id, contentPath: file, tests: [] };
-      content = content.split("\n");
       let ignore = false;
       const fileType = config.fileTypes.find((fileType) =>
         fileType.extensions.includes(extension)
@@ -311,6 +418,7 @@ async function parseTests({ config, files }) {
             },
           ],
         };
+
         // Validate test
         const validation = validate({
           schemaKey: "test_v3",
@@ -325,11 +433,20 @@ async function parseTests({ config, files }) {
           );
           continue;
         }
+
         spec.tests.push(test);
         continue;
       }
 
       // Process content
+      const test = parseContent({
+        config: config,
+        content: content,
+        fileType: fileType,
+        filePath: file,
+      });
+      spec.tests.push(test);
+
       for (const line of content) {
         // console.log(line);
         if (line.includes(fileType.testStartStatementOpen)) {
