@@ -241,7 +241,26 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
   });
 
   if (detectSteps && fileType.markup) {
-    // TODO
+    fileType.markup.forEach((markup) => {
+      markup.regex.forEach((pattern) => {
+        const regex = new RegExp(pattern, "g");
+        const matches = [...content.matchAll(regex)];
+        if (batchMatches) {
+          // TODO: Implement batchMatches
+        } else {
+          // TODO: FINISH IMPLEMENTING DETECTSTEPS
+          matches.forEach((match) => {
+            // Add 'type' property to each match
+            match.type = "detectedStep";
+            // Add 'sortIndex' property to each match
+            match.sortIndex = match[1]
+              ? match.index + match[1].length
+              : match.index;
+          });
+          statements.push(...matches);
+        }
+      });
+    });
   }
 
   // Sort statements by index
@@ -301,9 +320,17 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
         test = spec.tests.find((test) => test.testId === testId);
         let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
         // Make sure is valid v3 step schema
-        valid = validate({schemaKey: "step_v3", object: step, addDefaults: false});
+        valid = validate({
+          schemaKey: "step_v3",
+          object: step,
+          addDefaults: false,
+        });
         if (!valid) {
-          log(config, "warning", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
+          log(
+            config,
+            "warning",
+            `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+          );
           return false;
         }
         step = valid.object;
