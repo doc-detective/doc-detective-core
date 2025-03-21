@@ -213,7 +213,7 @@ function isValidSourceFile({ config, files, source }) {
   return true;
 }
 
-async function parseContent({ detectSteps, content, filePath, fileType }) {
+async function parseContent({ config, content, filePath, fileType }) {
   const statements = [];
   const statementTypes = [
     "testStart",
@@ -223,8 +223,20 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
     "step",
   ];
 
+  function findTest({spec, testId}){
+    test = spec.tests.find((test) => test.testId === testId);
+    if (!test) {
+      test = { testId, steps: []};
+      spec.tests.push(test);
+    }
+    return test;
+}
+
   // Test for each statement type
   statementTypes.forEach((statementType) => {
+    // If inline statements aren't defined, skip
+    if (fileType.inlineStatements[statementType] === undefined) return;
+    // Check if fileType has inline statements
     fileType.inlineStatements[statementType].forEach((statementRegex) => {
       const regex = new RegExp(statementRegex, "g");
       const matches = [...content.matchAll(regex)];
@@ -240,18 +252,19 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
     });
   });
 
-  if (detectSteps && fileType.markup) {
+  if (config.detectSteps && fileType.markup) {
     fileType.markup.forEach((markup) => {
       markup.regex.forEach((pattern) => {
         const regex = new RegExp(pattern, "g");
         const matches = [...content.matchAll(regex)];
-        if (batchMatches) {
+        if (markup.batchMatches) {
           // TODO: Implement batchMatches
         } else {
           // TODO: FINISH IMPLEMENTING DETECTSTEPS
           matches.forEach((match) => {
             // Add 'type' property to each match
             match.type = "detectedStep";
+            match.markup = markup;
             // Add 'sortIndex' property to each match
             match.sortIndex = match[1]
               ? match.index + match[1].length
@@ -266,8 +279,10 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
   // Sort statements by index
   statements.sort((a, b) => a.sortIndex - b.sortIndex);
 
+  // TODO: Split above into a separate function
+
   // Process statements into tests and steps
-  const spec = { specId: `${uuid.v4()}`, contentPath: filePath, tests: [] };
+  let spec = { specId: `${uuid.v4()}`, contentPath: filePath, tests: [] };
   let testId = `${uuid.v4()}`;
   let ignore = false;
   let currentIndex = 0;
@@ -315,9 +330,53 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
         // Ignore end statement
         ignore = false;
         break;
+      case "detectedStep":
+        // Transform detected content into a step
+        console.log(statement);
+        test = findTest({spec, testId});
+        statement.markup.actions.forEach((action) => {
+          let step = {};
+          if (typeof action === "string") {
+            step[action] = statement[1] || statement[0];
+            if (
+              config.origin &&
+              (action === "goTo" || action === "checkLink")
+            ) {
+              step[action].origin = config.origin;
+            }
+          } else {
+            step = action;
+            // Substitute variables $n with match[n]
+            Object.keys(step).forEach((key) => {
+              if (typeof step[key] !== "string") return;
+              // Replace $n with match[n]
+              step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
+                const index = stepMatch.substring(1);
+                return match[index];
+              });
+            });
+          }
+          // Make sure is valid v3 step schema
+          valid = validate({
+            schemaKey: "step_v3",
+            object: step,
+            addDefaults: false,
+          });
+          if (!valid) {
+            log(
+              config,
+              "warning",
+              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+            );
+            return false;
+          }
+          step = valid.object;
+          test.steps.push(step);
+        });
+        break;
       case "step":
         // Step statement
-        test = spec.tests.find((test) => test.testId === testId);
+        test = findTest({spec, testId});
         let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
         // Make sure is valid v3 step schema
         valid = validate({
@@ -341,7 +400,7 @@ async function parseContent({ detectSteps, content, filePath, fileType }) {
     }
   });
 
-  return test;
+  return spec;
 }
 
 // Parse files for tests
@@ -631,41 +690,6 @@ async function parseTests({ config, files }) {
             // If no matches, skip
             if (matches.length === 0) return false;
             log(config, "debug", `markup: ${markup.name}`);
-
-            const actionMap = {
-              checkLink: {
-                action: "checkLink",
-                url: "$1",
-              },
-              goTo: {
-                action: "goTo",
-                url: "$1",
-              },
-              find: {
-                action: "find",
-                selector: "aria/$1",
-              },
-              saveScreenshot: {
-                action: "saveScreenshot",
-                path: "$1",
-              },
-              startRecording: {
-                action: "startRecording",
-                path: "$1",
-              },
-              httpRequest: {
-                action: "httpRequest",
-                url: "$1",
-              },
-              runShell: {
-                action: "runShell",
-                command: "$1",
-              },
-              typeKeys: {
-                action: "typeKeys",
-                keys: "$1",
-              },
-            };
 
             matches.forEach((match) => {
               log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
