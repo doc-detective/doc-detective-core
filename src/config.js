@@ -63,7 +63,7 @@ const defaultFileTypes = {
     markup: [
       {
         name: "onscreenText",
-        regex: ["\\*\\*.+?\\*\\*"],
+        regex: ["\\*\\*(.+?)\\*\\*"],
         actions: ["find"],
       },
       {
