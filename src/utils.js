@@ -223,11 +223,11 @@ async function parseContent({ config, content, filePath, fileType }) {
     "step",
   ];
 
-  function findTest({ spec, testId }) {
-    test = spec.tests.find((test) => test.testId === testId);
+  function findTest({ tests, testId }) {
+    test = tests.find((test) => test.testId === testId);
     if (!test) {
       test = { testId, steps: [] };
-      spec.tests.push(test);
+      tests.push(test);
     }
     return test;
   }
@@ -323,7 +323,7 @@ async function parseContent({ config, content, filePath, fileType }) {
   // TODO: Split above into a separate function
 
   // Process statements into tests and steps
-  let spec = { specId: `${uuid.v4()}`, contentPath: filePath, tests: [] };
+  let tests = [];
   let testId = `${uuid.v4()}`;
   let ignore = false;
   let currentIndex = 0;
@@ -356,7 +356,7 @@ async function parseContent({ config, content, filePath, fileType }) {
           // If the testId doesn't exist, set it
           test.testId = `${testId}`;
         }
-        spec.tests.push(test);
+        tests.push(test);
         break;
       case "testEnd":
         // Test end statement
@@ -373,7 +373,7 @@ async function parseContent({ config, content, filePath, fileType }) {
         break;
       case "detectedStep":
         // Transform detected content into a step
-        test = findTest({ spec, testId });
+        test = findTest({ tests, testId });
         statement.markup.actions.forEach((action) => {
           let step = {};
           if (typeof action === "string") {
@@ -411,7 +411,7 @@ async function parseContent({ config, content, filePath, fileType }) {
         break;
       case "step":
         // Step statement
-        test = findTest({ spec, testId });
+        test = findTest({ tests, testId });
         let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
         // Make sure is valid v3 step schema
         const validation = validate({
@@ -435,18 +435,24 @@ async function parseContent({ config, content, filePath, fileType }) {
     }
   });
 
-  const validation = validate({
-    schemaKey: "spec_v3",
-    object: spec,
-    addDefaults: false,
+  tests.forEach((test) => {
+    const validation = validate({
+      schemaKey: "test_v3",
+      object: test,
+      addDefaults: false,
+    });
+    if (!validation.valid) {
+      log(
+        config,
+        "warning",
+        `Couldn't convert some steps in ${filePath} to a valid test.Skipping. Errors: ${validation.errors}`
+      );
+      return false;
+    }
+    test = validation.object;
   });
-  if (!validation.valid) {
-    log(config, "warning", `Couldn't convert ${filePath} to a valid spec.Skipping. Errors: ${validation.errors}`);
-    return false;
-  }
-  spec = validation.object;
 
-  return spec;
+  return tests;
 }
 
 // Parse files for tests
@@ -571,235 +577,23 @@ async function parseTests({ config, files }) {
       }
 
       // Process content
-      const test = parseContent({
+      const tests = await parseContent({
         config: config,
         content: content,
         fileType: fileType,
         filePath: file,
       });
-      spec.tests.push(test);
-
-      for (const line of content) {
-        // console.log(line);
-        if (line.includes(fileType.testStartStatementOpen)) {
-          // Test start statement
-          id = `${uuid.v4()}`;
-          startStatementOpen =
-            line.indexOf(fileType.testStartStatementOpen) +
-            fileType.testStartStatementOpen.length;
-          if (line.includes(fileType.testStartStatementClose)) {
-            startStatementClose = line.lastIndexOf(
-              fileType.testStartStatementClose
-            );
-          } else {
-            startStatementClose = line.length;
-          }
-          startStatement = line.substring(
-            startStatementOpen,
-            startStatementClose
-          );
-          // Parse JSON
-          statementJson = JSON.parse(startStatement);
-          // Add `file` property
-          statementJson.file = file;
-          // Add `steps` array
-          statementJson.steps = [];
-          // Set id if `id` is set
-          if (statementJson.id) {
-            // If `id` already exists in the spec, set it to the `id` with a dash and a new UUID
-            if (spec.tests.find((test) => test.id === statementJson.id)) {
-              statementJson.id = `${statementJson.id}-${uuid.v4()}`;
-            }
-            id = statementJson.id;
-          } else {
-            statementJson.id = id;
-          }
-          // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
-          if (statementJson.setup) {
-            // If `setup` is a relative path, resolve it
-            if (
-              config.relativePathBase === "file" &&
-              !path.isAbsolute(statementJson.setup)
-            ) {
-              statementJson.setup = path.resolve(
-                path.dirname(file),
-                statementJson.setup
-              );
-            }
-            // Load setup steps
-            const setupContent = fs
-              .readFileSync(statementJson.setup)
-              .toString();
-            const setup = JSON.parse(setupContent);
-            if (
-              setup &&
-              setup.tests &&
-              setup.tests[0] &&
-              setup.tests[0].steps
-            ) {
-              statementJson.steps = setup.tests[0].steps.concat(
-                statementJson.steps
-              );
-            } else {
-              console.error("Setup file does not contain valid steps.");
-            }
-          }
-          // Push to spec
-          spec.tests.push(statementJson);
-          // Set `ignore` to false
-          ignore = false;
-        } else if (line.includes(fileType.testEndStatement)) {
-          // Find test with `id`
-          test = spec.tests.find((test) => test.id === id);
-          // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
-          if (test.cleanup) {
-            // If `cleanup` is a relative path, resolve it
-            if (
-              config.relativePathBase === "file" &&
-              !path.isAbsolute(test.cleanup)
-            ) {
-              test.cleanup = path.resolve(path.dirname(file), test.cleanup);
-            }
-            const cleanupContent = fs.readFileSync(test.cleanup).toString();
-            const cleanup = JSON.parse(cleanupContent);
-            test.steps = test.steps.concat(cleanup.tests[0].steps);
-          }
-          // Set `id` to new UUID
-          id = `${uuid.v4()}`;
-          // Set `ignore` to false
-          ignore = false;
-        } else if (line.includes(fileType.stepStatementOpen)) {
-          // Find step statement
-          if (line.includes(fileType.stepStatementOpen)) {
-            stepStatementOpen =
-              line.indexOf(fileType.stepStatementOpen) +
-              fileType.stepStatementOpen.length;
-            if (line.includes(fileType.stepStatementClose)) {
-              stepStatementClose = line.lastIndexOf(
-                fileType.stepStatementClose
-              );
-            } else {
-              stepStatementClose = line.length;
-            }
-            stepStatement = line.substring(
-              stepStatementOpen,
-              stepStatementClose
-            );
-            // Parse JSON
-            statementJson = JSON.parse(stepStatement);
-            // Find test with `id`
-            test = spec.tests.find((test) => test.id === id);
-            // If test doesn't exist, create it
-            if (!test) {
-              test = { id, file, steps: [] };
-              spec.tests.push(test);
-              test = spec.tests.find((test) => test.id === id);
-            }
-            // Push to test
-            test.steps.push(statementJson);
-          }
-        } else if (line.includes(fileType.testIgnoreStatement)) {
-          // Set `ignore` to true
-          ignore = true;
-        } else if (!ignore) {
-          // Test for markup/dynamically generate tests
-
-          // Find test with `id`
-          test = spec.tests.find((test) => test.id === id);
-          // If test doesn't exist, create it
-          if (!test) {
-            test = { id, file, steps: [] };
-            spec.tests.push(test);
-            test = spec.tests.find((test) => test.id === id);
-          }
-          // If `detectSteps` is false, skip
-          if (
-            (typeof config.runTests?.detectSteps == "undefined" &&
-              typeof test.detectSteps === "undefined") ||
-            (config.runTests?.detectSteps === false &&
-              typeof test.detectSteps === "undefined") ||
-            test.detectSteps === false
-          )
-            continue;
-
-          log(config, "debug", `line: ${line}`);
-          let steps = [];
-
-          fileType.markup.forEach((markup) => {
-            // Test for markup
-            regex = new RegExp(markup.regex, "g");
-            const matches = [];
-            markup.regex.forEach((regex) => {
-              const match = line.matchAll(regex);
-              if (match) matches.push(...match);
-            });
-            // If no matches, skip
-            if (matches.length === 0) return false;
-            log(config, "debug", `markup: ${markup.name}`);
-
-            matches.forEach((match) => {
-              log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
-
-              // If `match` doesn't have a capture group, set it to the entire match
-              if (match.length === 1) {
-                match[1] = match[0];
-              }
-              markup.actions.forEach((action) => {
-                let step = {};
-                if (typeof action === "string") {
-                  step = JSON.parse(JSON.stringify(actionMap[action]));
-                } else {
-                  step = JSON.parse(JSON.stringify(action));
-                }
-                step.index = match.index;
-                // Substitute variables $n with match[n]
-                Object.keys(step).forEach((key) => {
-                  if (typeof step[key] !== "string") return;
-                  // Replace $n with match[n]
-                  step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
-                    const index = stepMatch.substring(1);
-                    return match[index];
-                  });
-                });
-
-                log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
-                steps.push(step);
-              });
-            });
-          });
-          log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
-          // Order steps by step.index
-          steps.sort((a, b) => a.index - b.index);
-          // Remove step.index
-          steps.forEach((step) => delete step.index);
-          log(
-            config,
-            "debug",
-            `cleaned steps: ${JSON.stringify(steps, null, 2)}`
-          );
-          // Filter out steps that don't pass validation
-          steps = steps.filter((step) => {
-            const validation = validate(`${step.action}_v2`, step, false);
-            if (!validation.valid) {
-              log(
-                config,
-                "warning",
-                `Step ${step} isn't a valid step. Skipping.`
-              );
-              return false;
-            }
-            return true;
-          });
-          // Push steps to test
-          test.steps.push(...steps);
-        }
-      }
+      spec.tests.push(...tests);
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
-      const validation = validate("spec_v2", spec, false);
+      const validation = validate({
+        schemaKey: "spec_v3",
+        object: spec,
+        addDefaults: false,
+      });
       if (!validation.valid) {
         log(
           config,
