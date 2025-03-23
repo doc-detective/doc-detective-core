@@ -223,19 +223,53 @@ async function parseContent({ config, content, filePath, fileType }) {
     "step",
   ];
 
-  function findTest({spec, testId}){
+  function findTest({ spec, testId }) {
     test = spec.tests.find((test) => test.testId === testId);
     if (!test) {
-      test = { testId, steps: []};
+      test = { testId, steps: [] };
       spec.tests.push(test);
     }
     return test;
-}
+  }
+
+  function replaceNumericVariables(stringOrObject, values) {
+    if (
+      typeof stringOrObject !== "string" &&
+      typeof stringOrObject !== "object"
+    )
+      throw new Error("Invalid stringOrObject type");
+    if (typeof values !== "object") throw new Error("Invalid values type");
+
+    Object.keys(stringOrObject).forEach((key) => {
+      if (typeof stringOrObject[key] === "object") {
+        // Iterate through object and recursively resolve variables
+        stringOrObject[key] = replaceNumericVariables(
+          stringOrObject[key],
+          values
+        );
+      } else if (typeof stringOrObject[key] === "string") {
+        // Replace $n with values[n]
+        stringOrObject[key] = stringOrObject[key].replace(
+          /\$[0-9]+/g,
+          (variable) => {
+            const index = variable.substring(1);
+            return values[index];
+          }
+        );
+      }
+      return key;
+    });
+    return stringOrObject;
+  }
 
   // Test for each statement type
   statementTypes.forEach((statementType) => {
     // If inline statements aren't defined, skip
-    if (fileType.inlineStatements[statementType] === undefined) return;
+    if (
+      typeof fileType.inlineStatements === "undefined" ||
+      typeof fileType.inlineStatements[statementType] === "undefined"
+    )
+      return;
     // Check if fileType has inline statements
     fileType.inlineStatements[statementType].forEach((statementRegex) => {
       const regex = new RegExp(statementRegex, "g");
@@ -257,10 +291,17 @@ async function parseContent({ config, content, filePath, fileType }) {
       markup.regex.forEach((pattern) => {
         const regex = new RegExp(pattern, "g");
         const matches = [...content.matchAll(regex)];
-        if (markup.batchMatches) {
+        if (matches.length > 0 && markup.batchMatches) {
           // TODO: Implement batchMatches
+          // Combine all matches into a single match
+          const combinedMatch = {
+            1: matches.map((match) => match[1] || match[0]).join(""),
+            type: "detectedStep",
+            markup: markup,
+            sortIndex: Math.min(...matches.map((match) => match.index)),
+          };
+          statements.push(combinedMatch);
         } else {
-          // TODO: FINISH IMPLEMENTING DETECTSTEPS
           matches.forEach((match) => {
             // Add 'type' property to each match
             match.type = "detectedStep";
@@ -332,11 +373,12 @@ async function parseContent({ config, content, filePath, fileType }) {
         break;
       case "detectedStep":
         // Transform detected content into a step
-        console.log(statement);
-        test = findTest({spec, testId});
+        test = findTest({ spec, testId });
         statement.markup.actions.forEach((action) => {
           let step = {};
           if (typeof action === "string") {
+            if (action === "runCode") return;
+            // If action is string, build step using simple syntax
             step[action] = statement[1] || statement[0];
             if (
               config.origin &&
@@ -345,16 +387,9 @@ async function parseContent({ config, content, filePath, fileType }) {
               step[action].origin = config.origin;
             }
           } else {
-            step = action;
             // Substitute variables $n with match[n]
-            Object.keys(step).forEach((key) => {
-              if (typeof step[key] !== "string") return;
-              // Replace $n with match[n]
-              step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
-                const index = stepMatch.substring(1);
-                return match[index];
-              });
-            });
+            // TODO: Make key substitution recursive
+            step = replaceNumericVariables(action, statement);
           }
           // Make sure is valid v3 step schema
           valid = validate({
@@ -376,15 +411,15 @@ async function parseContent({ config, content, filePath, fileType }) {
         break;
       case "step":
         // Step statement
-        test = findTest({spec, testId});
+        test = findTest({ spec, testId });
         let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
         // Make sure is valid v3 step schema
-        valid = validate({
+        const validation = validate({
           schemaKey: "step_v3",
           object: step,
           addDefaults: false,
         });
-        if (!valid) {
+        if (!validation.valid) {
           log(
             config,
             "warning",
@@ -399,6 +434,17 @@ async function parseContent({ config, content, filePath, fileType }) {
         break;
     }
   });
+
+  const validation = validate({
+    schemaKey: "spec_v3",
+    object: spec,
+    addDefaults: false,
+  });
+  if (!validation.valid) {
+    log(config, "warning", `Couldn't convert ${filePath} to a valid spec.Skipping. Errors: ${validation.errors}`);
+    return false;
+  }
+  spec = validation.object;
 
   return spec;
 }
