@@ -244,7 +244,7 @@ async function getAvailableApps(config) {
   const chrome = installedBrowsers.find(
     (browser) => browser.browser === "chrome"
   );
-  const chromeVersion = await getChromiumVersion(chrome.executablePath);
+  const chromeVersion = chrome.buildId;
   const chromedriver = installedBrowsers.find(
     (browser) => browser.browser === "chromedriver"
   );
@@ -316,36 +316,3 @@ async function getAvailableApps(config) {
 
   return apps;
 }
-
-// Detect version of Chromium-based browser.
-const getChromiumVersion = async (browserPath = "") => {
-  if (!browserPath) return;
-  browserPath = path.resolve(browserPath);
-  let version;
-  // Windows
-  if (process.platform === "win32") {
-    const command = `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${command}`);
-        console.error(stderr);
-        return;
-      }
-      version = stdout.trim();
-    });
-  }
-  // Mac and Linux
-  else {
-    const command = `"${browserPath}" --version`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${command}`);
-        console.error(stderr);
-        return;
-      }
-      version = stdout.trim().split(" ")[-1];
-    });
-  }
-
-  return version;
-};
