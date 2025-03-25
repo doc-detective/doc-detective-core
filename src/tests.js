@@ -29,12 +29,13 @@ exports.runSpecs = runSpecs;
 
 // Doc Detective actions that require a driver.
 const driverActions = [
-  "goTo",
+  "click",
+  "endRecord",
   "find",
-  "typeKeys",
-  "saveScreenshot",
-  // "startRecording",
-  // "stopRecording",
+  "goTo",
+  "record",
+  "screenshot",
+  "type",
 ];
 
 // Get Appium driver capabilities and apply options.
@@ -127,18 +128,16 @@ function getDriverCapabilities(config, name, options) {
   return capabilities;
 }
 
-// Check if any specs/tests/steps require drivers.
+// Check if any steps require an Appium driver.
 function isAppiumRequired(specs) {
   let appiumRequired = false;
   specs.forEach((spec) => {
-    // Check if contexts are defined at the spec level.
-    if (spec.contexts && spec.contexts.length > 0) appiumRequired = true;
     spec.tests.forEach((test) => {
-      // Check if contexts are defined at the test level.
-      if (test.contexts && test.contexts.length > 0) appiumRequired = true;
       test.steps.forEach((step) => {
         // Check if test includes actions that require a driver.
-        if (driverActions.includes(step.action)) appiumRequired = true;
+        driverActions.forEach((action) => {
+          if (typeof step[action] !== "undefined") appiumRequired = true;
+        });
       });
     });
   });
@@ -159,7 +158,7 @@ function isDriverRequired(appiumRequired, test) {
 
 // Check if context is supported by current platform and available apps
 function isSupportedContext(context, apps, platform) {
-  // Check apps
+  // Check browsers
   let isSupportedApp = true;
   if (context.app.name)
     isSupportedApp = apps.find((app) => app.name === context.app.name);
@@ -176,16 +175,16 @@ function isSupportedContext(context, apps, platform) {
   }
 }
 
-// Define default contexts based on config.runTests.contexts, then using a fallback strategy of Chrome(ium) and Firefox.
+// Define default contexts based on config.runOn, then using a fallback strategy of Chrome(ium) and Firefox.
 // TODO: Update with additional browsers as they are supported.
 function getDefaultContexts(config) {
   const contexts = [];
   const apps = config.environment.apps;
   const platform = config.environment.platform;
   // Check if contexts are defined in config
-  if (config.runTests.contexts) {
+  if (config.runOn) {
     // Check if contexts are supported
-    config.runTests.contexts.forEach((context) => {
+    config.runOn.forEach((context) => {
       if (isSupportedContext(context, apps, platform)) {
         contexts.push(context);
       }
@@ -194,7 +193,7 @@ function getDefaultContexts(config) {
   // If no contexts are defined in config, or if none are supported, use fallback strategy
   // Select the first available app
   if (contexts.length === 0) {
-    const fallback = ["chrome", "firefox", "safari", "edge"];
+    const fallback = ["firefox", "chrome", "safari"];
     for (const browser of fallback) {
       if (contexts.length != 0) continue;
       const app = apps.find((app) => app.name === browser);
@@ -245,7 +244,7 @@ async function setViewportSize(context, driver) {
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   // Set initial shorthand values
-  const configContexts = getDefaultContexts(config);
+  const configContexts = config.runOn || [];
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
   let appium;
