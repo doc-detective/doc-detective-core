@@ -175,6 +175,74 @@ function isSupportedContext(context, apps, platform) {
   }
 }
 
+function resolveContexts({ contexts, test }) {
+  const resolvedContexts = [];
+
+  // Check if current test requires a browser
+  let browserRequired = false;
+  test.steps.forEach((step) => {
+    // Check if test includes actions that require a driver.
+    driverActions.forEach((action) => {
+      if (typeof step[action] !== "undefined") browserRequired = true;
+    });
+  });
+
+  // Standardize context format
+  contexts.forEach((context) => {
+    if (context.browsers) {
+      if (typeof context.browsers === "string" || (typeof context.browsers === "object" && !Array.isArray(context.browsers))) {
+        // If browsers is a string or an object, convert to array
+        context.browsers = [context.browsers];
+      }
+      context.browsers = context.browsers.map((browser) => {
+        if (typeof browser === "string") {
+          browser = { name: browser };
+        }
+        return browser;
+      });
+    }
+    if (context.platforms) {
+      if (typeof context.platforms === "string") {
+        context.platforms = [context.platforms];
+      }
+    }
+  });
+
+
+  // Resolve to final contexts. Each context should include a single platform and at most a single browser.
+  // If no browsers are required, filter down to platform-based contexts
+  // If browsers are required, create contexts for each specified combination of platform and browser
+
+  contexts.forEach((context) => {
+    const staticContexts = [];
+    context.platforms.forEach(platform => {
+      const staticContext = { platform };
+      if (!browserRequired) {
+        staticContexts.push(staticContext)
+      } else {
+        context.browsers.forEach(browser => {
+          staticContext.browser = browser
+          staticContexts.push(staticContext)
+        })
+      }
+    })
+    // For each static context, check if a matching object already exists in resolvedContexts. If not, push to resolvedContexts.
+    staticContexts.forEach(staticContext => {
+      const existingContext = resolvedContexts.find((resolvedContext) => {
+        return (
+          resolvedContext.platform === staticContext.platform &&
+          JSON.stringify(resolvedContext.browser) === JSON.stringify(staticContext.browser)
+        );
+      });
+      if (!existingContext) {
+        resolvedContexts.push(staticContext);
+      }
+    })
+  });
+
+  return resolvedContexts;
+}
+
 // Define default contexts based on config.runOn, then using a fallback strategy of Chrome(ium) and Firefox.
 // TODO: Update with additional browsers as they are supported.
 function getDefaultContexts(config) {
@@ -304,17 +372,15 @@ async function runSpecs(config, specs) {
   // Iterate specs
   log(config, "info", "Running test specs.");
   for (const spec of specs) {
-    log(config, "debug", `SPEC: ${spec.id}`);
+    log(config, "debug", `SPEC: ${spec.specId}`);
 
-    let specReport = { id: spec.id };
-    if (spec.file) specReport.file = spec.file;
-    if (spec.description) specReport.description = spec.description;
-    specReport.tests = [];
+    const specReport = { ...spec };
 
     // Conditionally override contexts
-    const specContexts = spec.contexts || configContexts;
+    const specContexts = spec.runOn || configContexts;
 
     // Capture all OpenAPI definitions
+    // TODO: Refactor into standalone function
     const openApiDefinitions = [];
     if (config?.integrations?.openApi?.length > 0)
       openApiDefinitions.push(...config.integrations.openApi);
@@ -334,7 +400,7 @@ async function runSpecs(config, specs) {
           continue; // Skip this definition
         }
         const existingDefinitionIndex = openApiDefinitions.findIndex(
-          (def) => def.name === definition.name
+          (def) => def.name === definition.descriptionName
         );
         if (existingDefinitionIndex > -1) {
           openApiDefinitions.splice(existingDefinitionIndex, 1);
@@ -345,18 +411,20 @@ async function runSpecs(config, specs) {
 
     // Iterates tests
     for (const test of spec.tests) {
-      log(config, "debug", `TEST: ${test.id}`);
+      log(config, "debug", `TEST: ${test.testId}`);
 
-      let testReport = {
-        id: test.id,
-        contexts: [],
-      };
-      if (test.description) testReport.description = test.description;
+      const testReport = { ...test };
 
       // Conditionally override contexts
-      const testContexts = test.contexts || specContexts;
+      const testContexts = resolveContexts({
+        test,
+        contexts: test.runOn || specContexts,
+      });
+      // Resolve contexts
+      // TODO
 
       // Capture test-level OpenAPI definitions
+      // TODO: Refactor into standalone function
       if (test?.openApi?.length > 0) {
         for (const definition of test.openApi) {
           try {
@@ -373,7 +441,7 @@ async function runSpecs(config, specs) {
             continue; // Skip this definition
           }
           const existingDefinitionIndex = openApiDefinitions.findIndex(
-            (def) => def.name === definition.name
+            (def) => def.name === definition.descriptionName
           );
           if (existingDefinitionIndex > -1) {
             openApiDefinitions.splice(existingDefinitionIndex, 1);
