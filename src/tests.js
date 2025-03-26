@@ -405,7 +405,7 @@ async function runSpecs(config, specs) {
           continue; // Skip this definition
         }
         const existingDefinitionIndex = openApiDefinitions.findIndex(
-          (def) => def.name === definition.descriptionName
+          (def) => def.name === definition.name
         );
         if (existingDefinitionIndex > -1) {
           openApiDefinitions.splice(existingDefinitionIndex, 1);
@@ -420,13 +420,11 @@ async function runSpecs(config, specs) {
 
       const testReport = { ...test };
 
-      // Conditionally override contexts
+      // Resolve contexts
       const testContexts = resolveContexts({
         test,
         contexts: test.runOn || specContexts,
       });
-      // Resolve contexts
-      // TODO
 
       // Capture test-level OpenAPI definitions
       // TODO: Refactor into standalone function
@@ -446,7 +444,7 @@ async function runSpecs(config, specs) {
             continue; // Skip this definition
           }
           const existingDefinitionIndex = openApiDefinitions.findIndex(
-            (def) => def.name === definition.descriptionName
+            (def) => def.name === definition.name
           );
           if (existingDefinitionIndex > -1) {
             openApiDefinitions.splice(existingDefinitionIndex, 1);
