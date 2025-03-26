@@ -190,7 +190,11 @@ function resolveContexts({ contexts, test }) {
   // Standardize context format
   contexts.forEach((context) => {
     if (context.browsers) {
-      if (typeof context.browsers === "string" || (typeof context.browsers === "object" && !Array.isArray(context.browsers))) {
+      if (
+        typeof context.browsers === "string" ||
+        (typeof context.browsers === "object" &&
+          !Array.isArray(context.browsers))
+      ) {
         // If browsers is a string or an object, convert to array
         context.browsers = [context.browsers];
       }
@@ -198,6 +202,7 @@ function resolveContexts({ contexts, test }) {
         if (typeof browser === "string") {
           browser = { name: browser };
         }
+        if (browser.name === "safari") browser.name = "webkit";
         return browser;
       });
     }
@@ -208,36 +213,36 @@ function resolveContexts({ contexts, test }) {
     }
   });
 
-
   // Resolve to final contexts. Each context should include a single platform and at most a single browser.
   // If no browsers are required, filter down to platform-based contexts
   // If browsers are required, create contexts for each specified combination of platform and browser
 
   contexts.forEach((context) => {
     const staticContexts = [];
-    context.platforms.forEach(platform => {
+    context.platforms.forEach((platform) => {
       const staticContext = { platform };
       if (!browserRequired) {
-        staticContexts.push(staticContext)
+        staticContexts.push(staticContext);
       } else {
-        context.browsers.forEach(browser => {
-          staticContext.browser = browser
-          staticContexts.push(staticContext)
-        })
+        context.browsers.forEach((browser) => {
+          staticContext.browser = browser;
+          staticContexts.push(staticContext);
+        });
       }
-    })
+    });
     // For each static context, check if a matching object already exists in resolvedContexts. If not, push to resolvedContexts.
-    staticContexts.forEach(staticContext => {
+    staticContexts.forEach((staticContext) => {
       const existingContext = resolvedContexts.find((resolvedContext) => {
         return (
           resolvedContext.platform === staticContext.platform &&
-          JSON.stringify(resolvedContext.browser) === JSON.stringify(staticContext.browser)
+          JSON.stringify(resolvedContext.browser) ===
+            JSON.stringify(staticContext.browser)
         );
       });
       if (!existingContext) {
         resolvedContexts.push(staticContext);
       }
-    })
+    });
   });
 
   return resolvedContexts;
