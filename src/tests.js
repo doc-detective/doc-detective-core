@@ -685,7 +685,7 @@ async function runStep({config, context, step, driver, options = {}}) {
   step = replaceEnvs(step);
   switch (step.action) {
     case "goTo":
-      actionResult = await goTo(config, step, driver);
+      actionResult = await goTo({step: step, driver: driver});
       break;
     case "find":
       actionResult = await findElement(config, step, driver);
