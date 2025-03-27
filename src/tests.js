@@ -39,7 +39,7 @@ const driverActions = [
 ];
 
 // Get Appium driver capabilities and apply options.
-function getDriverCapabilities(config, name, options) {
+function getDriverCapabilities({ config, name, options }) {
   let capabilities = {};
   let args = [];
 
@@ -66,7 +66,7 @@ function getDriverCapabilities(config, name, options) {
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
           },
-          binary: options.path || firefox.path,
+          binary: firefox.path,
         },
       };
       break;
@@ -105,7 +105,7 @@ function getDriverCapabilities(config, name, options) {
         capabilities = {
           platformName: config.environment.platform,
           "appium:automationName": "Chromium",
-          "appium:executable": options.driverPath || chromium.driver,
+          "appium:executable": chromium.driver,
           browserName,
           "wdio:enforceWebDriverClassic": true,
           "goog:chromeOptions": {
@@ -116,7 +116,7 @@ function getDriverCapabilities(config, name, options) {
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
-            binary: options.path || chromium.path,
+            binary: chromium.path,
           },
         };
       }
@@ -487,11 +487,14 @@ async function runSpecs(config, specs) {
         if (driverRequired) {
           // Define driver capabilities
           // TODO: Support custom apps
-          let caps = getDriverCapabilities(config, context.app.name, {
-            path: context.app?.path,
-            width: context.app?.options?.width || 1200,
-            height: context.app?.options?.height || 800,
-            headless: context.app?.options?.headless !== false,
+          let caps = getDriverCapabilities({
+            config: config,
+            name: context.app.name,
+            options: {
+              width: context.browser?.window?.width || 1200,
+              height: context.browser?.window?.height || 800,
+              headless: context.browser?.headless !== false,
+            },
           });
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
@@ -510,11 +513,14 @@ async function runSpecs(config, specs) {
               if (typeof context.app.options === "undefined")
                 context.app.options = {};
               context.app.options.headless = true;
-              caps = getDriverCapabilities(config, context.app.name, {
-                path: context.app?.path,
-                width: context.app?.options?.width || 1200,
-                height: context.app?.options?.height || 800,
-                headless: context.app?.options?.headless !== false,
+              caps = getDriverCapabilities({
+                config: config,
+                name: context.app.name,
+                options: {
+                  width: context.browser?.window?.width || 1200,
+                  height: context.browser?.window?.height || 800,
+                  headless: context.browser?.headless !== false,
+                },
               });
               driver = await driverStart(caps);
             } catch (error) {
