@@ -135,40 +135,36 @@ function isAppiumRequired(specs) {
     spec.tests.forEach((test) => {
       test.steps.forEach((step) => {
         // Check if test includes actions that require a driver.
-        driverActions.forEach((action) => {
-          if (typeof step[action] !== "undefined") appiumRequired = true;
-        });
+        if (isDriverRequired({ test })) {
+          appiumRequired = true;
+        }
       });
     });
   });
   return appiumRequired;
 }
 
-function isDriverRequired(appiumRequired, test) {
+function isDriverRequired({ test }) {
   let driverRequired = false;
-  if (appiumRequired) {
-    if (test.contexts && test.contexts.length > 0) driverRequired = true;
-    test.steps.forEach((step) => {
-      // Check if test includes actions that require a driver.
-      if (driverActions.includes(step.action)) driverRequired = true;
+  test.steps.forEach((step) => {
+    // Check if test includes actions that require a driver.
+    driverActions.forEach((action) => {
+      if (typeof step[action] !== "undefined") driverRequired = true;
     });
-  }
+  });
   return driverRequired;
 }
 
 // Check if context is supported by current platform and available apps
-function isSupportedContext(context, apps, platform) {
+function isSupportedContext({ context, apps, platform }) {
   // Check browsers
   let isSupportedApp = true;
-  if (context.app.name)
-    isSupportedApp = apps.find((app) => app.name === context.app.name);
-  // Check path
-  let isSupportedPath = true;
-  if (context.app.path) isSupportedPath = fs.existsSync(context.app.path);
   // Check platform
-  const isSupportedPlatform = context.platforms.includes(platform);
+  const isSupportedPlatform = context.platform === platform;
+  if (context.browser.name)
+    isSupportedApp = apps.find((app) => app.name === context.browser.name);
   // Return boolean
-  if (isSupportedApp && isSupportedPath && isSupportedPlatform) {
+  if (isSupportedApp && isSupportedPlatform) {
     return true;
   } else {
     return false;
@@ -457,26 +453,21 @@ async function runSpecs(config, specs) {
       // TODO: Support both serial and parallel execution
       for (const index in testContexts) {
         const context = testContexts[index];
-        log(config, "debug", `CONTEXT: ${context.app.name}`);
+        log(config, "debug", `CONTEXT: ${JSON.stringify(context)}`);
 
         let contextReport = {
-          app: context.app.name,
-          path: context.app.path,
-          platform,
-          steps: [],
+          ...context,
         };
 
         // Check if current environment supports given contexts
-        const supportedContext = isSupportedContext(
-          context,
-          availableApps,
-          platform
-        );
+        const supportedContext = isSupportedContext({
+          context: context,
+          apps: availableApps,
+          platform: platform,
+        });
 
         // If context isn't supported, skip it
         if (!supportedContext) {
-          let appList = [];
-          availableApps.forEach((app) => appList.push(app.name));
           log(
             config,
             "warning",
@@ -492,7 +483,7 @@ async function runSpecs(config, specs) {
         }
 
         let driver;
-        const driverRequired = isDriverRequired(appiumRequired, test);
+        const driverRequired = isDriverRequired({ test: test });
         if (driverRequired) {
           // Define driver capabilities
           // TODO: Support custom apps
