@@ -453,7 +453,7 @@ async function runSpecs(config, specs) {
       // TODO: Support both serial and parallel execution
       for (const index in testContexts) {
         const context = testContexts[index];
-        log(config, "debug", `CONTEXT: ${JSON.stringify(context)}`);
+        log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
         let contextReport = {
           ...context,
@@ -561,12 +561,12 @@ async function runSpecs(config, specs) {
         // Iterates steps
         for (let step of test.steps) {
           // Set step id if not defined
-          if (!step.id) step.id = `${uuid.v4()}`;
+          if (!step.stepId) step.stepId = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const stepResult = await runStep(config, context, step, driver, {
+          const stepResult = await runStep({config: config, context: context, step: step, driver: driver, options: {
             openApiDefinitions,
-          });
+          }});
           log(
             config,
             "debug",
@@ -679,7 +679,7 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep(config, context, step, driver, options = {}) {
+async function runStep({config, context, step, driver, options = {}}) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
