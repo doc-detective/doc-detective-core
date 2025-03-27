@@ -280,8 +280,8 @@ function getDefaultContexts(config) {
 // Set window size to match target viewport size
 async function setViewportSize(context, driver) {
   if (
-    context.app?.options?.viewport_width ||
-    context.app?.options?.viewport_height
+    context.browser?.viewport?.width ||
+    context.browser?.viewport?.height
   ) {
     // Get viewport size, not window size
     const viewportSize = await driver.executeScript(
@@ -292,10 +292,10 @@ async function setViewportSize(context, driver) {
     const windowSize = await driver.getWindowSize();
     // Get viewport size delta
     const deltaWidth =
-      (context.app?.options?.viewport_width || viewportSize.width) -
+      (context.browser?.viewport?.width || viewportSize.width) -
       viewportSize.width;
     const deltaHeight =
-      (context.app?.options?.viewport_height || viewportSize.height) -
+      (context.browser?.viewport?.height || viewportSize.height) -
       viewportSize.height;
     // Resize window if necessary
     await driver.setWindowSize(
@@ -489,7 +489,7 @@ async function runSpecs(config, specs) {
           // TODO: Support custom apps
           let caps = getDriverCapabilities({
             config: config,
-            name: context.app.name,
+            name: context.browser.name,
             options: {
               width: context.browser?.window?.width || 1200,
               height: context.browser?.window?.height || 800,
@@ -508,14 +508,12 @@ async function runSpecs(config, specs) {
               log(
                 config,
                 "warning",
-                `Failed to start context '${context.app?.name}' on '${platform}'. Retrying as headless.`
+                `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
               );
-              if (typeof context.app.options === "undefined")
-                context.app.options = {};
-              context.app.options.headless = true;
+              context.browser.headless = true;
               caps = getDriverCapabilities({
                 config: config,
-                name: context.app.name,
+                name: context.browser.name,
                 options: {
                   width: context.browser?.window?.width || 1200,
                   height: context.browser?.window?.height || 800,
@@ -524,8 +522,8 @@ async function runSpecs(config, specs) {
               });
               driver = await driverStart(caps);
             } catch (error) {
-              let errorMessage = `Failed to start context '${context.app?.name}' on '${platform}'.`;
-              if (context.app?.name === "safari")
+              let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
+              if (context.browser?.name === "safari")
                 errorMessage =
                   errorMessage +
                   " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
@@ -541,21 +539,21 @@ async function runSpecs(config, specs) {
           }
 
           if (
-            context.app?.options?.viewport_width ||
-            context.app?.options?.viewport_height
+            context.browser?.viewport?.width ||
+            context.browser?.viewport?.height
           ) {
             // Set driver viewport size
             await setViewportSize(context, driver);
           } else if (
-            context.app?.options?.width ||
-            context.app?.options?.height
+            context.browser?.window?.width ||
+            context.browser?.window?.height
           ) {
             // Get driver window size
             const windowSize = await driver.getWindowSize();
             // Resize window if necessary
             await driver.setWindowSize(
-              context.app?.options?.width || windowSize.width,
-              context.app?.options?.height || windowSize.height
+              context.browser?.window?.width || windowSize.width,
+              context.browser?.window?.height || windowSize.height
             );
           }
         }
