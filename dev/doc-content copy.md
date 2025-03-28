@@ -7,3 +7,12 @@
 - The [references](https://doc-detective.com/reference/) detail the various JSON objects that Doc Detective expects for [configs](https://doc-detective.com/reference/schemas/config.html), [test specifications](https://doc-detective.com/reference/schemas/specification.html), [tests](https://doc-detective.com/reference/schemas/test), actions, and more. Open [typeKeys](https://doc-detective.com/reference/schemas/typeKeys.html)--or any other schema--and you'll find three sections: **Description**, **Fields**, and **Examples**.
 
 ![Search results.](reference.png)
+
+
+```python
+print("Hello, world!")
+```
+
+```python
+print("Hello to you too!")
+```
