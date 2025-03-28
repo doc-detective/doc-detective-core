@@ -1,21 +1,26 @@
 {
-    "tests": [
-      {
-        "steps": [
-          {
-            "wait": true
-          },
-          {
-            "wait": false
-          },
-          { 
-            "wait": 1
-          },
-          {
-            "wait": "10"
-          }
-        ]
-      }
-    ]
-  }
-  
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": ".env"
+        },
+        {
+          "wait": true
+        },
+        {
+          "wait": false
+        },
+        {
+          "wait": 1
+        },
+        {
+          "wait": "10"
+        },
+        {
+          "wait": "$WAIT"
+        }
+      ]
+    }
+  ]
+}
