@@ -685,7 +685,7 @@ async function runStep({ config, context, step, driver, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
-  if (step.wait) {
+  if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
   // switch (step.action) {
