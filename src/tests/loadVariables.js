@@ -12,11 +12,11 @@ exports.loadVariables = loadVariables;
  * @returns {string} result.status - "PASS" if successful, "FAIL" otherwise.
  * @returns {string} result.description - Description of the result or error message.
  */
-async function loadVariables(step) {
+async function loadVariables({ step }) {
   let result = { status: "PASS", description: "Set variables." };
 
   // Validate step payload
-  isValidStep = validate("loadVariables_v3", step);
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
@@ -24,11 +24,11 @@ async function loadVariables(step) {
   }
 
   // Run action
-  setResult = loadEnvs(step.loadVariables);
-  if (setResult === "FAIL") {
+  const setResult = await loadEnvs(step.loadVariables);
+  if (setResult.status === "FAIL") {
     // FAIL: Error setting variables
     result.status = "FAIL";
-    result.description = "Couldn't set variables.";
+    result.description = `Couldn't set variables. ${setResult.description}`;
     return result;
   }
 

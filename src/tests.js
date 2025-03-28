@@ -685,7 +685,9 @@ async function runStep({ config, context, step, driver, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
-  if (typeof step.wait !== "undefined") {
+  if (typeof step.loadVariables !== "undefined") {
+    actionResult = await loadVariables({ step: step });
+  } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
   // switch (step.action) {
@@ -708,9 +710,6 @@ async function runStep({ config, context, step, driver, options = {} }) {
   //   case "stopRecording":
   //     actionResult = await stopRecording(config, step, driver);
   //     delete config.recording;
-  //     break;
-  //   case "wait":
-  //     actionResult = await wait({ step: step });
   //     break;
   //   case "loadVariables":
   //     actionResult = await loadVariables(step);
