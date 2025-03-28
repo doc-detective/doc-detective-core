@@ -1,21 +1,24 @@
 {
   "tests": [
     {
-      "id": "saveScreenshot_selector",
-      "description": "Save a screenshot of a specific element",
       "steps": [
         {
-          "action": "goTo",
-          "url": "http://www.duckduckgo.com"
+          "loadVariables": ".env"
         },
         {
-          "action": "saveScreenshot",
-          "crop": {
-            "selector": "#searchbox_homepage",
-            "padding": 10
-          },
-          "path": "test/artifacts/saveScreenshot_selector.png",
-          "overwrite": "true"
+          "wait": true
+        },
+        {
+          "wait": false
+        },
+        {
+          "wait": 1
+        },
+        {
+          "wait": "10"
+        },
+        {
+          "wait": "$WAIT"
         }
       ]
     }
