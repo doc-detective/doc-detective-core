@@ -1,0 +1,21 @@
+{
+    "tests": [
+      {
+        "steps": [
+          {
+            "wait": true
+          },
+          {
+            "wait": false
+          },
+          { 
+            "wait": 1
+          },
+          {
+            "wait": "10"
+          }
+        ]
+      }
+    ]
+  }
+  
