@@ -161,7 +161,7 @@ function isSupportedContext({ context, apps, platform }) {
   let isSupportedApp = true;
   // Check platform
   const isSupportedPlatform = context.platform === platform;
-  if (context.browser.name)
+  if (context?.browser?.name)
     isSupportedApp = apps.find((app) => app.name === context.browser.name);
   // Return boolean
   if (isSupportedApp && isSupportedPlatform) {
@@ -279,10 +279,7 @@ function getDefaultContexts(config) {
 
 // Set window size to match target viewport size
 async function setViewportSize(context, driver) {
-  if (
-    context.browser?.viewport?.width ||
-    context.browser?.viewport?.height
-  ) {
+  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
     // Get viewport size, not window size
     const viewportSize = await driver.executeScript(
       "return { width: window.innerWidth, height: window.innerHeight }",
@@ -375,7 +372,7 @@ async function runSpecs(config, specs) {
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
 
-    const specReport = { ...spec };
+    let specReport = { tests: [] };
 
     // Conditionally override contexts
     const specContexts = spec.runOn || configContexts;
@@ -414,7 +411,7 @@ async function runSpecs(config, specs) {
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
 
-      const testReport = { ...test };
+      let testReport = { contexts: [] };
 
       // Resolve contexts
       const testContexts = resolveContexts({
@@ -456,7 +453,7 @@ async function runSpecs(config, specs) {
         log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
         let contextReport = {
-          ...context,
+          steps: [],
         };
 
         // Check if current environment supports given contexts
@@ -471,14 +468,13 @@ async function runSpecs(config, specs) {
           log(
             config,
             "warning",
-            `Skipping context. The current platform (${platform}) and available apps (${appList.join(
-              ", "
-            )}) don't support don't support this context (${JSON.stringify(
+            `Skipping context. The current system doesn't support this context (${JSON.stringify(
               context
             )}).`
           );
           contextReport = { result: { status: "SKIPPED" }, ...contextReport };
           report.summary.contexts.skipped++;
+          testReport.contexts.push(contextReport);
           continue;
         }
 
@@ -564,9 +560,15 @@ async function runSpecs(config, specs) {
           if (!step.stepId) step.stepId = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const stepResult = await runStep({config: config, context: context, step: step, driver: driver, options: {
-            openApiDefinitions,
-          }});
+          const stepResult = await runStep({
+            config: config,
+            context: context,
+            step: step,
+            driver: driver,
+            options: {
+              openApiDefinitions,
+            },
+          });
           log(
             config,
             "debug",
@@ -679,57 +681,60 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep({config, context, step, driver, options = {}}) {
+async function runStep({ config, context, step, driver, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
-  switch (step.action) {
-    case "goTo":
-      actionResult = await goTo({step: step, driver: driver});
-      break;
-    case "find":
-      actionResult = await findElement(config, step, driver);
-      break;
-    case "typeKeys":
-      actionResult = await typeKeys(config, step, driver);
-      break;
-    case "saveScreenshot":
-      actionResult = await saveScreenshot(config, step, driver);
-      break;
-    case "startRecording":
-      actionResult = await startRecording(config, context, step, driver);
-      config.recording = actionResult.recording;
-      break;
-    case "stopRecording":
-      actionResult = await stopRecording(config, step, driver);
-      delete config.recording;
-      break;
-    case "wait":
-      actionResult = await wait(config, step);
-      break;
-    case "loadVariables":
-      actionResult = await loadVariables(step);
-      break;
-    case "runShell":
-      actionResult = await runShell(config, step);
-      break;
-    case "runCode":
-      actionResult = await runCode(config, step);
-      break;
-    case "checkLink":
-      actionResult = await checkLink(config, step);
-      break;
-    case "httpRequest":
-      actionResult = await httpRequest(
-        config,
-        step,
-        options?.openApiDefinitions
-      );
-      break;
-    default:
-      actionResult = { status: "FAIL", description: "Unsupported action." };
-      break;
+  if (step.wait) {
+    actionResult = await wait({ step: step });
   }
+  // switch (step.action) {
+  //   case "goTo":
+  //     actionResult = await goTo({ step: step, driver: driver });
+  //     break;
+  //   case "find":
+  //     actionResult = await findElement(config, step, driver);
+  //     break;
+  //   case "typeKeys":
+  //     actionResult = await typeKeys(config, step, driver);
+  //     break;
+  //   case "saveScreenshot":
+  //     actionResult = await saveScreenshot(config, step, driver);
+  //     break;
+  //   case "startRecording":
+  //     actionResult = await startRecording(config, context, step, driver);
+  //     config.recording = actionResult.recording;
+  //     break;
+  //   case "stopRecording":
+  //     actionResult = await stopRecording(config, step, driver);
+  //     delete config.recording;
+  //     break;
+  //   case "wait":
+  //     actionResult = await wait({ step: step });
+  //     break;
+  //   case "loadVariables":
+  //     actionResult = await loadVariables(step);
+  //     break;
+  //   case "runShell":
+  //     actionResult = await runShell(config, step);
+  //     break;
+  //   case "runCode":
+  //     actionResult = await runCode(config, step);
+  //     break;
+  //   case "checkLink":
+  //     actionResult = await checkLink(config, step);
+  //     break;
+  //   case "httpRequest":
+  //     actionResult = await httpRequest(
+  //       config,
+  //       step,
+  //       options?.openApiDefinitions
+  //     );
+  //     break;
+  //   default:
+  //     actionResult = { status: "FAIL", description: "Unsupported action." };
+  //     break;
+  // }
   // If recording, wait until browser is loaded, then instantiate cursor
   if (config.recording) {
     const currentUrl = await driver.getUrl();
