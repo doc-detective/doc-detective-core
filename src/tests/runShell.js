@@ -38,6 +38,7 @@ async function runShell({ config, step }) {
     ...step.runShell,
     exitCodes: step.runShell.exitCodes || [0],
     args: step.runShell.args || [],
+    workingDirectory: step.runShell.workingDirectory || ".",
     maxVariation: step.runShell.maxVariation || 0,
     overwrite: step.runShell.overwrite || "aboveVariation",
     timeout: step.runShell.timeout || 60000,
