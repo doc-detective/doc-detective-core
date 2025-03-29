@@ -9,7 +9,7 @@ const { log, calculatePercentageDifference, replaceEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest({config, step, openApiDefinitions = []}) {
+async function httpRequest({ config, step, openApiDefinitions = [] }) {
   let result = { status: "", description: "" };
   let openApiDefinition;
   let operation;
@@ -18,14 +18,19 @@ async function httpRequest({config, step, openApiDefinitions = []}) {
   if (step.httpRequest.openApi) {
     if (step.httpRequest.openApi.descriptionPath) {
       // Load OpenAPI definition from step
-      openApiDefinition = await loadDescription(step.httpRequest.openApi.descriptionPath);
+      openApiDefinition = await loadDescription(
+        step.httpRequest.openApi.descriptionPath
+      );
     } else if (step.httpRequest.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config
       let integration = openApiDefinitions.find(
         (openApiConfig) => openApiConfig.name === step.httpRequest.openApi.name
       );
       openApiDefinition = integration.definition;
-      step.httpRequest.openApi = { ...integration, ...step.httpRequest.openApi };
+      step.httpRequest.openApi = {
+        ...integration,
+        ...step.httpRequest.openApi,
+      };
       delete step.httpRequest.openApi.definition;
     } else if (openApiDefinitions.length > 0) {
       // Identify first definition that contains the operation
@@ -37,7 +42,10 @@ async function httpRequest({config, step, openApiDefinitions = []}) {
               step.httpRequest.openApi.operationId
             ) {
               openApiDefinition = openApiConfig.definition;
-              step.httpRequest.openApi = { ...openApiConfig, ...step.httpRequest.openApi };
+              step.httpRequest.openApi = {
+                ...openApiConfig,
+                ...step.httpRequest.openApi,
+              };
               delete step.httpRequest.openApi.definition;
               break;
             }
@@ -117,22 +125,26 @@ async function httpRequest({config, step, openApiDefinitions = []}) {
     }
     // Set status code
     if (step.httpRequest.openApi.statusCode) {
-      step.httpRequest.statusCodes = [step.httpRequest.openApi.statusCode, ...(step.httpRequest.statusCodes || [])];
+      step.httpRequest.statusCodes = [
+        step.httpRequest.openApi.statusCode,
+        ...(step.httpRequest.statusCodes || []),
+      ];
     } else if (!step.httpRequest.statusCodes) {
-      step.httpRequest.statusCodes = Object.keys(operation.definition.responses).filter(
-        (code) => code.startsWith("2")
-      );
+      step.httpRequest.statusCodes = Object.keys(
+        operation.definition.responses
+      ).filter((code) => code.startsWith("2"));
     }
   }
 
   // Make sure there's a protocol
-  if (step.httpRequest.url && !step.httpRequest.url.includes("://")) step.httpRequest.url = "https://" + step.httpRequest.url;
+  if (step.httpRequest.url && !step.httpRequest.url.includes("://"))
+    step.httpRequest.url = "https://" + step.httpRequest.url;
 
   // Load environment variables
   step = await replaceEnvs(step);
 
   // Validate step payload
-  const isValidStep = validate({schemaKey: "spec_v3", object: step});
+  const isValidStep = validate({ schemaKey: "spec_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
@@ -248,7 +260,10 @@ async function httpRequest({config, step, openApiDefinitions = []}) {
   // Compare response.data and responseData
   if (!step.httpRequest.allowAdditionalFields) {
     // Do a deep comparison
-    let dataComparison = objectExistsInObject(response.data, step.httpRequest.responseData);
+    let dataComparison = objectExistsInObject(
+      response.data,
+      step.httpRequest.responseData
+    );
     if (dataComparison.result.status === "FAIL") {
       result.status = "FAIL";
       result.description += " Response contained unexpected fields.";
@@ -257,7 +272,10 @@ async function httpRequest({config, step, openApiDefinitions = []}) {
   }
 
   if (JSON.stringify(step.httpRequest.responseData) != "{}") {
-    let dataComparison = objectExistsInObject(step.httpRequest.responseData, response.data);
+    let dataComparison = objectExistsInObject(
+      step.httpRequest.responseData,
+      response.data
+    );
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
       result.description += ` Expected response data was present in actual response data.`;
@@ -496,7 +514,6 @@ function objectExistsInObject(expected, actual) {
   return { result };
 }
 
-
 // If run directly, perform httpRequest
 if (require.main === module) {
   const config = {
@@ -504,11 +521,24 @@ if (require.main === module) {
   };
   const step = {
     httpRequest: {
-      code: `print("Hello, world!")`,
-      language: "python",
+      url: `https://reqres.in/api/users`,
+      method: "post",
+      statusCodes: [200, 201],
+      request: {
+        body: {
+          name: "John Doe",
+          job: "Software Engineer",
+        },
+      },
+      response: {
+        body: {
+          name: "John Doe",
+          job: "Software Engineer",
+        },
+      },
     },
   };
-  httpRequest({config, step})
+  httpRequest({ config, step })
     .then((result) => {
       console.log(result);
     })
