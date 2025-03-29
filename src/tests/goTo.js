@@ -12,10 +12,9 @@ async function goTo({ config, step, driver }) {
     step.goTo = { url: step.goTo };
   }
 
-  // If `origin` is set, prepend `url` with `origin`
-  if (step.goTo.origin) {
-    // If `url` doesn't begin with '/', add it
-    if (!step.goTo.url.startsWith("/")) step.goTo.url = "/" + step.goTo.url;
+  // Set origin for relative URLs
+  if (step.goTo.url.startsWith("/") && (step.goTo.origin || config.origin)) {
+    step.goTo.origin = step.goTo.origin || config.origin;
     step.goTo.url = step.goTo.origin + step.goTo.url;
   }
 

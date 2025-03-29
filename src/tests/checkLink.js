@@ -11,11 +11,9 @@ async function checkLink({ config, step }) {
     step.checkLink = { url: step.checkLink };
   }
 
-  // If `origin` is set, prepend `url` with `origin`
-  if (step.checkLink.origin) {
-    // If `url` doesn't begin with '/', add it
-    if (!step.checkLink.url.startsWith("/"))
-      step.checkLink.url = "/" + step.checkLink.url;
+  // Set origin for relative URLs
+  if (step.checkLink.url.startsWith("/") && (step.checkLink.origin || config.origin)) {
+    step.checkLink.origin = step.checkLink.origin || config.origin;
     step.checkLink.url = step.checkLink.origin + step.checkLink.url;
   }
 
