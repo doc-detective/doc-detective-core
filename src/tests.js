@@ -685,15 +685,16 @@ async function runStep({ config, context, step, driver, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
-  if (typeof step.loadVariables !== "undefined") {
+  if (typeof step.checkLink !== "undefined") {
+    actionResult = await checkLink({ config: config, step: step });
+  } else if (typeof step.goTo !== "undefined") {
+    actionResult = await goTo({ config: config, step: step, driver: driver });
+  } else if (typeof step.loadVariables !== "undefined") {
     actionResult = await loadVariables({ step: step });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
   // switch (step.action) {
-  //   case "goTo":
-  //     actionResult = await goTo({ step: step, driver: driver });
-  //     break;
   //   case "find":
   //     actionResult = await findElement(config, step, driver);
   //     break;
@@ -711,17 +712,11 @@ async function runStep({ config, context, step, driver, options = {} }) {
   //     actionResult = await stopRecording(config, step, driver);
   //     delete config.recording;
   //     break;
-  //   case "loadVariables":
-  //     actionResult = await loadVariables(step);
-  //     break;
   //   case "runShell":
   //     actionResult = await runShell(config, step);
   //     break;
   //   case "runCode":
   //     actionResult = await runCode(config, step);
-  //     break;
-  //   case "checkLink":
-  //     actionResult = await checkLink(config, step);
   //     break;
   //   case "httpRequest":
   //     actionResult = await httpRequest(
