@@ -96,21 +96,6 @@ async function runShell({ config, step }) {
     }
   }
 
-  // Set environment variables from command output
-  for (const variable of step.runShell.setVariables) {
-    const regex = new RegExp(variable.regex);
-    const matchStdout = result.stdout.match(regex);
-    const matchStderr = result.stderr.match(regex);
-    if (matchStdout) {
-      process.env[variable.name] = matchStdout[0];
-    } else if (matchStderr) {
-      process.env[variable.name] = matchStderr[0];
-    } else {
-      result.status = "FAIL";
-      result.description = `Couldn't set '${variable.name}' environment variable. The regex (${variable.regex}) wasn't found in the command stdio (stdout or stderr).`;
-    }
-  }
-
   // Check if command output is saved to a file
   if (step.runShell.path) {
     const dir = path.dirname(step.runShell.path);
