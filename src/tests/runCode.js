@@ -1,8 +1,5 @@
 const { validate } = require("doc-detective-common");
-const {
-  spawnCommand,
-  log,
-} = require("../utils");
+const { spawnCommand, log } = require("../utils");
 const { runShell } = require("./runShell");
 const fs = require("fs");
 const path = require("path");
@@ -34,13 +31,13 @@ function createTempScript(code, language) {
   try {
     fs.writeFileSync(tmpFile, code);
   } catch (error) {
-    throw new Error(`Failed to create temporary script: ${error.message}`);  
+    throw new Error(`Failed to create temporary script: ${error.message}`);
   }
   return tmpFile;
 }
 
 // Run gather, compile, and run code.
-async function runCode(config, step) {
+async function runCode({ config, step }) {
   const result = {
     status: "PASS",
     description: "Executed code.",
@@ -50,18 +47,29 @@ async function runCode(config, step) {
   };
 
   // Validate step object
-  const isValidStep = validate("runCode_v2", step);
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
+  // Set default values
+  step.runCode = {
+    ...step.runCode,
+    exitCodes: step.runCode.exitCodes || [0],
+    args: step.runCode.args || [],
+    workingDirectory: step.runCode.workingDirectory || ".",
+    maxVariation: step.runCode.maxVariation || 0,
+    overwrite: step.runCode.overwrite || "aboveVariation",
+    timeout: step.runCode.timeout || 60000,
+  };
 
   // Create temporary script file
-
   let scriptPath;
   try {
-    scriptPath = createTempScript(step.code, step.language);
+    scriptPath = createTempScript(step.runCode.code, step.runCode.language);
   } catch (error) {
     result.status = "FAIL";
     result.description = error.message;
@@ -70,15 +78,15 @@ async function runCode(config, step) {
   log(config, "debug", `Created temporary script at: ${scriptPath}`);
 
   try {
-    if (!step.command) {
-      step.command =
-        step.language.toLowerCase() === "python"
+    if (!step.runCode.command) {
+      step.runCode.command =
+        step.runCode.language.toLowerCase() === "python"
           ? "python"
-          : step.language.toLowerCase() === "javascript"
+          : step.runCode.language.toLowerCase() === "javascript"
           ? "node"
           : "bash";
     }
-    const command = step.command;
+    const command = step.runCode.command;
     // Make sure the command is available
     const commandExists = await spawnCommand(command, ["--version"]);
     if (commandExists.exitCode !== 0) {
@@ -96,23 +104,20 @@ async function runCode(config, step) {
 
     // Prepare shell command based on language
     const shellStep = {
-      ...step,
-      action: "runShell",
-      command:
-        step.language.toLowerCase() === "python"
-          ? "python"
-          : step.language.toLowerCase() === "javascript"
-          ? "node"
-          : "bash",
-      args: [scriptPath, ...step.args],
+      runShell: {
+        command:
+          step.runCode.language.toLowerCase() === "python"
+            ? "python"
+            : step.runCode.language.toLowerCase() === "javascript"
+            ? "node"
+            : "bash",
+        args: [scriptPath, ...step.runCode.args],
+      },
     };
-    if (step.code) delete shellStep.code;
-    if (step.language) delete shellStep.language;
-    if (step.file) delete shellStep.file;
-    if (step.group) delete shellStep.group;
+    delete shellStep.runCode;
 
     // Execute script using runShell
-    const shellResult = await runShell(config, shellStep);
+    const shellResult = await runShell({ config: config, step: shellStep });
 
     // Copy results
     result.status = shellResult.status;
@@ -142,9 +147,10 @@ if (require.main === module) {
     logLevel: "debug",
   };
   const step = {
-    action: "runCode",
-    code: `print("Hello, world!")`,
-    language: "python",
+    runCode: {
+      code: `print("Hello, world!")`,
+      language: "python",
+    },
   };
   runCode(config, step)
     .then((result) => {

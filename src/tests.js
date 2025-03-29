@@ -691,6 +691,8 @@ async function runStep({ config, context, step, driver, options = {} }) {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
     actionResult = await loadVariables({ step: step });
+  } else if (typeof step.runCode !== "undefined") {
+    actionResult = await runCode({ config, step });
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config, step });
   } else if (typeof step.wait !== "undefined") {
@@ -713,12 +715,6 @@ async function runStep({ config, context, step, driver, options = {} }) {
   //   case "stopRecording":
   //     actionResult = await stopRecording(config, step, driver);
   //     delete config.recording;
-  //     break;
-  //   case "runShell":
-  //     actionResult = await runShell(config, step);
-  //     break;
-  //   case "runCode":
-  //     actionResult = await runCode(config, step);
   //     break;
   //   case "httpRequest":
   //     actionResult = await httpRequest(

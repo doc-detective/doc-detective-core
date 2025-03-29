@@ -1,24 +1,33 @@
 {
+  "id": "runCode",
   "tests": [
     {
       "steps": [
         {
-          "loadVariables": ".env"
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log('Hello, World!');",
+            "stdio": "Hello, World!"
+          }
         },
         {
-          "wait": true
-        },
+          "runCode": {
+            "language": "python",
+            "code": "print('Hello, World!')",
+            "stdio": "Hello, World!"
+          }
+        }
+      ]
+    },
+    {
+      "runOn": [{ "platforms": ["linux", "mac"] }],
+      "steps": [
         {
-          "wait": false
-        },
-        {
-          "wait": 1
-        },
-        {
-          "wait": "10"
-        },
-        {
-          "wait": "$WAIT"
+          "runCode": {
+            "language": "bash",
+            "code": "echo 'Hello, World!'",
+            "stdio": "Hello, World!"
+          }
         }
       ]
     }
