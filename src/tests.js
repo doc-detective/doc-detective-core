@@ -691,6 +691,8 @@ async function runStep({ config, context, step, driver, options = {} }) {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
     actionResult = await loadVariables({ step: step });
+  } else if (typeof step.runShell !== "undefined") {
+    actionResult = await runShell({ config, step });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
