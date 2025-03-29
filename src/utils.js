@@ -23,6 +23,18 @@ exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
 exports.calculatePercentageDifference = calculatePercentageDifference;
 exports.fetchFile = fetchFile;
+exports.isRelativeUrl = isRelativeUrl;
+
+function isRelativeUrl(url) {
+  try {
+    new URL(url);
+    // If no error is thrown, it's a complete URL
+    return false;
+  } catch (error) {
+    // If URL constructor throws an error, it's a relative URL
+    return true;
+  }
+}
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {

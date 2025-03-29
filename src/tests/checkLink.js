@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { isRelativeUrl } = require("../utils");
 const axios = require("axios");
 
 exports.checkLink = checkLink;
@@ -12,8 +13,21 @@ async function checkLink({ config, step }) {
   }
 
   // Set origin for relative URLs
-  if (step.checkLink.url.startsWith("/") && (step.checkLink.origin || config.origin)) {
+  if (isRelativeUrl(step.checkLink.url)) {
+    if (!step.checkLink.origin && !config.origin) {
+      result.status = "FAIL";
+      result.description =
+        "Relative URL provided without origin. Specify an origin in either the step or the config.";
+      return result;
+    }
     step.checkLink.origin = step.checkLink.origin || config.origin;
+    // If there isn't the necessary slash, add it
+    if (
+      !step.checkLink.origin.endsWith("/") &&
+      !step.checkLink.url.startsWith("/")
+    ) {
+      step.checkLink.origin += "/";
+    }
     step.checkLink.url = step.checkLink.origin + step.checkLink.url;
   }
 

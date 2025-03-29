@@ -1,5 +1,5 @@
 const { validate } = require("doc-detective-common");
-const { instantiateCursor } = require("./moveTo");
+const { isRelativeUrl } = require("../utils");
 
 exports.goTo = goTo;
 
@@ -13,8 +13,21 @@ async function goTo({ config, step, driver }) {
   }
 
   // Set origin for relative URLs
-  if (step.goTo.url.startsWith("/") && (step.goTo.origin || config.origin)) {
+  if (isRelativeUrl(step.goTo.url)) {
+    if (!step.goTo.origin && !config.origin) {
+      result.status = "FAIL";
+      result.description =
+        "Relative URL provided without origin. Specify an origin in either the step or the config.";
+      return result;
+    }
     step.goTo.origin = step.goTo.origin || config.origin;
+    // If there isn't the necessary slash, add it
+    if (
+      !step.goTo.origin.endsWith("/") &&
+      !step.goTo.url.startsWith("/")
+    ) {
+      step.goTo.origin += "/";
+    }
     step.goTo.url = step.goTo.origin + step.goTo.url;
   }
 
