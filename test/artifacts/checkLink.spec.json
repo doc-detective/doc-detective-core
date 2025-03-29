@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "loadVariables": ".env"
+          "loadVariables": "env"
         },
         {
           "checkLink": "https://www.google.com"
