@@ -305,7 +305,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  if (JSON.stringify(step.httpRequest.response.body) != "{}") {
+  if (
+    typeof step.httpRequest.response?.body !== "undefined" &&
+    JSON.stringify(step.httpRequest.response.body) != "{}"
+  ) {
     let dataComparison = objectExistsInObject(
       step.httpRequest.response.body,
       response.data
@@ -321,7 +324,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   }
 
   // Compare response.headers
-  if (JSON.stringify(step.httpRequest.response?.headers) != "{}") {
+  if (
+    typeof step.httpRequest.response?.headers !== "undefined" &&
+    JSON.stringify(step.httpRequest.response?.headers) != "{}"
+  ) {
     dataComparison = objectExistsInObject(
       step.httpRequest.response?.headers,
       response.headers
@@ -552,6 +558,10 @@ if (require.main === module) {
           job: "Software Engineer",
         },
       },
+      path: "response.json",
+      directory: "media",
+      maxVariation: 0.05,
+      overwrite: "aboveVariation",
     },
   };
   httpRequest({ config, step })
