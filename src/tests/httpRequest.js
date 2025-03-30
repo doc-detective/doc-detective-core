@@ -291,7 +291,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  // Compare response.data
+  // Compare response.body
   if (!step.httpRequest.allowAdditionalFields) {
     // Do a deep comparison
     let dataComparison = objectExistsInObject(
@@ -305,21 +305,39 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  if (
-    typeof step.httpRequest.response?.body !== "undefined" &&
-    JSON.stringify(step.httpRequest.response.body) != "{}"
-  ) {
-    let dataComparison = objectExistsInObject(
-      step.httpRequest.response.body,
-      response.data
-    );
-    if (dataComparison.result.status === "PASS") {
-      if (result.status != "FAIL") result.status = "PASS";
-      result.description += ` Expected response data was present in actual response data.`;
-    } else {
+  if (typeof step.httpRequest.response?.body !== "undefined") {
+    // Check if response body is the same type
+    if (
+      typeof step.httpRequest.response.body !== typeof response.data ||
+      (typeof step.httpRequest.response.body === "object" &&
+        Array.isArray(step.httpRequest.response.body) !==
+          Array.isArray(response.data))
+    ) {
       result.status = "FAIL";
-      result.description =
-        result.description + " " + dataComparison.result.description;
+      result.description += ` Expected response body type didn't match actual response body type.`;
+      return result;
+    }
+    // Check if response body is a string or object
+    if (typeof step.httpRequest.response.body === "string") {
+      if (step.httpRequest.response.body !== response.data) {
+        result.status = "FAIL";
+        result.description += ` Expected response body didn't match actual response body.`;
+      }
+      return result;
+    } else if (typeof step.httpRequest.response.body === "object") {
+      const dataComparison = objectExistsInObject(
+        step.httpRequest.response.body,
+        response.data
+      );
+      if (dataComparison.result.status === "PASS") {
+        if (result.status != "FAIL") result.status = "PASS";
+        result.description += ` Expected response body was present in actual response body.`;
+      } else {
+        result.status = "FAIL";
+        result.description =
+          result.description + " " + dataComparison.result.description;
+        return result;
+      }
     }
   }
 
@@ -334,10 +352,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
     });
     // Perform comparison
-    dataComparison = objectExistsInObject(
-      headers,
-      response.headers
-    );
+    dataComparison = objectExistsInObject(headers, response.headers);
     // Check if headers are present in actual response
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
