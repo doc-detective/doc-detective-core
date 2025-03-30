@@ -328,10 +328,17 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     typeof step.httpRequest.response?.headers !== "undefined" &&
     JSON.stringify(step.httpRequest.response?.headers) != "{}"
   ) {
+    // Preprocess headers to lowercase
+    const headers = {};
+    Object.keys(step.httpRequest.response.headers).forEach((key) => {
+      headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
+    });
+    // Perform comparison
     dataComparison = objectExistsInObject(
-      step.httpRequest.response?.headers,
+      headers,
       response.headers
     );
+    // Check if headers are present in actual response
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
       result.description += ` Expected response headers were present in actual response headers.`;
@@ -376,7 +383,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       );
       log(config, "debug", `Percentage difference: ${percentDiff}%`);
 
-      if (percentDiff > step.httpRequest.maxVariation) {
+      if (percentDiff > step.httpRequest.maxVariation * 100) {
         if (step.httpRequest.overwrite == "aboveVariation") {
           // Overwrite file
           await fs.promises.writeFile(
@@ -385,7 +392,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
           );
         }
         result.status = "FAIL";
-        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.httpRequest.maxVariation}%).`;
+        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${
+          step.httpRequest.maxVariation * 100
+        }%).`;
         return result;
       }
 
@@ -551,16 +560,24 @@ if (require.main === module) {
           name: "John Doe",
           job: "Software Engineer",
         },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        params: {},
       },
       response: {
         body: {
           name: "John Doe",
           job: "Software Engineer",
         },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          server: "cloudflare",
+        },
       },
       path: "response.json",
       directory: "media",
-      maxVariation: 0.05,
+      maxVariation: 0.1,
       overwrite: "aboveVariation",
     },
   };
