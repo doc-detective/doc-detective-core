@@ -81,9 +81,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     step.httpRequest.method = operation.method;
     // Headers
     if (step.httpRequest.openApi.requestHeaders)
-      step.httpRequest.requestHeaders = {
+      step.httpRequest.request.headers = {
         ...step.httpRequest.openApi.requestHeaders,
-        ...(step.httpRequest.requestHeaders || {}),
+        ...(step.httpRequest.request.headers || {}),
       };
 
     // Set request info from example
@@ -99,7 +99,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       if (Object.keys(operation.example.request.headers).length > 0)
         step.httpRequest.requestHeaders = {
           ...operation.example.request.headers,
-          ...(step.httpRequest.requestHeaders || {}),
+          ...(step.httpRequest.request.headers || {}),
         };
       if (Object.keys(operation.example.request.body).length > 0)
         step.httpRequest.requestData = {
@@ -113,14 +113,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       step.httpRequest.openApi.useExample === "both"
     ) {
       if (Object.keys(operation.example.response.headers).length > 0)
-        step.httpRequest.responseHeaders = {
+        step.httpRequest.response.headers = {
           ...operation.example.response.headers,
-          ...(step.httpRequest.responseHeaders || {}),
+          ...(step.httpRequest.response.headers || {}),
         };
       if (Object.keys(operation.example.response.body).length > 0)
-        step.httpRequest.responseData = {
+        step.httpRequest.response.body = {
           ...operation.example.response.body,
-          ...(step.httpRequest.responseData || {}),
+          ...(step.httpRequest.response.body || {}),
         };
     }
     // Set status code
@@ -141,22 +141,48 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     step.httpRequest.url = "https://" + step.httpRequest.url;
 
   // Load environment variables
+  // Have to do it again to catch any changes made to the OpenAPI config
   step = await replaceEnvs(step);
 
   // Validate step payload
-  const isValidStep = validate({ schemaKey: "spec_v3", object: step });
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
+  // Resolve to object
+  if (typeof step.httpRequest === "string") {
+    step.httpRequest = { url: step.httpRequest };
+  }
+  // Set default values
+  step.httpRequest = {
+    ...step.httpRequest,
+    method: step.httpRequest.method || "get",
+    statusCodes: step.httpRequest.statusCodes || [200, 201],
+    request: step.httpRequest.request || {
+      params: {},
+      headers: {},
+      body: {},
+    },
+    response: step.httpRequest.response || {
+      headers: {},
+      body: {},
+    },
+    allowAdditionalFields: step.httpRequest.allowAdditionalFields || true,
+    overwrite: step.httpRequest.overwrite || "aboveVariation",
+    maxVariation: step.httpRequest.maxVariation || 0,
+    timeout: step.httpRequest.timeout || 60000,
+  };
 
   const request = {
     url: step.httpRequest.url,
     method: step.httpRequest.method,
-    headers: step.httpRequest.requestHeaders,
-    params: step.httpRequest.requestParams,
-    data: step.httpRequest.requestData,
+    headers: step.httpRequest.request.headers,
+    params: step.httpRequest.request.params,
+    data: step.httpRequest.request.body,
   };
 
   // Validate request payload against OpenAPI definition
@@ -199,20 +225,28 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
-    result.actualResponseData = response.data;
+    result.actualResponse = {
+      body: response.data,
+      status: response.status,
+      headers: response.headers,
+    };
   } else {
     // Mock response
     if (
-      JSON.stringify(step.httpRequest.responseData) == "{}" &&
+      JSON.stringify(step.httpRequest.response.body) == "{}" &&
       JSON.stringify(operation.example.response.body) != "{}"
     ) {
       response.data = operation.example.response.body;
     } else {
-      response.data = step.httpRequest.responseData;
+      response.data = step.httpRequest.response.body;
     }
-    result.actualResponseData = response.data;
+    result.actualResponse = {
+      body: response.data,
+      status: step.httpRequest.statusCodes[0],
+      headers: step.httpRequest.response?.headers,
+    };
     response.status = step.httpRequest.statusCodes[0];
-    response.headers = step.httpRequest.responseHeaders;
+    response.headers = step.httpRequest?.response?.headers;
   }
 
   // Compare status codes
@@ -257,12 +291,12 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  // Compare response.data and responseData
+  // Compare response.data
   if (!step.httpRequest.allowAdditionalFields) {
     // Do a deep comparison
     let dataComparison = objectExistsInObject(
       response.data,
-      step.httpRequest.responseData
+      step.httpRequest.response.body
     );
     if (dataComparison.result.status === "FAIL") {
       result.status = "FAIL";
@@ -271,9 +305,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  if (JSON.stringify(step.httpRequest.responseData) != "{}") {
+  if (JSON.stringify(step.httpRequest.response.body) != "{}") {
     let dataComparison = objectExistsInObject(
-      step.httpRequest.responseData,
+      step.httpRequest.response.body,
       response.data
     );
     if (dataComparison.result.status === "PASS") {
@@ -286,10 +320,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  // Compare response.headers and responseHeaders
-  if (JSON.stringify(step.httpRequest.responseHeaders) != "{}") {
+  // Compare response.headers
+  if (JSON.stringify(step.httpRequest.response?.headers) != "{}") {
     dataComparison = objectExistsInObject(
-      step.httpRequest.responseHeaders,
+      step.httpRequest.response?.headers,
       response.headers
     );
     if (dataComparison.result.status === "PASS") {
@@ -298,24 +332,6 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     } else {
       result.description =
         result.description + " " + dataComparison.result.description;
-    }
-  }
-
-  // Set environment variables from response data
-  for (const variable of step.httpRequest.envsFromResponseData) {
-    let value = await jq.run(variable.jqFilter, response.data, {
-      input: "json",
-      output: "compact",
-    });
-    if (value) {
-      // Trim quotes if present
-      value = value.replace(/^"(.*)"$/, "$1");
-      process.env[variable.name] = value;
-      result.description =
-        result.description + ` Set '$${variable.name}' environment variable.`;
-    } else {
-      if (result.status != "FAIL") result.status = "WARNING";
-      result.description += ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
   }
 
@@ -355,7 +371,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       log(config, "debug", `Percentage difference: ${percentDiff}%`);
 
       if (percentDiff > step.httpRequest.maxVariation) {
-        if (step.httpRequest.overwrite == "byVariation") {
+        if (step.httpRequest.overwrite == "aboveVariation") {
           // Overwrite file
           await fs.promises.writeFile(
             filePath,
