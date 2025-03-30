@@ -581,10 +581,7 @@ if (require.main === module) {
         params: {},
       },
       response: {
-        body: {
-          name: "John Doe",
-          job: "Software Engineer",
-        },
+        body: ["Hello world"],
         headers: {
           "Content-Type": "application/json; charset=utf-8",
           server: "cloudflare",
