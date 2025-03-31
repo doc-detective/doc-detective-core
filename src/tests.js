@@ -691,6 +691,12 @@ async function runStep({ config, context, step, driver, options = {} }) {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
     actionResult = await loadVariables({ step: step });
+  } else if (typeof step.httpRequest !== "undefined") {
+    actionResult = await httpRequest({
+      config: config,
+      step: step,
+      openApiDefinitions: options?.openApiDefinitions,
+    });
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config, step });
   } else if (typeof step.runShell !== "undefined") {
@@ -715,13 +721,6 @@ async function runStep({ config, context, step, driver, options = {} }) {
   //   case "stopRecording":
   //     actionResult = await stopRecording(config, step, driver);
   //     delete config.recording;
-  //     break;
-  //   case "httpRequest":
-  //     actionResult = await httpRequest(
-  //       config,
-  //       step,
-  //       options?.openApiDefinitions
-  //     );
   //     break;
   //   default:
   //     actionResult = { status: "FAIL", description: "Unsupported action." };
