@@ -171,7 +171,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       headers: {},
       body: {},
     },
-    allowAdditionalFields: step.httpRequest.allowAdditionalFields || true,
+    allowAdditionalFields: typeof step.httpRequest.allowAdditionalFields !== "undefined" ? step.httpRequest.allowAdditionalFields : true,
     overwrite: step.httpRequest.overwrite || "aboveVariation",
     maxVariation: step.httpRequest.maxVariation || 0,
     timeout: step.httpRequest.timeout || 60000,
@@ -578,15 +578,16 @@ if (require.main === module) {
         headers: {
           "Content-Type": "application/json",
         },
-        params: {},
+        parameters: {},
       },
       response: {
-        body: ["Hello world"],
+        body: {},
         headers: {
           "Content-Type": "application/json; charset=utf-8",
           server: "cloudflare",
         },
       },
+      allowAdditionalFields: false,
       path: "response.json",
       directory: "media",
       maxVariation: 0.1,
