@@ -80,28 +80,32 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     // Method
     step.httpRequest.method = operation.method;
     // Headers
-    if (step.httpRequest.openApi.requestHeaders)
+    if (step.httpRequest.openApi.requestHeaders) {
+      if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
+      
       step.httpRequest.request.headers = {
         ...step.httpRequest.openApi.requestHeaders,
         ...(step.httpRequest.request.headers || {}),
       };
+    }
 
     // Set request info from example
     if (
       step.httpRequest.openApi.useExample === "request" ||
       step.httpRequest.openApi.useExample === "both"
     ) {
-      if (Object.keys(operation.example.request.parameters).length > 0)
+      if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
+      if (Object.keys(operation.example.request?.parameters).length > 0)
         step.httpRequest.requestParams = {
           ...operation.example.request.parameters,
           ...(step.httpRequest.requestParams || {}),
         };
-      if (Object.keys(operation.example.request.headers).length > 0)
+      if (Object.keys(operation.example.request?.headers).length > 0)
         step.httpRequest.requestHeaders = {
           ...operation.example.request.headers,
           ...(step.httpRequest.request.headers || {}),
         };
-      if (Object.keys(operation.example.request.body).length > 0)
+      if (Object.keys(operation.example.request?.body).length > 0)
         step.httpRequest.requestData = {
           ...operation.example.request.body,
           ...(step.httpRequest.requestData || {}),
@@ -112,12 +116,13 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       step.httpRequest.openApi.useExample === "response" ||
       step.httpRequest.openApi.useExample === "both"
     ) {
-      if (Object.keys(operation.example.response.headers).length > 0)
+      if (typeof step.httpRequest.response !== "undefined") step.httpRequest.response = {};
+      if (Object.keys(operation.example.response?.headers).length > 0)
         step.httpRequest.response.headers = {
           ...operation.example.response.headers,
           ...(step.httpRequest.response.headers || {}),
         };
-      if (Object.keys(operation.example.response.body).length > 0)
+      if (Object.keys(operation.example.response?.body).length > 0)
         step.httpRequest.response.body = {
           ...operation.example.response.body,
           ...(step.httpRequest.response.body || {}),
