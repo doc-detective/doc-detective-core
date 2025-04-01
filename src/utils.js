@@ -1,6 +1,7 @@
 const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
+const YAML = require("yaml");
 const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
@@ -9,7 +10,7 @@ const {
   validate,
   resolvePaths,
   transformToSchemaKey,
-  readFile
+  readFile,
 } = require("doc-detective-common");
 
 exports.qualityFiles = qualityFiles;
@@ -35,6 +36,25 @@ function isRelativeUrl(url) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+// Parse a JSON or YAML object
+function parseObject({stringifiedObject}) {
+  if (typeof stringifiedObject === "string") {
+    // If string, try to parse as JSON or YAML
+    try {
+      const json = JSON.parse(stringifiedObject);
+      return json;
+    } catch (jsonError) {
+      try {
+        const yaml = YAML.parse(stringifiedObject);
+        return yaml;
+      } catch (yamlError) {
+        throw new Error("Invalid JSON or YAML format");
+      }
+    }
+  }
+  return stringifiedObject;
 }
 
 // Delete all contents of doc-detective temp directory
@@ -108,7 +128,7 @@ async function qualityFiles({ config }) {
     let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (isFile && await isValidSourceFile({ config, files, source })) {
+    if (isFile && (await isValidSourceFile({ config, files, source }))) {
       // Passes all checks
       files.push(path.resolve(source));
     } else if (isDir) {
@@ -125,7 +145,10 @@ async function qualityFiles({ config }) {
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           // Add to files or dirs array
-          if (isFile && await isValidSourceFile({ config, files, source: content })) {
+          if (
+            isFile &&
+            (await isValidSourceFile({ config, files, source: content }))
+          ) {
             files.push(path.resolve(content));
           } else if (isDir && config.recursive) {
             // recursive set to true
@@ -149,7 +172,11 @@ async function isValidSourceFile({ config, files, source }) {
   // Is present in files array already
   if (files.indexOf(source) >= 0) return false;
   // Is JSON or YAML but isn't a valid spec-formatted JSON object
-  if (path.extname(source) === ".json" || path.extname(source) === ".yaml" || path.extname(source) === ".yml") {
+  if (
+    path.extname(source) === ".json" ||
+    path.extname(source) === ".yaml" ||
+    path.extname(source) === ".yml"
+  ) {
     const content = await readFile({ fileURLOrPath: source });
     if (typeof content !== "object") {
       log(
@@ -303,7 +330,6 @@ async function parseContent({ config, content, filePath, fileType }) {
         const regex = new RegExp(pattern, "g");
         const matches = [...content.matchAll(regex)];
         if (matches.length > 0 && markup.batchMatches) {
-          // TODO: Implement batchMatches
           // Combine all matches into a single match
           const combinedMatch = {
             1: matches.map((match) => match[1] || match[0]).join(""),
@@ -341,23 +367,32 @@ async function parseContent({ config, content, filePath, fileType }) {
 
   statements.forEach((statement) => {
     let test = "";
+    let statementContent = "";
+    let stepsCleanup = false;
     currentIndex = statement.sortIndex;
     switch (statement.type) {
       case "testStart":
         // Test start statement
-        test = JSON.parse(statement[1]) || JSON.parse(statement[0]);
+        statementContent = statement[1] || statement[0];
+        test = parseObject({stringifiedObject: statementContent});
 
         // If v2 schema, convert to v3
         if (test.id || test.file || test.setup || test.cleanup) {
           // Add temporary step to pass validation
-          test.steps = [{ action: "goTo", url: "https://doc-detective.com" }];
+          if (!test.steps) {
+            test.steps = [{ action: "goTo", url: "https://doc-detective.com" }];
+            stepsCleanup = true;
+          }
           test = transformToSchemaKey({
             object: test,
             currentSchema: "test_v2",
             targetSchema: "test_v3",
           });
           // Remove temporary step
-          test.steps = [];
+          if (stepsCleanup) {
+            test.steps = [];
+            stepsCleanup = false;
+          }
         }
 
         if (test.testId) {
@@ -366,6 +401,10 @@ async function parseContent({ config, content, filePath, fileType }) {
         } else {
           // If the testId doesn't exist, set it
           test.testId = `${testId}`;
+        }
+        if (!test.steps) {
+          // If the test doesn't have steps, add an empty array
+          test.steps = [];
         }
         tests.push(test);
         break;
@@ -423,7 +462,8 @@ async function parseContent({ config, content, filePath, fileType }) {
       case "step":
         // Step statement
         test = findTest({ tests, testId });
-        let step = JSON.parse(statement[1]) || JSON.parse(statement[0]);
+        statementContent = statement[1] || statement[0];
+        let step = parseObject({stringifiedObject: statementContent});
         // Make sure is valid v3 step schema
         const validation = validate({
           schemaKey: "step_v3",
@@ -438,7 +478,7 @@ async function parseContent({ config, content, filePath, fileType }) {
           );
           return false;
         }
-        step = valid.object;
+        step = validation.object;
         test.steps.push(step);
         break;
       default:
@@ -475,7 +515,7 @@ async function parseTests({ config, files }) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
     let content = "";
-    content = await readFile({fileURLOrPath: file});
+    content = await readFile({ fileURLOrPath: file });
 
     if (typeof content === "object") {
       // Resolve to catch any relative setup or cleanup paths
@@ -541,7 +581,7 @@ async function parseTests({ config, files }) {
       });
       specs.push(content);
     } else {
-      // Process non-JSON
+      // Process non-object
       let id = `${uuid.v4()}`;
       let spec = { specId: id, contentPath: file, tests: [] };
       let ignore = false;
