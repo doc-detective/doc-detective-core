@@ -80,11 +80,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     // Method
     step.httpRequest.method = operation.method;
     // Headers
-    if (step.httpRequest.openApi.requestHeaders) {
+    if (step.httpRequest.openApi.headers) {
       if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
       
       step.httpRequest.request.headers = {
-        ...step.httpRequest.openApi.requestHeaders,
+        ...step.httpRequest.openApi.headers,
         ...(step.httpRequest.request.headers || {}),
       };
     }
@@ -96,19 +96,19 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     ) {
       if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
       if (Object.keys(operation.example.request?.parameters).length > 0)
-        step.httpRequest.requestParams = {
+        step.httpRequest.request.parameters = {
           ...operation.example.request.parameters,
-          ...(step.httpRequest.requestParams || {}),
+          ...(step.httpRequest.request.parameters || {}),
         };
       if (Object.keys(operation.example.request?.headers).length > 0)
-        step.httpRequest.requestHeaders = {
+        step.httpRequest.request.headers = {
           ...operation.example.request.headers,
           ...(step.httpRequest.request.headers || {}),
         };
       if (Object.keys(operation.example.request?.body).length > 0)
-        step.httpRequest.requestData = {
+        step.httpRequest.request.body = {
           ...operation.example.request.body,
-          ...(step.httpRequest.requestData || {}),
+          ...(step.httpRequest.request.body || {}),
         };
     }
     // Set response info
@@ -205,12 +205,12 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       coerceTypes: false,
     });
     const validate = ajv.compile(operation.schemas.request);
-    const valid = validate(step.httpRequest.requestData);
+    const valid = validate(step.httpRequest.request.body);
     if (valid) {
-      result.description = ` Request data matched the OpenAPI schema.`;
+      result.description = ` Request body matched the OpenAPI schema.`;
     } else {
       result.status = "FAIL";
-      result.description = ` Request data didn't match the OpenAPI schema. ${JSON.stringify(
+      result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
@@ -220,7 +220,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   }
 
   let response = {};
-  if (!step?.openApi?.mockResponse) {
+  if (!step?.httpRequest?.openApi?.mockResponse) {
     // Perform request
     response = await axios(request)
       .then((response) => {
@@ -238,8 +238,8 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   } else {
     // Mock response
     if (
-      JSON.stringify(step.httpRequest.response.body) == "{}" &&
-      JSON.stringify(operation.example.response.body) != "{}"
+      typeof step.httpRequest.response.body === "undefined" &&
+      typeof operation.example.response.body !== "undefined"
     ) {
       response.data = operation.example.response.body;
     } else {
