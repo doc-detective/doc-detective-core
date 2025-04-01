@@ -142,7 +142,7 @@ async function qualityFiles({ config }) {
 async function isValidSourceFile({ config, files, source }) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
-  let allowedExtensions = ["json"];
+  let allowedExtensions = ["json", "yaml", "yml"];
   config.fileTypes.forEach((fileType) => {
     allowedExtensions = allowedExtensions.concat(fileType.extensions);
   });
