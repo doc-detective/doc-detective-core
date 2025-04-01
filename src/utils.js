@@ -9,6 +9,7 @@ const {
   validate,
   resolvePaths,
   transformToSchemaKey,
+  readFile
 } = require("doc-detective-common");
 
 exports.qualityFiles = qualityFiles;
@@ -107,7 +108,7 @@ async function qualityFiles({ config }) {
     let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (isFile && isValidSourceFile({ config, files, source })) {
+    if (isFile && await isValidSourceFile({ config, files, source })) {
       // Passes all checks
       files.push(path.resolve(source));
     } else if (isDir) {
@@ -115,7 +116,8 @@ async function qualityFiles({ config }) {
       dirs = [];
       dirs[0] = source;
       for (const dir of dirs) {
-        fs.readdirSync(dir).forEach((object) => {
+        const objects = fs.readdirSync(dir);
+        for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
           // Exclude node_modules for local installs
           if (content.includes("node_modules")) return;
@@ -123,13 +125,13 @@ async function qualityFiles({ config }) {
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           // Add to files or dirs array
-          if (isFile && isValidSourceFile({ config, files, source: content })) {
+          if (isFile && await isValidSourceFile({ config, files, source: content })) {
             files.push(path.resolve(content));
           } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
           }
-        });
+        }
       }
     }
   }
@@ -137,7 +139,7 @@ async function qualityFiles({ config }) {
 }
 
 // Check if a source file is valid based on fileType definitions
-function isValidSourceFile({ config, files, source }) {
+async function isValidSourceFile({ config, files, source }) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
   let allowedExtensions = ["json"];
@@ -146,13 +148,10 @@ function isValidSourceFile({ config, files, source }) {
   });
   // Is present in files array already
   if (files.indexOf(source) >= 0) return false;
-  // Is JSON but isn't a valid spec-formatted JSON object
-  if (path.extname(source) === ".json") {
-    const jsonContent = fs.readFileSync(source).toString();
-    let json = {};
-    try {
-      json = JSON.parse(jsonContent);
-    } catch {
+  // Is JSON or YAML but isn't a valid spec-formatted JSON object
+  if (path.extname(source) === ".json" || path.extname(source) === ".yaml" || path.extname(source) === ".yml") {
+    const content = await readFile({ fileURLOrPath: source });
+    if (typeof content !== "object") {
       log(
         config,
         "debug",
@@ -162,7 +161,7 @@ function isValidSourceFile({ config, files, source }) {
     }
     const validation = validate({
       schemaKey: "spec_v3",
-      object: json,
+      object: content,
       addDefaults: false,
     });
     if (!validation.valid) {
@@ -176,13 +175,13 @@ function isValidSourceFile({ config, files, source }) {
     }
     // TODO: Move `before` and `after checking out of is and into a broader test validation function
     // If any objects in `tests` array have `before` or `after` property, make sure those files exist
-    for (const test of json.tests) {
+    for (const test of content.tests) {
       if (test.before) {
         let beforePath = "";
         if (config.relativePathBase === "file") {
-          beforePath = path.resolve(path.dirname(source), test.setup);
+          beforePath = path.resolve(path.dirname(source), test.before);
         } else {
-          beforePath = path.resolve(test.setup);
+          beforePath = path.resolve(test.before);
         }
         if (!fs.existsSync(beforePath)) {
           log(
@@ -196,9 +195,9 @@ function isValidSourceFile({ config, files, source }) {
       if (test.after) {
         let afterPath = "";
         if (config.relativePathBase === "file") {
-          afterPath = path.resolve(path.dirname(source), test.cleanup);
+          afterPath = path.resolve(path.dirname(source), test.after);
         } else {
-          afterPath = path.resolve(test.cleanup);
+          afterPath = path.resolve(test.after);
         }
         if (!fs.existsSync(afterPath)) {
           log(
@@ -476,11 +475,9 @@ async function parseTests({ config, files }) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
     let content = "";
-    content = fs.readFileSync(file).toString();
+    content = await readFile({fileURLOrPath: file});
 
-    if (extension === "json") {
-      // Process JSON
-      content = JSON.parse(content);
+    if (typeof content === "object") {
       // Resolve to catch any relative setup or cleanup paths
       content = await resolvePaths({
         config: config,
@@ -491,14 +488,12 @@ async function parseTests({ config, files }) {
       for (const test of content.tests) {
         // If any objects in `tests` array have `before` property, add `tests[0].steps` of before to the beginning of the object's `steps` array.
         if (test.before) {
-          const setupContent = fs.readFileSync(test.before).toString();
-          const setup = JSON.parse(setupContent);
+          const setup = await readFile({ fileURLOrPath: test.before });
           test.steps = setup.tests[0].steps.concat(test.steps);
         }
         // If any objects in `tests` array have `after` property, add `tests[0].steps` of after to the end of the object's `steps` array.
         if (test.after) {
-          const cleanupContent = fs.readFileSync(test.after).toString();
-          const cleanup = JSON.parse(cleanupContent);
+          const cleanup = await readFile({ fileURLOrPath: test.after });
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
       }
