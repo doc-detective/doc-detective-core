@@ -18,7 +18,7 @@ async function loadDescription(descriptionPath = "") {
   }
 
   // Load the definition from the URL or local file path
-  const definition = await readFile(descriptionPath);
+  const definition = await readFile({ fileURLOrPath: descriptionPath });
 
   // Dereference the definition
   const dereferencedDefinition = await parser.dereference(definition);
