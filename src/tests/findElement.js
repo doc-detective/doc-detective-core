@@ -1,21 +1,28 @@
 const { validate } = require("doc-detective-common");
 const { typeKeys } = require("./typeKeys");
-const { moveTo, instantiateCursor } = require("./moveTo");
+const { moveTo } = require("./moveTo");
 const { wait } = require("./wait");
 
 exports.findElement = findElement;
 
 async function findElementBySelectorOrText({ string, driver }) {
-  driver.url("https://www.duckduckgo.com/");
   // Find an element based on a string that could either be a selector or element text
   // Perform searches for both concurrently
   // Prefer a selector match over a text match
+  const timeout = 5000;
   const selectorPromise = driver.$(string);
   const textPromise = driver.$(`//*[text()="${string}"]`);
-  const [selectorResult, textResult] = await Promise.all([
-    selectorPromise,
-    textPromise,
+  // Wait for both promises to resolve
+  
+  const results = await Promise.allSettled([
+    selectorPromise.waitForExist({ timeout }).then(() => selectorPromise).catch(() => null),
+    textPromise.waitForExist({ timeout }).then(() => textPromise).catch(() => null)
   ]);
+  
+  const selectorResult = results[0].status === 'fulfilled' ? results[0].value : null;
+  const textResult = results[1].status === 'fulfilled' ? results[1].value : null;
+
+  let result;
   // Check if selectorResult is a valid element
   if (selectorResult && selectorResult.elementId) {
     result = { element: selectorResult, foundBy: "selector" };
@@ -30,10 +37,27 @@ async function findElementBySelectorOrText({ string, driver }) {
   return null;
 }
 
-async function findElementBySelectorAndText({ step, driver }) {}
+async function findElementBySelectorAndText({ selector, text, timeout, driver }) {
+  let element;
+  if (!selector && !text) {
+    return null;
+  }
+  // Wait  timeout milliseconds
+  await driver.pause(timeout);
+  // Find an element based on a selector and text
+  // Elements must match both selector and text
+  let elements = await driver.$$(selector);
+  elements = await elements.filter(async (el) => await el.getText() === text && el.elementId);
+  if (elements.length === 0) {
+    return null; // No matching elements
+  }
+  // If multiple elements match, return the first one
+  element = elements[0];
+  return { element, foundBy: "selector and text" };
+}
 
 // Find a single element
-async function findElement({config, step, driver}) {
+async function findElement({ config, step, driver }) {
   let result = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -57,72 +81,77 @@ async function findElement({config, step, driver}) {
       driver,
     });
     if (element) {
+      try {
+        // Wait for timeout
+        await element.waitForExist({ timeout: 5000 });
+      } catch {
+        // No matching elements
+        if (!element.elementId) {
+          result.status = "FAIL";
+          result.description = "No elements matched selector or text.";
+          return result;
+        }
+      }
       result.outputs.element = element;
+      result.description += ` Found element by ${foundBy}.`;
       return result;
     } else {
       // No matching elements
       result.status = "FAIL";
-      result.description = "No elements matched selector.";
+      result.description = "No elements matched selector or text.";
       return result;
     }
   }
-
 
   // Apply default values
-  if (typeof step.find === "object") {
-    step.find = {
-      ...step.find,
-      selector: step.find.selector || "",
-      timeout: step.find.timeout || 5000,
-      elementText: step.find.elementText || "",
-      moveTo: step.find.moveTo || false,
-      click: step.find.click || false,
-      type: step.find.type || false,
-    };
-  }
+  step.find = {
+    ...step.find,
+    selector: step.find.selector || "",
+    timeout: step.find.timeout || 5000,
+    elementText: step.find.elementText || "",
+    moveTo: step.find.moveTo || false,
+    click: step.find.click || false,
+    type: step.find.type || false,
+  };
 
-
-
-
-
-  // Find element
-  const element = await driver.$(step.find.selector);
-  try {
-    // Wait for timeout
-    await element.waitForExist({ timeout: step.find.timeout });
-  } catch {
-    // No matching elements
-    if (!element.elementId) {
+  // Find element (and match text)
+  let element;
+  if (step.find.selector && step.find.elementText) {
+    const { element: foundElement, foundBy } = await findElementBySelectorAndText({
+      selector: step.find.selector,
+      text: step.find.elementText,
+      timeout: step.find.timeout,
+      driver,
+    });
+    if (foundElement) {
+      element = foundElement;
+      result.outputs.element = element;
+      result.description += ` Found element by ${foundBy}.`;
+    } else {
+      // No matching elements
       result.status = "FAIL";
-      result.description = "No elements matched selector.";
+      result.description = "No elements matched selector and text.";
       return result;
     }
+  } else if (step.find.selector) {
+    element = await driver.$(step.find.selector);
+  } else if (step.find.elementText) {
+    element = await driver.$(`//*[text()="${step.find.elementText}"]`);
+  } else {
+    // No selector or text
+    result.status = "FAIL";
+    result.description = "No selector or text provided.";
+    return result;
   }
-
-  // Match text
-  const text = (await element.getText()) || (await element.getValue());
-  // If step.find.matchText starts and ends with `/`, treat it as a regex
-  if (step.find.matchText) {
-    if (
-      step.find.matchText.startsWith("/") &&
-      step.find.matchText.endsWith("/")
-    ) {
-      const regex = new RegExp(step.find.matchText.slice(1, -1));
-      if (regex.test(text)) {
-        result.description = result.description + " Matched regex.";
-      } else {
-        result.status = "FAIL";
-        result.description = `Element text (${text}) didn't match regex (${step.find.matchText}).`;
-        return result;
-      }
-    } else {
-      if (text === step.find.matchText) {
-        result.description = result.description + " Matched text.";
-      } else {
-        result.status = "FAIL";
-        result.description = `Element text (${text}) didn't equal match text (${step.find.matchText}).`;
-        return result;
-      }
+  
+  // Wait for timeout
+  try {
+    await element.waitForExist({ timeout: step.find.timeout });
+  } catch {
+    if (!element.elementId) {
+      result.status = "FAIL";
+      result.description = "No elements matched text.";
+      return result;
     }
   }
 
