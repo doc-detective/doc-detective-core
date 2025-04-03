@@ -687,6 +687,10 @@ async function runStep({ config, context, step, driver, options = {} }) {
   step = replaceEnvs(step);
   if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
+  } else if (typeof step.find !== "undefined") {
+    actionResult = await findElement({ config: config, step: step, driver });
+  } else if (typeof step.endRecord !== "undefined") {
+    actionResult = await stopRecording({ config: config, step: step, driver });
   } else if (typeof step.goTo !== "undefined") {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
@@ -697,34 +701,29 @@ async function runStep({ config, context, step, driver, options = {} }) {
       step: step,
       openApiDefinitions: options?.openApiDefinitions,
     });
+  } else if (typeof step.recording !== "undefined") {
+    actionResult = await startRecording({
+      config: config,
+      context: context,
+      step: step,
+      driver: driver,
+    });
+    config.recording = actionResult.recording;
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step });
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step });
+  } else if (typeof step.screenshot !== "undefined") {
+    actionResult = await saveScreenshot({
+      config: config,
+      step: step,
+      driver: driver,
+    });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({ config: config, step: step, driver: driver });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
-  // switch (step.action) {
-  //   case "find":
-  //     actionResult = await findElement(config, step, driver);
-  //     break;
-  //   case "saveScreenshot":
-  //     actionResult = await saveScreenshot(config, step, driver);
-  //     break;
-  //   case "startRecording":
-  //     actionResult = await startRecording(config, context, step, driver);
-  //     config.recording = actionResult.recording;
-  //     break;
-  //   case "stopRecording":
-  //     actionResult = await stopRecording(config, step, driver);
-  //     delete config.recording;
-  //     break;
-  //   default:
-  //     actionResult = { status: "FAIL", description: "Unsupported action." };
-  //     break;
-  // }
   // If recording, wait until browser is loaded, then instantiate cursor
   if (config.recording) {
     const currentUrl = await driver.getUrl();
