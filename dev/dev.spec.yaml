@@ -1,20 +1,16 @@
-  tests:
+tests:
   - steps:
-    - runCode:
-        language: javascript
-        code: console.log('Hello, World!');
-        stdio: Hello, World!
-    - runCode:
-        language: python
-        code: print('Hello, World!')
-        stdio: Hello, World!
-  - runOn:
-    - platforms:
-      - linux
-      - mac
-    steps:
-    - runCode:
-        language: bash
-        code: echo 'Hello, World!'
-        stdio: Hello, World!
-  
+      - goTo: https://duckduckgo.com
+      - type:
+          - kittens
+          - "$ENTER$"
+  - steps:
+      - goTo: https://duckduckgo.com
+      - type: kittens
+  - steps:
+      - goTo: https://duckduckgo.com
+      - type:
+          keys:
+            - kittens
+            - "$ENTER$"
+          inputDelay: 100

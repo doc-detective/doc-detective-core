@@ -45,7 +45,7 @@ async function main() {
         },
       ]
     }],
-    input: "./dev/doc-content-yaml.md",
+    input: "./dev/dev.spec.yaml",
     runOn: [
       {
         platforms: ["linux", "windows"],

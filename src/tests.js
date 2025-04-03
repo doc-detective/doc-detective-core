@@ -698,18 +698,17 @@ async function runStep({ config, context, step, driver, options = {} }) {
       openApiDefinitions: options?.openApiDefinitions,
     });
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config, step });
+    actionResult = await runCode({ config: config, step: step });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config, step });
+    actionResult = await runShell({ config: config, step: step });
+  } else if (typeof step.type !== "undefined") {
+    actionResult = await typeKeys({ config: config, step: step, driver: driver });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
   // switch (step.action) {
   //   case "find":
   //     actionResult = await findElement(config, step, driver);
-  //     break;
-  //   case "typeKeys":
-  //     actionResult = await typeKeys(config, step, driver);
   //     break;
   //   case "saveScreenshot":
   //     actionResult = await saveScreenshot(config, step, driver);
