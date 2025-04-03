@@ -1,0 +1,56 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "screenshot": true
+        },
+        {
+          "screenshot": "image.png"
+        },
+        {
+          "screenshot": {
+            "path": "image.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "crop": "#searchbox_input"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "image.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "overwrite": "true",
+            "crop": {
+              "selector": "#searchbox_input",
+              "elementText": "Element text",
+              "padding": 5
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "image.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "overwrite": "true",
+            "crop": {
+              "selector": "#searchbox_input",
+              "elementText": "Element text",
+              "padding": {
+                "top": 5,
+                "right": 5,
+                "bottom": 5,
+                "left": 5
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
