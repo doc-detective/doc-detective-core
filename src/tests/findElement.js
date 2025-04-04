@@ -102,7 +102,7 @@ async function findElement({ config, step, driver }) {
       return result;
     }
   }
-
+;
   // Apply default values
   step.find = {
     ...step.find,
@@ -150,10 +150,13 @@ async function findElement({ config, step, driver }) {
   } catch {
     if (!element.elementId) {
       result.status = "FAIL";
-      result.description = "No elements matched text.";
+      result.description = "No elements matched selector and/or text.";
       return result;
     }
   }
+
+  // Set element in outputs
+  result.outputs.element = element;
 
   // Move to element
   if (step.find.moveTo && config.recording) {
