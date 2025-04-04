@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { findElement } = require("./findElement");
 const { log } = require("../utils");
 const path = require("path");
 const fs = require("fs");
@@ -13,6 +14,7 @@ async function saveScreenshot({ config, step, driver }) {
     status: "PASS",
     description: "Saved screenshot.",
   };
+  let element;
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
@@ -42,7 +44,6 @@ async function saveScreenshot({ config, step, driver }) {
         step.screenshot.path
       );
     }
-
   }
   // Set default values
   step.screenshot = {
@@ -55,24 +56,10 @@ async function saveScreenshot({ config, step, driver }) {
     step.screenshot.crop = {
       ...step.screenshot.crop,
       selector: step.screenshot.crop.selector || "",
-      elementText:
-        step.screenshot.crop.elementText || "",
+      elementText: step.screenshot.crop.elementText || "",
       padding: step.screenshot.crop.padding || 0,
     };
   }
-
-  // if (step.screenshot.crop.elementText) {
-  //   const elements = await driver.$$(step.screenshot.crop.selector);
-  //   const element = elements.find(async (el) => {
-  //     const text = await driver.execute((el) => el.innerText, el);
-  //     return text.includes(step.screenshot.crop.elementText);
-  //   });
-  //   if (!element) {
-  //     result.status = "FAIL";
-  //     result.description = `Element with text "${step.screenshot.crop.elementText}" not found.`;
-  //     return result;
-  //   }
-  // }
 
   let filePath = step.screenshot.path;
 
@@ -98,9 +85,36 @@ async function saveScreenshot({ config, step, driver }) {
     }
   }
 
-  // TODO: Add support for finding by elementText
   if (step.screenshot.crop) {
-    const element = await driver.$(step.screenshot.crop.selector);
+    let findStep;
+    if (typeof step.screenshot.crop === "string") {
+      findStep = {
+        find: step.screenshot.crop,
+      };
+    } else {
+      findStep = {
+        find: {
+          selector: step.screenshot.crop?.selector,
+          elementText: step.screenshot.crop?.elementText,
+          timeout: step.screenshot.crop?.timeout,
+        },
+      };
+    }
+    const findResult = await findElement({
+      config,
+      step: findStep,
+      driver,
+    });
+    if (findResult.status === "FAIL") {
+      return findResult;
+    }
+    element = findResult.outputs.element;
+    if (!element) {
+      result.status = "FAIL";
+      result.description = `Couldn't find element to crop.`;
+      return result;
+    }
+
     // Determine if element bounding box + padding is within viewport
     const rect = await driver.execute((el) => {
       return el.getBoundingClientRect();
@@ -176,11 +190,7 @@ async function saveScreenshot({ config, step, driver }) {
     // Get pixel density
     const pixelDensity = await driver.execute(() => window.devicePixelRatio);
 
-    // Get the element using the provided selector
-    const element = await driver.$(step.screenshot.crop.selector);
-
     // Get the bounding rectangle of the element
-
     const rect = await driver.execute((el) => {
       return el.getBoundingClientRect();
     }, element);
