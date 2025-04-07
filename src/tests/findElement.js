@@ -218,9 +218,7 @@ async function findElement({ config, step, driver }) {
   // Type keys
   if (step.find.type) {
     const typeStep = {
-      type: {
-        keys: step.find.type.keys || step.find.type,
-      },
+      type: step.find.type,
     };
     const typeResult = await typeKeys({
       config: config,
