@@ -14,6 +14,7 @@ const { startRecording } = require("./tests/startRecording");
 const { stopRecording } = require("./tests/stopRecording");
 const { loadVariables } = require("./tests/loadVariables");
 const { httpRequest } = require("./tests/httpRequest");
+const { clickElement } = require("./tests/click");
 const { runCode } = require("./tests/runCode");
 const fs = require("fs");
 const path = require("path");
@@ -685,7 +686,13 @@ async function runStep({ config, context, step, driver, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
-  if (typeof step.checkLink !== "undefined") {
+  if (typeof step.click !== "undefined") {
+    actionResult = await clickElement({
+      config: config,
+      step: step,
+      driver: driver,
+    });
+  } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
     actionResult = await findElement({ config: config, step: step, driver });
