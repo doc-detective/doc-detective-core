@@ -252,7 +252,7 @@ async function saveScreenshot({ config, step, driver }) {
 
   // If file already exists
   // If overwrite is true, replace old file with new file
-  // If overwrite is byVariance, compare files and replace if variance is greater than threshold
+  // If overwrite is aboveVariation, compare files and replace if variance is greater than threshold
   if (existFilePath) {
     if (step.screenshot.overwrite == "true") {
       // Replace old file with new file
@@ -318,17 +318,17 @@ async function saveScreenshot({ config, step, driver }) {
       });
 
       if (percentDiff > step.screenshot.maxVariation) {
-        if (step.screenshot.overwrite == "byVariation") {
+        if (step.screenshot.overwrite == "aboveVariation") {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
         result.status = "FAIL";
-        result.description = `Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
+        result.description += ` Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
         return result;
       } else {
-        result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
+        result.description += ` Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
         if (step.screenshot.overwrite != "true") {
