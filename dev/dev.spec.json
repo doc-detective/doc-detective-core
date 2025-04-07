@@ -1,33 +1,24 @@
 {
-  "id": "runCode",
   "tests": [
     {
       "steps": [
         {
-          "runCode": {
-            "language": "javascript",
-            "code": "console.log('Hello, World!');",
-            "stdio": "Hello, World!"
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "find": {
+            "selector": "#searchbox_input",
+            "moveTo": true,
+            "click": true,
+            "type": ["Doc Detective", "$ENTER$"],
+            "timeout": 10000
           }
         },
         {
-          "runCode": {
-            "language": "python",
-            "code": "print('Hello, World!')",
-            "stdio": "Hello, World!"
-          }
-        }
-      ]
-    },
-    {
-      "runOn": [{ "platforms": ["linux", "mac"] }],
-      "steps": [
+          "wait": 2000
+        },
         {
-          "runCode": {
-            "language": "bash",
-            "code": "echo 'Hello, World!'",
-            "stdio": "Hello, World!"
-          }
+          "screenshot": "click.png"
         }
       ]
     }
