@@ -1,4 +1,5 @@
 const { validate } = require("doc-detective-common");
+const { clickElement } = require("./click");
 const { typeKeys } = require("./typeKeys");
 const { moveTo } = require("./moveTo");
 const { wait } = require("./wait");
@@ -13,14 +14,22 @@ async function findElementBySelectorOrText({ string, driver }) {
   const selectorPromise = driver.$(string);
   const textPromise = driver.$(`//*[text()="${string}"]`);
   // Wait for both promises to resolve
-  
+
   const results = await Promise.allSettled([
-    selectorPromise.waitForExist({ timeout }).then(() => selectorPromise).catch(() => null),
-    textPromise.waitForExist({ timeout }).then(() => textPromise).catch(() => null)
+    selectorPromise
+      .waitForExist({ timeout })
+      .then(() => selectorPromise)
+      .catch(() => null),
+    textPromise
+      .waitForExist({ timeout })
+      .then(() => textPromise)
+      .catch(() => null),
   ]);
-  
-  const selectorResult = results[0].status === 'fulfilled' ? results[0].value : null;
-  const textResult = results[1].status === 'fulfilled' ? results[1].value : null;
+
+  const selectorResult =
+    results[0].status === "fulfilled" ? results[0].value : null;
+  const textResult =
+    results[1].status === "fulfilled" ? results[1].value : null;
 
   let result;
   // Check if selectorResult is a valid element
@@ -37,7 +46,12 @@ async function findElementBySelectorOrText({ string, driver }) {
   return null;
 }
 
-async function findElementBySelectorAndText({ selector, text, timeout, driver }) {
+async function findElementBySelectorAndText({
+  selector,
+  text,
+  timeout,
+  driver,
+}) {
   let element;
   if (!selector && !text) {
     return null;
@@ -47,7 +61,9 @@ async function findElementBySelectorAndText({ selector, text, timeout, driver })
   // Find an element based on a selector and text
   // Elements must match both selector and text
   let elements = await driver.$$(selector);
-  elements = await elements.filter(async (el) => await el.getText() === text && el.elementId);
+  elements = await elements.filter(
+    async (el) => (await el.getText()) === text && el.elementId
+  );
   if (elements.length === 0) {
     return null; // No matching elements
   }
@@ -102,7 +118,6 @@ async function findElement({ config, step, driver }) {
       return result;
     }
   }
-;
   // Apply default values
   step.find = {
     ...step.find,
@@ -117,12 +132,13 @@ async function findElement({ config, step, driver }) {
   // Find element (and match text)
   let element;
   if (step.find.selector && step.find.elementText) {
-    const { element: foundElement, foundBy } = await findElementBySelectorAndText({
-      selector: step.find.selector,
-      text: step.find.elementText,
-      timeout: step.find.timeout,
-      driver,
-    });
+    const { element: foundElement, foundBy } =
+      await findElementBySelectorAndText({
+        selector: step.find.selector,
+        text: step.find.elementText,
+        timeout: step.find.timeout,
+        driver,
+      });
     if (foundElement) {
       element = foundElement;
       result.outputs.element = element;
@@ -148,42 +164,54 @@ async function findElement({ config, step, driver }) {
   try {
     await element.waitForExist({ timeout: step.find.timeout });
   } catch {
-    if (!element.elementId) {
-      result.status = "FAIL";
-      result.description = "No elements matched selector and/or text.";
-      return result;
-    }
+  }
+  
+  // No matching elements
+  if (!element.elementId) {
+    result.status = "FAIL";
+    result.description = "No elements matched selector and/or text.";
+    return result;
   }
 
   // Set element in outputs
   result.outputs.element = element;
 
   // Move to element
-  if (step.find.moveTo && config.recording) {
+  if (step.find.moveTo) {
     let moveToStep = {
       action: "moveTo",
       selector: step.find.selector,
+      alignment: "center",
+      offset: {
+        x: 0,
+        y: 0,
+      },
     };
-    if (typeof step.find.moveTo === "object") {
-      moveToStep = { ...moveToStep, ...step.find.moveTo };
-    }
 
-    await moveTo(config, moveToStep, driver);
+    await moveTo({ config, step: moveToStep, driver, element });
     result.description = result.description + " Moved to element.";
   }
 
   // Click element
   if (step.find.click) {
-    try {
-      const button = step.find.click.button || "left";
-      // TODO: Split into separate action with button and coordinates options. https://webdriver.io/docs/api/element/click
-      await element.click({ button });
-      result.description = result.description + " Clicked element.";
-    } catch {
-      // Couldn't click
+    const clickStep = {
+      click: {
+        button: step.find.click?.button || "left",
+        selector: step.find.selector,
+        elementText: step.find.elementText,
+      },
+    };
+    const clickResult = await clickElement({
+      config: config,
+      step: clickStep,
+      driver: driver,
+      element: element,
+    });
+    if (clickResult.status === "FAIL") {
       result.status = "FAIL";
-      result.description = "Couldn't click element.";
-      return result;
+      result.description += clickResult.description;
+    } else {
+      result.description += " Clicked element.";
     }
   }
 
@@ -194,18 +222,22 @@ async function findElement({ config, step, driver }) {
         keys: step.find.type.keys || step.find.type,
       },
     };
-    const typeResult = await typeKeys(config, typeStep, driver);
+    const typeResult = await typeKeys({
+      config: config,
+      step: typeStep,
+      driver: driver,
+    });
     if (typeResult.status === "FAIL") {
       result.status = "FAIL";
       result.description = `${result.description} ${typeResult.description}`;
     } else {
-      result.description = result.description + " Typed keys.";
+      result.description += " Typed keys.";
     }
   }
 
   // If recording, wait until page is loaded and instantiate cursor
   if (config.recording) {
-    await wait(config, { action: "wait", duration: 2000 }, driver);
+    await wait({ config: config, step: { wait: 2000 }, driver: driver });
   }
   // PASS
   return result;
