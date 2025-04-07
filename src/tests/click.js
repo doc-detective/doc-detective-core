@@ -1,3 +1,4 @@
+const { validate } = require("doc-detective-common");
 const { findElement } = require("./findElement");
 
 exports.clickElement = clickElement;
