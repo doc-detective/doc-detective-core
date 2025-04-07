@@ -81,12 +81,13 @@ async function typeKeys({config, step, driver}) {
   if (typeof step.type === "string") {
     step.type = [step.type];
   }
-  if (typeof step.type.keys === "string") {
-    step.type.keys = [step.type.keys];
-  }
   // Convert to object
   if (Array.isArray(step.type)) {
     step.type = { keys: step.type };
+  }
+  // Convert keys property to object
+  if (typeof step.type.keys === "string") {
+    step.type.keys = [step.type.keys];
   }
   // Set default values
   step.type = {
