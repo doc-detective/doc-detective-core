@@ -2,19 +2,20 @@ const { validate } = require("doc-detective-common");
 const { instantiateCursor } = require("./moveTo");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
 exports.startRecording = startRecording;
 
-async function startRecording(config, context, step, driver) {
+async function startRecording({config, context, step, driver}) {
   let result = {
     status: "PASS",
     description: "Started recording.",
   };
 
   // Validate step payload
-  isValidStep = validate("startRecording_v2", step);
+  const isValidStep = validate({schemaKey: "step_v3", object: step});
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
@@ -22,31 +23,31 @@ async function startRecording(config, context, step, driver) {
   }
 
   // If headless is true, skip recording
-  if (context.app?.options?.headless) {
+  if (context.browser?.headless) {
     result.status = "SKIPPED";
     result.description = `Recording isn't supported in headless mode.`;
     return result;
   }
 
   // Set file name
-  if (!step.path) {
-    step.path = `${step.id}.mp4`;
-    if (step.directory) {
-      step.path = path.join(step.directory, step.path);
+  if (!step.record.path) {
+    step.record.path = `${step.record.id}.mp4`;
+    if (step.record.directory) {
+      step.record.path = path.join(step.record.directory, step.record.path);
     }
   }
-  let filePath = step.path;
+  let filePath = step.record.path;
   const baseName = path.basename(filePath, path.extname(filePath));
 
   // Set path directory
-  const dir = path.dirname(step.path);
+  const dir = path.dirname(step.record.path);
   // If `dir` doesn't exist, create it
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
   // Check if file already exists
-  if (fs.existsSync(filePath) && step.overwrite == "false") {
+  if (fs.existsSync(filePath) && step.record.overwrite == "false") {
     // File already exists
     result.status = "SKIP";
     result.description = `File already exists: ${filePath}`;
@@ -54,8 +55,8 @@ async function startRecording(config, context, step, driver) {
   }
 
   if (
-    context.app.name === "chrome" &&
-    context?.app?.options?.headless === false
+    context?.browser?.name === "chrome" &&
+    context?.browser?.headless === false
   ) {
     config.recording = {};
     // Chrome and Chromium
@@ -149,7 +150,7 @@ async function startRecording(config, context, step, driver) {
       type: "MediaRecorder",
       tab: recorderTab.handle,
       downloadPath: path.join(
-        config.runTests.downloadDirectory,
+        os.tempdir(),
         `${baseName}.webm`
       ), // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.
@@ -198,7 +199,7 @@ async function startRecording(config, context, step, driver) {
         : dimensions.innerHeight - 2, //dimensions.innerHeight,
       x: dimensions.innerScreenX, //innerScreenX,
       y: dimensions.innerScreenY, //innerScreenY,
-      fps: step.fps,
+      fps: step.record.fps,
     };
 
     try {
@@ -213,7 +214,7 @@ async function startRecording(config, context, step, driver) {
         recordingSettings.fps,
         "-vf",
         `scale=w=iw/${recordingSettings.scale}:h=-1,crop=out_w=${recordingSettings.width}:out_h=${recordingSettings.height}:x=${recordingSettings.x}:y=${recordingSettings.y},format=yuv420p`,
-        step.path,
+        step.record.path,
       ];
 
       // const args = {

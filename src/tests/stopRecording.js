@@ -7,14 +7,14 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
 exports.stopRecording = stopRecording;
 
-async function stopRecording(config, step, driver) {
+async function stopRecording({ config, step, driver }) {
   let result = {
     status: "PASS",
     description: "Stopped recording.",
   };
 
   // Validate step payload
-  isValidStep = validate("stopRecording_v2", step);
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
@@ -54,7 +54,7 @@ async function stopRecording(config, step, driver) {
           path.extname(targetPath) === ".gif"
             ? `-vf scale=iw:-1:flags=lanczos`
             : ""
-        } ${targetPath}`,
+        } ${targetPath}`
       ).on("close", () => {
         if (targetPath !== downloadPath) {
           // Delete the downloaded file
