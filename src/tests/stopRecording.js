@@ -20,6 +20,8 @@ async function stopRecording({ config, step, driver }) {
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
 
   // Skip if recording is not started
   if (!config.recording) {
@@ -62,6 +64,7 @@ async function stopRecording({ config, step, driver }) {
           log(config, "debug", endMessage);
         }
       });
+      config.recording = null;
     } else {
       // FFMPEG
       // config.recording.stdin.write("q");
