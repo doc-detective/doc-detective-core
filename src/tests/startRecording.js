@@ -150,7 +150,7 @@ async function startRecording({config, context, step, driver}) {
       type: "MediaRecorder",
       tab: recorderTab.handle,
       downloadPath: path.join(
-        os.tempdir(),
+        os.tmpdir(),
         `${baseName}.webm`
       ), // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.

@@ -1,5 +1,6 @@
 const kill = require("tree-kill");
 const wdio = require("webdriverio");
+const os = require("os");
 const { log, replaceEnvs } = require("./utils");
 const axios = require("axios");
 const { instantiateCursor } = require("./tests/moveTo");
@@ -113,7 +114,7 @@ function getDriverCapabilities({ config, name, options }) {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              "download.default_directory": config.runTests.downloadDirectory,
+              "download.default_directory": os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
