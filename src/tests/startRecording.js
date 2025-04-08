@@ -8,19 +8,43 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
 exports.startRecording = startRecording;
 
-async function startRecording({config, context, step, driver}) {
+async function startRecording({ config, context, step, driver }) {
   let result = {
     status: "PASS",
     description: "Started recording.",
   };
 
   // Validate step payload
-  const isValidStep = validate({schemaKey: "step_v3", object: step});
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
+
+  // Convert boolean to string
+  if (typeof step.record === "boolean") {
+    step.record = { path: `${step.stepId}.mp4` };
+  }
+  // Convert string to object
+  if (typeof step.record === "string") {
+    step.record = { path: step.record };
+  }
+  // Compute path if unset
+  if (typeof step.record.path === "undefined") {
+    step.record.path = `${step.stepId}.mp4`;
+    // If `directory` is set, prepend it to the path
+    if (step.record.directory) {
+      step.record.path = path.resolve(step.record.directory, step.record.path);
+    }
+  }
+  // Set default values
+  step.record = {
+    ...step.record,
+    overwrite: step.record.overwrite || "false",
+  };
 
   // If headless is true, skip recording
   if (context.browser?.headless) {
@@ -149,10 +173,7 @@ async function startRecording({config, context, step, driver}) {
     result.recording = {
       type: "MediaRecorder",
       tab: recorderTab.handle,
-      downloadPath: path.join(
-        os.tmpdir(),
-        `${baseName}.webm`
-      ), // Where the recording will be downloaded.
+      downloadPath: path.join(os.tmpdir(), `${baseName}.webm`), // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.
     };
   } else {
