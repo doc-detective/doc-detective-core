@@ -32,7 +32,7 @@ exports.runSpecs = runSpecs;
 // Doc Detective actions that require a driver.
 const driverActions = [
   "click",
-  "endRecord",
+  "stopRecord",
   "find",
   "goTo",
   "record",
@@ -591,6 +591,36 @@ async function runSpecs(config, specs) {
           report.summary.steps[stepReport.result.toLowerCase()]++;
         }
 
+        // If recording, stop recording
+        if (config.recording) {
+          const stopRecordStep = {
+            stopRecord: true,
+            description: "Stopping recording",
+            stepId: `${uuid.v4()}`,
+          };
+          const stepResult = await runStep({
+            config: config,
+            context: context,
+            step: stopRecordStep,
+            driver: driver,
+            options: {
+              openApiDefinitions,
+            },
+          });
+          stepResult.result = stepResult.status;
+          stepResult.resultDescription = stepResult.description;
+          delete stepResult.status;
+          delete stepResult.description;
+
+          // Add step result to report
+          const stepReport = {
+            ...stepResult,
+            ...step,
+          };
+          contextReport.steps.push(stepReport);
+          report.summary.steps[stepReport.result.toLowerCase()]++;
+        }
+
         // Parse step results to calc context result
 
         // If any step fails, context fails
@@ -697,7 +727,7 @@ async function runStep({ config, context, step, driver, options = {} }) {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
     actionResult = await findElement({ config: config, step: step, driver });
-  } else if (typeof step.endRecord !== "undefined") {
+  } else if (typeof step.stopRecord !== "undefined") {
     actionResult = await stopRecording({ config: config, step: step, driver });
   } else if (typeof step.goTo !== "undefined") {
     actionResult = await goTo({ config: config, step: step, driver: driver });
@@ -728,7 +758,11 @@ async function runStep({ config, context, step, driver, options = {} }) {
       driver: driver,
     });
   } else if (typeof step.type !== "undefined") {
-    actionResult = await typeKeys({ config: config, step: step, driver: driver });
+    actionResult = await typeKeys({
+      config: config,
+      step: step,
+      driver: driver,
+    });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
   }
