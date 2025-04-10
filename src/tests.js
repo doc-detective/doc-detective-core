@@ -739,7 +739,7 @@ async function runStep({ config, context, step, driver, options = {} }) {
       step: step,
       openApiDefinitions: options?.openApiDefinitions,
     });
-  } else if (typeof step.recording !== "undefined") {
+  } else if (typeof step.record !== "undefined") {
     actionResult = await startRecording({
       config: config,
       context: context,
@@ -765,6 +765,11 @@ async function runStep({ config, context, step, driver, options = {} }) {
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step });
+  } else {
+    actionResult = {
+      status: "FAIL",
+      description: `Unknown step action: ${JSON.stringify(step)}`,
+    };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
   if (config.recording) {
