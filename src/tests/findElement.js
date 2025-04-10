@@ -54,7 +54,7 @@ async function findElementBySelectorAndText({
 }) {
   let element;
   if (!selector && !text) {
-    return null;
+    return {element: null, foundBy: null}; // No selector or text
   }
   // Wait  timeout milliseconds
   await driver.pause(timeout);
@@ -65,7 +65,7 @@ async function findElementBySelectorAndText({
     async (el) => (await el.getText()) === text && el.elementId
   );
   if (elements.length === 0) {
-    return null; // No matching elements
+    return {element: null, foundBy: null}; // No matching elements
   }
   // If multiple elements match, return the first one
   element = elements[0];

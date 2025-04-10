@@ -27,7 +27,6 @@
             "overwrite": "true",
             "crop": {
               "selector": "#searchbox_input",
-              "elementText": "Element text",
               "padding": 5
             }
           }
@@ -40,7 +39,6 @@
             "overwrite": "true",
             "crop": {
               "selector": "#searchbox_input",
-              "elementText": "Element text",
               "padding": {
                 "top": 5,
                 "right": 5,

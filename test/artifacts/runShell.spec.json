@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "loadVariables": ".env"
+          "loadVariables": "env"
         },
         {
           "runShell": "docker run hello-world"

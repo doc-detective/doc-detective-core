@@ -81,7 +81,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     step.httpRequest.method = operation.method;
     // Headers
     if (step.httpRequest.openApi.headers) {
-      if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
+      if (typeof step.httpRequest.request === "undefined") step.httpRequest.request = {};
       
       step.httpRequest.request.headers = {
         ...step.httpRequest.openApi.headers,
@@ -94,7 +94,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       step.httpRequest.openApi.useExample === "request" ||
       step.httpRequest.openApi.useExample === "both"
     ) {
-      if (typeof step.httpRequest.request !== "undefined") step.httpRequest.request = {};
+      if (typeof step.httpRequest.request === "undefined") step.httpRequest.request = {};
       if (Object.keys(operation.example.request?.parameters).length > 0)
         step.httpRequest.request.parameters = {
           ...operation.example.request.parameters,
@@ -108,7 +108,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       if (Object.keys(operation.example.request?.body).length > 0)
         step.httpRequest.request.body = {
           ...operation.example.request.body,
-          ...(step.httpRequest.request.body || {}),
+          ...(step.httpRequest?.request?.body || {}),
         };
     }
     // Set response info
@@ -116,7 +116,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       step.httpRequest.openApi.useExample === "response" ||
       step.httpRequest.openApi.useExample === "both"
     ) {
-      if (typeof step.httpRequest.response !== "undefined") step.httpRequest.response = {};
+      if (typeof step.httpRequest.response === "undefined") step.httpRequest.response = {};
       if (Object.keys(operation.example.response?.headers).length > 0)
         step.httpRequest.response.headers = {
           ...operation.example.response.headers,
