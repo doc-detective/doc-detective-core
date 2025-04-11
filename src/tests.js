@@ -369,7 +369,12 @@ async function runSpecs(config, specs) {
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
 
-    let specReport = { tests: [] };
+    let specReport = { 
+      specId: spec.specId,
+      description: spec.description,
+      contentPath: spec.contentPath,
+      tests: [] 
+    };
 
     // Conditionally override contexts
     const specContexts = spec.runOn || configContexts;
@@ -408,7 +413,13 @@ async function runSpecs(config, specs) {
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
 
-      let testReport = { contexts: [] };
+      let testReport = {
+        testId: test.testId,
+        description: test.description,
+        contentPath: test.contentPath,
+        detectSteps: test.detectSteps,
+        contexts: []
+      };
 
       // Resolve contexts
       const testContexts = resolveContexts({
@@ -450,6 +461,8 @@ async function runSpecs(config, specs) {
         log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
         let contextReport = {
+          platform: context.platform,
+          browser: context.browser,
           steps: [],
         };
 
