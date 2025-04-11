@@ -6,25 +6,28 @@
           "goTo": "https://duckduckgo.com"
         },
         {
+          "stepId": "screenshot-boolean",
           "screenshot": true
         },
         {
+          "stepId": "screenshot-string",
           "screenshot": "image.png"
         },
         {
+          "stepId": "screenshot-object-crop-string",
           "screenshot": {
-            "path": "image.png",
+            "path": "crop.png",
             "directory": "static/images",
             "maxVariation": 0.1,
             "crop": "#searchbox_input"
           }
         },
         {
+          "stepId": "screenshot-object-crop-object-padding-integer",
           "screenshot": {
-            "path": "image.png",
+            "path": "padding.png",
             "directory": "static/images",
             "maxVariation": 0.1,
-            "overwrite": "true",
             "crop": {
               "selector": "#searchbox_input",
               "padding": 5
@@ -32,11 +35,11 @@
           }
         },
         {
+          "stepId": "screenshot-object-crop-object-padding-object",
           "screenshot": {
-            "path": "image.png",
+            "path": "padding.png",
             "directory": "static/images",
             "maxVariation": 0.1,
-            "overwrite": "true",
             "crop": {
               "selector": "#searchbox_input",
               "padding": {
