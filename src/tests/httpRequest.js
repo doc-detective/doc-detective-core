@@ -533,7 +533,7 @@ function objectExistsInObject(expected, actual) {
     if (!actual.hasOwnProperty(key)) {
       // Key doesn't exist in actual
       description =
-        description + `The '${key}' key did't exist in returned JSON. `;
+        description + `The '${key}' key didn't exist in returned JSON. `;
       status = "FAIL";
     } else if (typeof expected[key] === "object") {
       if (Array.isArray(expected[key])) {
@@ -553,7 +553,7 @@ function objectExistsInObject(expected, actual) {
       // Actual value doesn't match expected
       description =
         description +
-        `The '${key}' key did't match the expected value. Expected: '${expected[key]}'. Actual: '${actual[key]}'. `;
+        `The '${key}' key didn't match the expected value. Expected: '${expected[key]}'. Actual: '${actual[key]}'. `;
       status = "FAIL";
     }
 
