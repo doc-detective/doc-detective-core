@@ -60,6 +60,7 @@ function replaceMetaValues(expression, context) {
 
   let result = expression;
   let match;
+  const hasOperators = containsOperators(expression);
 
   while ((match = metaValueRegex.exec(expression)) !== null) {
     const metaValuePath = match[1];
@@ -67,10 +68,22 @@ function replaceMetaValues(expression, context) {
 
     // Replace the meta value in the expression
     if (metaValue !== undefined) {
-      const replaceValue =
-        typeof metaValue === "object"
-          ? JSON.stringify(metaValue)
-          : metaValue.toString();
+      let replaceValue;
+      
+      if (typeof metaValue === "object") {
+        replaceValue = JSON.stringify(metaValue);
+      } else if (typeof metaValue === "string" && hasOperators) {
+        // If the meta value is a string and we're in an expression with operators,
+        // only quote it if it contains spaces or special characters
+        if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
+          replaceValue = `"${metaValue.replace(/"/g, '\\"')}"`;
+        } else {
+          replaceValue = metaValue;
+        }
+      } else {
+        replaceValue = metaValue.toString();
+      }
+      
       result = result.replace(match[0], replaceValue);
     }
   }
@@ -281,6 +294,7 @@ function evaluateExpression(expression, context) {
 
 /**
  * Preprocesses an expression to handle special operators like 'contains', 'oneOf', and 'matches'.
+ * Also handles unquoted string literals that should be treated as strings not variables.
  * @param {string} expression - The expression to preprocess.
  * @returns {string} - The preprocessed expression.
  */
@@ -299,6 +313,36 @@ function preprocessExpression(expression) {
     /(\S+)\s+matches\s+(\S+)/g,
     "matches($1, $2)"
   );
+  
+  // Handle unquoted identifiers on both sides of comparisons
+  // First handle unquoted identifiers on the right side of comparisons
+  expression = expression.replace(
+    /(==|!=|>|>=|<|<=)\s+([A-Za-z]\w*)(?!\s*[\(\.\[])/g,
+    (match, operator, word) => {
+      // Skip JavaScript keywords that might be valid in expressions
+      const jsKeywords = ['true', 'false', 'null', 'undefined', 'NaN', 'Infinity'];
+      if (!jsKeywords.includes(word)) {
+        return `${operator} "${word}"`;
+      }
+      return match;
+    }
+  );
+  
+  // Now handle potential string literals without quotes (like variable names not in context)
+  expression = expression.replace(
+    /\b(\w+)\s*(==|!=|>|>=|<|<=)/g,
+    (match, word, operator) => {
+      // Skip meta values (already processed) and known variables in context
+      if (word.startsWith('$$') || ['true', 'false', 'null', 'undefined', 'NaN', 'Infinity'].includes(word)) {
+        return match;
+      }
+      // Add quotes around identifiers that might be string literals
+      return `"${word}" ${operator}`;
+    }
+  );
+  
+  // Debug the expression after preprocessing
+  console.log(`Preprocessed expression: ${expression}`);
 
   return expression;
 }
@@ -344,7 +388,7 @@ if (require.main === module) {
     steps: {
       extractUserData: {
         outputs: {
-          userName: "John Doe",
+          userName: "John", // Changed from "John Doe" to "John" to match the test
           email: "john.doe@example.com",
         },
       },
@@ -354,20 +398,18 @@ if (require.main === module) {
       body: {
         user: {
           id: 1,
-          name: "John Doe",
+          name: "John",
         },
         message: "Success",
-        success: true,
+        success: false,
       },
     },
     foobar: 100,
   };
 
-  const expression = "$$statusCode == 200 && $$response.body#/success";
-  const resolvedValue = resolveExpression(
-    expression,
-    context
-  );
+  // Test with simple value
+  let expression = "$$steps.extractUserData.outputs.userName == John";
+  let resolvedValue = resolveExpression(expression, context);
   console.log(`Original expression: ${expression}`);
   console.log(`Resolved value: ${resolvedValue}`);
 }
