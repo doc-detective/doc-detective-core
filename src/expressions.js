@@ -1,5 +1,5 @@
 const { log } = require("./utils");
-const jp = require("jsonpath");
+const {JSONPath } = require("jsonpath-plus");
 const xpath = require("xpath");
 const { DOMParser } = require("xmldom");
 const jq = require("jq-web");
@@ -69,7 +69,7 @@ function replaceMetaValues(expression, context) {
     // Replace the meta value in the expression
     if (metaValue !== undefined) {
       let replaceValue;
-      
+
       if (typeof metaValue === "object") {
         replaceValue = JSON.stringify(metaValue);
       } else if (typeof metaValue === "string" && hasOperators) {
@@ -83,7 +83,7 @@ function replaceMetaValues(expression, context) {
       } else {
         replaceValue = metaValue.toString();
       }
-      
+
       result = result.replace(match[0], replaceValue);
     }
   }
@@ -166,7 +166,10 @@ async function resolveEmbeddedExpressions(str, context) {
   return str.replace(expressionRegex, async (match, expression) => {
     try {
       // First resolve any meta values within the expression
-      const resolvedExpression = await resolveExpression(expression.trim(), context);
+      const resolvedExpression = await resolveExpression(
+        expression.trim(),
+        context
+      );
 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
@@ -232,40 +235,40 @@ async function evaluateExpression(expression, context) {
     // Create a safe evaluation context
     const evalContext = {
       ...context,
-      contains: (a, b) => {
-        if (typeof a === "string") return a.includes(b);
-        if (Array.isArray(a)) return a.includes(b);
-        if (typeof a === "object" && a !== null) return b in a;
-        return false;
-      },
-      oneOf: (value, options) => {
-        if (!Array.isArray(options)) return false;
-        return options.includes(value);
-      },
-      matches: (str, regex) => {
-        if (typeof str !== "string") return false;
-        return new RegExp(regex).test(str);
-      },
-      jsonpath: (obj, path) => {
-        try {
-          return jp.query(obj, path);
-        } catch (e) {
-          log(`JSONPath error: ${e.message}`, "error");
-          return null;
-        }
-      },
-      xpath: (xml, path) => {
-        try {
-          const doc = new DOMParser().parseFromString(xml);
-          return xpath.select(path, doc);
-        } catch (e) {
-          log(`XPath error: ${e.message}`, "error");
-          return null;
-        }
-      },
+    //   contains: (a, b) => {
+    //     if (typeof a === "string") return a.includes(b);
+    //     if (Array.isArray(a)) return a.includes(b);
+    //     if (typeof a === "object" && a !== null) return b in a;
+    //     return false;
+    //   },
+    //   oneOf: (value, options) => {
+    //     if (!Array.isArray(options)) return false;
+    //     return options.includes(value);
+    //   },
+    //   matches: (str, regex) => {
+    //     if (typeof str !== "string") return false;
+    //     return new RegExp(regex).test(str);
+    //   },
+    //   jsonpath: (obj, path) => {
+    //     try {
+    //       return JSONPath({ path, json: obj });
+    //     } catch (e) {
+    //       log(`JSONPath error: ${e.message}`, "error");
+    //       return null;
+    //     }
+    //   },
+    //   xpath: (xml, path) => {
+    //     try {
+    //       const doc = new DOMParser().parseFromString(xml);
+    //       return xpath.select(path, doc);
+    //     } catch (e) {
+    //       log(`XPath error: ${e.message}`, "error");
+    //       return null;
+    //     }
+    //   },
       jq: (json, query) => {
         try {
-          return jq.then(jq => jq.json(json, query));
+          return jq.then((jq) => jq.json(json, query));
         } catch (e) {
           log(`jq error: ${e.message}`, "error");
           return null;
@@ -309,34 +312,44 @@ function preprocessExpression(expression) {
     /(\S+)\s+matches\s+(\S+)/g,
     "matches($1, $2)"
   );
-  
+
   // Handle unquoted identifiers on both sides of comparisons
   // First handle unquoted identifiers on the right side of comparisons
   expression = expression.replace(
     /(==|!=|>|>=|<|<=)\s+([A-Za-z]\w*)(?!\s*[\(\.\[])/g,
     (match, operator, word) => {
       // Skip JavaScript keywords that might be valid in expressions
-      const jsKeywords = ['true', 'false', 'null', 'undefined', 'NaN', 'Infinity'];
+      const jsKeywords = [
+        "true",
+        "false",
+        "null",
+        "undefined",
+        "NaN",
+        "Infinity",
+      ];
       if (!jsKeywords.includes(word)) {
         return `${operator} "${word}"`;
       }
       return match;
     }
   );
-  
+
   // Now handle potential string literals without quotes (like variable names not in context)
   expression = expression.replace(
     /\b(\w+)\s*(==|!=|>|>=|<|<=)/g,
     (match, word, operator) => {
       // Skip meta values (already processed) and known variables in context
-      if (word.startsWith('$$') || ['true', 'false', 'null', 'undefined', 'NaN', 'Infinity'].includes(word)) {
+      if (
+        word.startsWith("$$") ||
+        ["true", "false", "null", "undefined", "NaN", "Infinity"].includes(word)
+      ) {
         return match;
       }
       // Add quotes around identifiers that might be string literals
       return `"${word}" ${operator}`;
     }
   );
-  
+
   // Debug the expression after preprocessing
   console.log(`Preprocessed expression: ${expression}`);
 
@@ -352,7 +365,11 @@ function preprocessExpression(expression) {
  */
 async function evaluateAssertion(assertion, context, scope = "step") {
   try {
-    const resolvedAssertion = await resolveExpression(assertion, context, scope);
+    const resolvedAssertion = await resolveExpression(
+      assertion,
+      context,
+      scope
+    );
 
     // If the resolved assertion is already a boolean, return it
     if (typeof resolvedAssertion === "boolean") {
@@ -380,38 +397,44 @@ module.exports = {
 
 // Run the main function to test the code
 if (require.main === module) {
-    (async () => {
-        try {
-            const context = {
-                steps: {
-                    extractUserData: {
-                        outputs: {
-                            userName: "John", // Changed from "John Doe" to "John" to match the test
-                            email: "john.doe@example.com",
-                        },
-                    },
-                },
-                statusCode: 200,
-                response: {
-                    body: {
-                        user: {
-                            id: 1,
-                            name: "John",
-                        },
-                        message: "Success",
-                        success: false,
-                    },
-                },
-                foobar: 100,
-            };
+  (async () => {
+    try {
+      const context = {
+        steps: {
+          extractUserData: {
+            outputs: {
+              userName: "John", // Changed from "John Doe" to "John" to match the test
+              email: "john.doe@example.com",
+            },
+          },
+        },
+        statusCode: 200,
+        response: {
+          body: {
+            users: [
+              {
+                id: 1,
+                name: "John",
+              },
+              {
+                id: 2,
+                name: "Doe",
+              },
+            ],
+            message: "Success",
+            success: false,
+          },
+        },
+        foobar: 100,
+      };
 
-            // Test
-            let expression = "jq($$response.body,'.user.name')";
-            console.log(`Original expression: ${expression}`);
-            let resolvedValue = await resolveExpression(expression, context);
-            console.log(`Resolved value: ${resolvedValue}`);
-        } catch (error) {
-            console.error(`Error running test: ${error.message}`);
-        }
-    })();
+      // Test
+      let expression = "jsonpath($$response.body,'$.users[?(@.id==1)].name')";
+      console.log(`Original expression: ${expression}`);
+      let resolvedValue = await resolveExpression(expression, context);
+      console.log(`Resolved value: ${resolvedValue}`);
+    } catch (error) {
+      console.error(`Error running test: ${error.message}`);
+    }
+  })();
 }
