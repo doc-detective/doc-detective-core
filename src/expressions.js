@@ -2,7 +2,7 @@ const { log } = require("./utils");
 const jp = require("jsonpath");
 const xpath = require("xpath");
 const { DOMParser } = require("xmldom");
-const { execSync } = require("child_process");
+const jq = require("jq-web");
 
 /**
  * Resolves runtime expressions that may contain meta values and operators.
@@ -11,7 +11,7 @@ const { execSync } = require("child_process");
  * @param {object} context - Context object containing meta values.
  * @returns {*} - The resolved value of the expression.
  */
-function resolveExpression(expression, context) {
+async function resolveExpression(expression, context) {
   if (typeof expression !== "string") {
     return expression;
   }
@@ -19,7 +19,7 @@ function resolveExpression(expression, context) {
   try {
     // First check if this is a string with embedded expressions {{...}}
     if (expression.includes("{{") && expression.includes("}}")) {
-      return resolveEmbeddedExpressions(expression, context);
+      return await resolveEmbeddedExpressions(expression, context);
     }
 
     // For standalone expressions, replace all meta values
@@ -35,7 +35,7 @@ function resolveExpression(expression, context) {
 
     // Evaluate the expression if it contains operators
     if (containsOperators(resolvedExpression)) {
-      return evaluateExpression(resolvedExpression, context);
+      return await evaluateExpression(resolvedExpression, context);
     }
 
     return resolvedExpression;
@@ -156,17 +156,17 @@ function resolvePathTemplateVariables(path, context) {
  * @param {object} context - Context object containing values for evaluation.
  * @returns {string} - The string with embedded expressions replaced with their evaluated values.
  */
-function resolveEmbeddedExpressions(str, context) {
+async function resolveEmbeddedExpressions(str, context) {
   if (typeof str !== "string") {
     return str;
   }
 
   const expressionRegex = /\{\{([^{}]+)\}\}/g;
 
-  return str.replace(expressionRegex, (match, expression) => {
+  return str.replace(expressionRegex, async (match, expression) => {
     try {
       // First resolve any meta values within the expression
-      const resolvedExpression = resolveExpression(expression.trim(), context);
+      const resolvedExpression = await resolveExpression(expression.trim(), context);
 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
@@ -224,7 +224,7 @@ function containsOperators(expression) {
  * @param {object} context - Context object that might be needed for evaluation.
  * @returns {*} - The result of the evaluation.
  */
-function evaluateExpression(expression, context) {
+async function evaluateExpression(expression, context) {
   try {
     // Handle special operators that aren't valid JS syntax
     expression = preprocessExpression(expression);
@@ -265,11 +265,7 @@ function evaluateExpression(expression, context) {
       },
       jq: (json, query) => {
         try {
-          // This is a simple implementation; you might want a proper jq library
-          const result = execSync(
-            `echo '${JSON.stringify(json)}' | jq '${query}'`
-          ).toString();
-          return JSON.parse(result);
+          return jq.then(jq => jq.json(json, query));
         } catch (e) {
           log(`jq error: ${e.message}`, "error");
           return null;
@@ -354,9 +350,9 @@ function preprocessExpression(expression) {
  * @param {string} scope - The scope level: 'spec', 'test', or 'step'.
  * @returns {boolean} - Whether the assertion passes.
  */
-function evaluateAssertion(assertion, context, scope = "step") {
+async function evaluateAssertion(assertion, context, scope = "step") {
   try {
-    const resolvedAssertion = resolveExpression(assertion, context, scope);
+    const resolvedAssertion = await resolveExpression(assertion, context, scope);
 
     // If the resolved assertion is already a boolean, return it
     if (typeof resolvedAssertion === "boolean") {
@@ -384,32 +380,38 @@ module.exports = {
 
 // Run the main function to test the code
 if (require.main === module) {
-  const context = {
-    steps: {
-      extractUserData: {
-        outputs: {
-          userName: "John", // Changed from "John Doe" to "John" to match the test
-          email: "john.doe@example.com",
-        },
-      },
-    },
-    statusCode: 200,
-    response: {
-      body: {
-        user: {
-          id: 1,
-          name: "John",
-        },
-        message: "Success",
-        success: false,
-      },
-    },
-    foobar: 100,
-  };
+    (async () => {
+        try {
+            const context = {
+                steps: {
+                    extractUserData: {
+                        outputs: {
+                            userName: "John", // Changed from "John Doe" to "John" to match the test
+                            email: "john.doe@example.com",
+                        },
+                    },
+                },
+                statusCode: 200,
+                response: {
+                    body: {
+                        user: {
+                            id: 1,
+                            name: "John",
+                        },
+                        message: "Success",
+                        success: false,
+                    },
+                },
+                foobar: 100,
+            };
 
-  // Test with simple value
-  let expression = "$$steps.extractUserData.outputs.userName == John";
-  let resolvedValue = resolveExpression(expression, context);
-  console.log(`Original expression: ${expression}`);
-  console.log(`Resolved value: ${resolvedValue}`);
+            // Test
+            let expression = "jq($$response.body,'.user.name')";
+            console.log(`Original expression: ${expression}`);
+            let resolvedValue = await resolveExpression(expression, context);
+            console.log(`Resolved value: ${resolvedValue}`);
+        } catch (error) {
+            console.error(`Error running test: ${error.message}`);
+        }
+    })();
 }
