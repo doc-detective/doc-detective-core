@@ -310,6 +310,7 @@ async function runSpecs(config, specs) {
   const configContexts = config.runOn || [];
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
+  const metaValues = { specs: {} };
   let appium;
   const report = {
     summary: {
@@ -369,12 +370,17 @@ async function runSpecs(config, specs) {
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
 
+    // Set spec report
     let specReport = { 
       specId: spec.specId,
       description: spec.description,
       contentPath: spec.contentPath,
       tests: [] 
     };
+    // Set meta values
+    metaValues.specs[spec.specId] = { tests: {} };
+    
+    report.specs.push(specReport);
 
     // Conditionally override contexts
     const specContexts = spec.runOn || configContexts;
@@ -413,6 +419,7 @@ async function runSpecs(config, specs) {
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
 
+      // Set test report
       let testReport = {
         testId: test.testId,
         description: test.description,
@@ -420,6 +427,8 @@ async function runSpecs(config, specs) {
         detectSteps: test.detectSteps,
         contexts: []
       };
+      // Set meta values
+      metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
 
       // Resolve contexts
       const testContexts = resolveContexts({
@@ -460,11 +469,14 @@ async function runSpecs(config, specs) {
         const context = testContexts[index];
         log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
+        // Set context report
         let contextReport = {
           platform: context.platform,
           browser: context.browser,
           steps: [],
         };
+        // Set meta values
+        metaValues.specs[spec.specId].tests[test.testId].contexts[context.contextId] = { steps: {} };
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext({
@@ -570,11 +582,16 @@ async function runSpecs(config, specs) {
           if (!step.stepId) step.stepId = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
+          // Set meta values
+          metaValues.specs[spec.specId].tests[test.testId].contexts[context.contextId].steps[step.stepId] = {};
+
+          // Run step
           const stepResult = await runStep({
             config: config,
             context: context,
             step: step,
             driver: driver,
+            metaValues: metaValues,
             options: {
               openApiDefinitions,
             },
@@ -721,7 +738,7 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep({ config, context, step, driver, options = {} }) {
+async function runStep({ config, context, step, driver, metaValues, options = {} }) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
