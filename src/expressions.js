@@ -243,20 +243,20 @@ async function evaluateExpression(expression, context) {
     // Create a safe evaluation context
     const evalContext = {
       ...context,
-      //   contains: (a, b) => {
-      //     if (typeof a === "string") return a.includes(b);
-      //     if (Array.isArray(a)) return a.includes(b);
-      //     if (typeof a === "object" && a !== null) return b in a;
-      //     return false;
-      //   },
-      //   oneOf: (value, options) => {
-      //     if (!Array.isArray(options)) return false;
-      //     return options.includes(value);
-      //   },
-      //   matches: (str, regex) => {
-      //     if (typeof str !== "string") return false;
-      //     return new RegExp(regex).test(str);
-      //   },
+      contains: (a, b) => {
+        if (typeof a === "string") return a.includes(b);
+        if (Array.isArray(a)) return a.includes(b);
+        if (typeof a === "object" && a !== null) return b in a;
+        return false;
+      },
+      oneOf: (value, options) => {
+        if (!Array.isArray(options)) return false;
+        return options.includes(value);
+      },
+      matches: (str, regex) => {
+        if (typeof str !== "string") return false;
+        return new RegExp(regex).test(str);
+      },
       //   jsonpath: (obj, path) => {
       //     try {
       //       return JSONPath({ path, json: obj });
@@ -274,6 +274,24 @@ async function evaluateExpression(expression, context) {
       //       return null;
       //     }
       //   },
+      extract: (str, regex) => {
+        try {
+          const re = new RegExp(regex, "g");
+          const matches = [];
+          let match;
+          while ((match = re.exec(str)) !== null) {
+            if (match.length > 1) {
+              matches.push(match[1]); // First capture group
+            } else {
+              matches.push(match[0]); // Full match
+            }
+          }
+          return matches.length === 1 ? matches[0] : matches;
+        } catch (e) {
+          log(`Regex extraction error: ${e.message}`, "error");
+          return null;
+        }
+      },
       jq: (json, query) => {
         try {
           return jq.then((jq) => jq.json(json, query));
@@ -287,7 +305,7 @@ async function evaluateExpression(expression, context) {
     // Use Function constructor for safer evaluation
     const evaluator = new Function(
       ...Object.keys(evalContext),
-      `return ${expression};`
+      `return ${expression.replace(/\\/g, '\\\\')};`
     );
     return evaluator(...Object.values(evalContext));
   } catch (error) {
@@ -318,7 +336,33 @@ function preprocessExpression(expression) {
   // Replace "matches" operator
   expression = expression.replace(
     /(\S+)\s+matches\s+(\S+)/g,
-    "matches($1, $2)"
+    (match, left, right) => {
+      // If left side is not quoted and isn't a defined variable, add quotes
+      if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
+        left = `"${left}"`;
+      }
+      // If right side is not quoted and looks like a string literal, add quotes
+      if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
+        right = `"${right}"`;
+      }
+      return `matches(${left}, ${right})`;
+    }
+  );
+  
+  // Replace "extract" operator if used with infix notation
+  expression = expression.replace(
+    /(\S+)\s+extract\s+(\S+)/g,
+    (match, left, right) => {
+      // If left side is not quoted and isn't a defined variable, add quotes
+      if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
+        left = `"${left}"`;
+      }
+      // If right side is not quoted and looks like a string literal, add quotes
+      if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
+        right = `"${right}"`;
+      }
+      return `extract(${left}, ${right})`;
+    }
   );
 
   // Handle unquoted identifiers on both sides of comparisons
@@ -429,18 +473,36 @@ if (require.main === module) {
                 name: "Doe",
               },
             ],
-            message: "Success",
+            message: "Success with ID: 12345",
             success: false,
           },
         },
         foobar: 100,
       };
 
-      // Test
-      let expression = "$$response.body";
-      console.log(`Original expression: ${expression}`);
-      let resolvedValue = await resolveExpression(expression, context);
-      console.log(`Resolved value: ${resolvedValue}`);
+      // Test basic matching
+    //   let expression = "$$steps.extractUserData.outputs.userName matches John";
+    //   console.log(`Original expression: ${expression}`);
+    //   let resolvedValue = await resolveExpression(expression, context);
+    //   console.log(`Resolved value: ${resolvedValue}`);
+      
+      // Test extraction with no capture groups (returns array of full matches)
+    //   expression = "extract($$response.body.message, 'Success')";
+    //   console.log(`\nExtraction with no capture groups: ${expression}`);
+    //   resolvedValue = await resolveExpression(expression, context);
+    //   console.log(`Resolved value:`, resolvedValue);
+      
+      // Test extraction with capture groups
+    //   expression = "extract($$response.body.message, 'ID: (\\d+)')";
+    //   console.log(`\nExtraction with capture groups: ${expression}`);
+    //   resolvedValue = await resolveExpression(expression, context);
+    //   console.log(`Resolved value:`, resolvedValue);
+      
+    //   // Test extraction with multiple matches
+      expression = "extract($$response.body.users[*].name, '(\\w+)')";
+      console.log(`\nExtraction with multiple matches: ${expression}`);
+      resolvedValue = await resolveExpression(expression, context);
+      console.log(`Resolved value:`, resolvedValue);
     } catch (error) {
       console.error(`Error running test: ${error.message}`);
     }
