@@ -1,5 +1,5 @@
 const { log } = require("./utils");
-const {JSONPath } = require("jsonpath-plus");
+const { JSONPath } = require("jsonpath-plus");
 const xpath = require("xpath");
 const { DOMParser } = require("xmldom");
 const jq = require("jq-web");
@@ -35,7 +35,15 @@ async function resolveExpression(expression, context) {
 
     // Evaluate the expression if it contains operators
     if (containsOperators(resolvedExpression)) {
-      return await evaluateExpression(resolvedExpression, context);
+      let evaluatedExpression = await evaluateExpression(
+        resolvedExpression,
+        context
+      );
+      // If the evaluated expression is an object, convert it to a string
+      if (typeof evaluatedExpression === "object") {
+        evaluatedExpression = JSON.stringify(evaluatedExpression);
+      }
+      return evaluatedExpression;
     }
 
     return resolvedExpression;
@@ -235,37 +243,37 @@ async function evaluateExpression(expression, context) {
     // Create a safe evaluation context
     const evalContext = {
       ...context,
-    //   contains: (a, b) => {
-    //     if (typeof a === "string") return a.includes(b);
-    //     if (Array.isArray(a)) return a.includes(b);
-    //     if (typeof a === "object" && a !== null) return b in a;
-    //     return false;
-    //   },
-    //   oneOf: (value, options) => {
-    //     if (!Array.isArray(options)) return false;
-    //     return options.includes(value);
-    //   },
-    //   matches: (str, regex) => {
-    //     if (typeof str !== "string") return false;
-    //     return new RegExp(regex).test(str);
-    //   },
-    //   jsonpath: (obj, path) => {
-    //     try {
-    //       return JSONPath({ path, json: obj });
-    //     } catch (e) {
-    //       log(`JSONPath error: ${e.message}`, "error");
-    //       return null;
-    //     }
-    //   },
-    //   xpath: (xml, path) => {
-    //     try {
-    //       const doc = new DOMParser().parseFromString(xml);
-    //       return xpath.select(path, doc);
-    //     } catch (e) {
-    //       log(`XPath error: ${e.message}`, "error");
-    //       return null;
-    //     }
-    //   },
+      //   contains: (a, b) => {
+      //     if (typeof a === "string") return a.includes(b);
+      //     if (Array.isArray(a)) return a.includes(b);
+      //     if (typeof a === "object" && a !== null) return b in a;
+      //     return false;
+      //   },
+      //   oneOf: (value, options) => {
+      //     if (!Array.isArray(options)) return false;
+      //     return options.includes(value);
+      //   },
+      //   matches: (str, regex) => {
+      //     if (typeof str !== "string") return false;
+      //     return new RegExp(regex).test(str);
+      //   },
+      //   jsonpath: (obj, path) => {
+      //     try {
+      //       return JSONPath({ path, json: obj });
+      //     } catch (e) {
+      //       log(`JSONPath error: ${e.message}`, "error");
+      //       return null;
+      //     }
+      //   },
+      //   xpath: (xml, path) => {
+      //     try {
+      //       const doc = new DOMParser().parseFromString(xml);
+      //       return xpath.select(path, doc);
+      //     } catch (e) {
+      //       log(`XPath error: ${e.message}`, "error");
+      //       return null;
+      //     }
+      //   },
       jq: (json, query) => {
         try {
           return jq.then((jq) => jq.json(json, query));
@@ -429,7 +437,7 @@ if (require.main === module) {
       };
 
       // Test
-      let expression = "jsonpath($$response.body,'$.users[?(@.id==1)].name')";
+      let expression = "$$response.body";
       console.log(`Original expression: ${expression}`);
       let resolvedValue = await resolveExpression(expression, context);
       console.log(`Resolved value: ${resolvedValue}`);
