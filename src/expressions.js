@@ -325,29 +325,29 @@ async function evaluateExpression(expression, context) {
  */
 function preprocessExpression(expression) {
   // Replace "contains" operator
-  expression = expression.replace(
-    /(\S+)\s+contains\s+(\S+)/g,
-    "contains($1, $2)"
-  );
+//   expression = expression.replace(
+//     /(\S+)\s+contains\s+(\S+)/g,
+//     "contains($1, $2)"
+//   );
 
-  // Replace "oneOf" operator
-  expression = expression.replace(/(\S+)\s+oneOf\s+(\S+)/g, "oneOf($1, $2)");
+//   // Replace "oneOf" operator
+//   expression = expression.replace(/(\S+)\s+oneOf\s+(\S+)/g, "oneOf($1, $2)");
 
-  // Replace "matches" operator
-  expression = expression.replace(
-    /(\S+)\s+matches\s+(\S+)/g,
-    (match, left, right) => {
-      // If left side is not quoted and isn't a defined variable, add quotes
-      if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
-        left = `"${left}"`;
-      }
-      // If right side is not quoted and looks like a string literal, add quotes
-      if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
-        right = `"${right}"`;
-      }
-      return `matches(${left}, ${right})`;
-    }
-  );
+//   // Replace "matches" operator
+//   expression = expression.replace(
+//     /(\S+)\s+matches\s+(\S+)/g,
+//     (match, left, right) => {
+//       // If left side is not quoted and isn't a defined variable, add quotes
+//       if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
+//         left = `"${left}"`;
+//       }
+//       // If right side is not quoted and looks like a string literal, add quotes
+//       if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
+//         right = `"${right}"`;
+//       }
+//       return `matches(${left}, ${right})`;
+//     }
+//   );
   
   // Replace "extract" operator if used with infix notation
   expression = expression.replace(
