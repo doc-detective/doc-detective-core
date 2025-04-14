@@ -1,6 +1,5 @@
 const { validate } = require("doc-detective-common");
 const axios = require("axios");
-const jq = require("node-jq");
 const fs = require("fs");
 const path = require("path");
 const Ajv = require("ajv");
