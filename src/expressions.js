@@ -229,7 +229,8 @@ function getNestedProperty(obj, path) {
  * @returns {boolean} - Whether the expression contains operators.
  */
 function containsOperators(expression) {
-  const operatorRegex = /[><=!&|()[\]]+|contains|oneOf|matches/;
+  // TODO: Add back common operators (!)
+  const operatorRegex = /jq\(|extract\(/;
   return operatorRegex.test(expression);
 }
 

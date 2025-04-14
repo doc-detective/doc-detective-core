@@ -41,9 +41,7 @@ async function runCode({ config, step }) {
   const result = {
     status: "PASS",
     description: "Executed code.",
-    exitCode: "",
-    stdout: "",
-    stderr: "",
+    outputs: {},
   };
 
   // Validate step object
@@ -122,9 +120,7 @@ async function runCode({ config, step }) {
     // Copy results
     result.status = shellResult.status;
     result.description = shellResult.description;
-    result.stdout = shellResult.stdout;
-    result.stderr = shellResult.stderr;
-    result.exitCode = shellResult.exitCode;
+    result.outputs = {...result.outputs, ...shellResult.outputs};
   } catch (error) {
     result.status = "FAIL";
     result.description = error.message;
