@@ -243,20 +243,20 @@ async function evaluateExpression(expression, context) {
     // Create a safe evaluation context
     const evalContext = {
       ...context,
-      contains: (a, b) => {
-        if (typeof a === "string") return a.includes(b);
-        if (Array.isArray(a)) return a.includes(b);
-        if (typeof a === "object" && a !== null) return b in a;
-        return false;
-      },
-      oneOf: (value, options) => {
-        if (!Array.isArray(options)) return false;
-        return options.includes(value);
-      },
-      matches: (str, regex) => {
-        if (typeof str !== "string") return false;
-        return new RegExp(regex).test(str);
-      },
+    //   contains: (a, b) => {
+    //     if (typeof a === "string") return a.includes(b);
+    //     if (Array.isArray(a)) return a.includes(b);
+    //     if (typeof a === "object" && a !== null) return b in a;
+    //     return false;
+    //   },
+    //   oneOf: (value, options) => {
+    //     if (!Array.isArray(options)) return false;
+    //     return options.includes(value);
+    //   },
+    //   matches: (str, regex) => {
+    //     if (typeof str !== "string") return false;
+    //     return new RegExp(regex).test(str);
+    //   },
       //   jsonpath: (obj, path) => {
       //     try {
       //       return JSONPath({ path, json: obj });
@@ -499,7 +499,7 @@ if (require.main === module) {
     //   console.log(`Resolved value:`, resolvedValue);
       
     //   // Test extraction with multiple matches
-      expression = "extract($$response.body.users[*].name, '(\\w+)')";
+      expression = "extract($$response.body.users[0].name, '(\\w+)')";
       console.log(`\nExtraction with multiple matches: ${expression}`);
       resolvedValue = await resolveExpression(expression, context);
       console.log(`Resolved value:`, resolvedValue);
