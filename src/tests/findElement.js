@@ -54,7 +54,7 @@ async function findElementBySelectorAndText({
 }) {
   let element;
   if (!selector && !text) {
-    return {element: null, foundBy: null}; // No selector or text
+    return { element: null, foundBy: null }; // No selector or text
   }
   // Wait  timeout milliseconds
   await driver.pause(timeout);
@@ -65,11 +65,19 @@ async function findElementBySelectorAndText({
     async (el) => (await el.getText()) === text && el.elementId
   );
   if (elements.length === 0) {
-    return {element: null, foundBy: null}; // No matching elements
+    return { element: null, foundBy: null }; // No matching elements
   }
   // If multiple elements match, return the first one
   element = elements[0];
   return { element, foundBy: "selector and text" };
+}
+
+async function setOutputs({ element }) {
+  // Set element in outputs
+  const outputs = {};
+  outputs.element = element;
+  outputs.element.text = await element.getText();
+  return outputs;
 }
 
 // Find a single element
@@ -110,6 +118,7 @@ async function findElement({ config, step, driver }) {
       }
       result.outputs.element = element;
       result.description += ` Found element by ${foundBy}.`;
+      result.outputs = await setOutputs({ element });
       return result;
     } else {
       // No matching elements
@@ -151,21 +160,21 @@ async function findElement({ config, step, driver }) {
     }
   } else if (step.find.selector) {
     element = await driver.$(step.find.selector);
+    try {
+      await element.waitForExist({ timeout: step.find.timeout });
+    } catch {}
   } else if (step.find.elementText) {
     element = await driver.$(`//*[text()="${step.find.elementText}"]`);
+    try {
+      await element.waitForExist({ timeout: step.find.timeout });
+    } catch {}
   } else {
     // No selector or text
     result.status = "FAIL";
     result.description = "No selector or text provided.";
     return result;
   }
-  
-  // Wait for timeout
-  try {
-    await element.waitForExist({ timeout: step.find.timeout });
-  } catch {
-  }
-  
+
   // No matching elements
   if (!element.elementId) {
     result.status = "FAIL";
@@ -174,7 +183,7 @@ async function findElement({ config, step, driver }) {
   }
 
   // Set element in outputs
-  result.outputs.element = element;
+  result.outputs = await setOutputs({ element });
 
   // Move to element
   if (step.find.moveTo) {
