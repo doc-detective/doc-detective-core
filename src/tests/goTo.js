@@ -46,6 +46,24 @@ async function goTo({ config, step, driver }) {
   // Run action
   try {
     await driver.url(step.goTo.url);
+    
+    // Wait for page to completely load
+    // TODO: Add goTo.timeout to step definition
+    try {
+      await driver.waitUntil(
+        async () => {
+          const readyState = await driver.execute(() => {
+            return document.readyState;
+          });
+          return readyState === "complete";
+        },
+        { timeout: step.goTo.timeout || 15000 }
+      );
+    } catch (timeoutError) {
+      // The page took too long to load, but we'll still proceed
+      result.status = "WARNING";
+      result.description = "Opened URL, but page didn't fully load within the timeout period.";
+    }
   } catch (error) {
     // FAIL: Error opening URL
     result.status = "FAIL";
