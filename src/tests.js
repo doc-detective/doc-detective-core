@@ -816,6 +816,15 @@ async function runStep({
       await instantiateCursor(driver);
     }
   }
+  // Clean up actionResult outputs
+  if (actionResult?.outputs?.element) {
+    // Remove everything but element.text
+    const element = actionResult.outputs.element;
+    actionResult.outputs.element = {
+      text: element.text
+    };
+  }
+
   // If variables are defined, resolve and set them
   if (step.variables) {
     await Promise.all(Object.keys(step.variables).map(async (key) => {
