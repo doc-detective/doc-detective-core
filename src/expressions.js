@@ -4,6 +4,10 @@ const xpath = require("xpath");
 const { DOMParser } = require("xmldom");
 const jq = require("jq-web");
 
+module.exports = {
+  resolveExpression,
+};
+
 /**
  * Resolves runtime expressions that may contain meta values and operators.
  * Can handle both standalone expressions and strings with embedded expressions.
@@ -11,7 +15,7 @@ const jq = require("jq-web");
  * @param {object} context - Context object containing meta values.
  * @returns {*} - The resolved value of the expression.
  */
-async function resolveExpression(expression, context) {
+async function resolveExpression({ expression, context }) {
   if (typeof expression !== "string") {
     return expression;
   }
@@ -174,10 +178,10 @@ async function resolveEmbeddedExpressions(str, context) {
   return str.replace(expressionRegex, async (match, expression) => {
     try {
       // First resolve any meta values within the expression
-      const resolvedExpression = await resolveExpression(
-        expression.trim(),
-        context
-      );
+      const resolvedExpression = await resolveExpression({
+        expression: expression.trim(),
+        context: context,
+      });
 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
@@ -243,20 +247,20 @@ async function evaluateExpression(expression, context) {
     // Create a safe evaluation context
     const evalContext = {
       ...context,
-    //   contains: (a, b) => {
-    //     if (typeof a === "string") return a.includes(b);
-    //     if (Array.isArray(a)) return a.includes(b);
-    //     if (typeof a === "object" && a !== null) return b in a;
-    //     return false;
-    //   },
-    //   oneOf: (value, options) => {
-    //     if (!Array.isArray(options)) return false;
-    //     return options.includes(value);
-    //   },
-    //   matches: (str, regex) => {
-    //     if (typeof str !== "string") return false;
-    //     return new RegExp(regex).test(str);
-    //   },
+      //   contains: (a, b) => {
+      //     if (typeof a === "string") return a.includes(b);
+      //     if (Array.isArray(a)) return a.includes(b);
+      //     if (typeof a === "object" && a !== null) return b in a;
+      //     return false;
+      //   },
+      //   oneOf: (value, options) => {
+      //     if (!Array.isArray(options)) return false;
+      //     return options.includes(value);
+      //   },
+      //   matches: (str, regex) => {
+      //     if (typeof str !== "string") return false;
+      //     return new RegExp(regex).test(str);
+      //   },
       //   jsonpath: (obj, path) => {
       //     try {
       //       return JSONPath({ path, json: obj });
@@ -276,17 +280,13 @@ async function evaluateExpression(expression, context) {
       //   },
       extract: (str, regex) => {
         try {
-          const re = new RegExp(regex, "g");
-          const matches = [];
-          let match;
-          while ((match = re.exec(str)) !== null) {
-            if (match.length > 1) {
-              matches.push(match[1]); // First capture group
-            } else {
-              matches.push(match[0]); // Full match
-            }
+          const re = new RegExp(regex);
+          const match = str.match(re);
+          if (match && match.length > 1) {
+            return match[1]; // First capture group
+          } else {
+            return match ? match[0] : null; // Full match or null if no match
           }
-          return matches.length === 1 ? matches[0] : matches;
         } catch (e) {
           log(`Regex extraction error: ${e.message}`, "error");
           return null;
@@ -305,7 +305,7 @@ async function evaluateExpression(expression, context) {
     // Use Function constructor for safer evaluation
     const evaluator = new Function(
       ...Object.keys(evalContext),
-      `return ${expression.replace(/\\/g, '\\\\')};`
+      `return ${expression.replace(/\\/g, "\\\\").replace(/\./g, "\\.")};`
     );
     return evaluator(...Object.values(evalContext));
   } catch (error) {
@@ -325,40 +325,57 @@ async function evaluateExpression(expression, context) {
  */
 function preprocessExpression(expression) {
   // Replace "contains" operator
-//   expression = expression.replace(
-//     /(\S+)\s+contains\s+(\S+)/g,
-//     "contains($1, $2)"
-//   );
+  //   expression = expression.replace(
+  //     /(\S+)\s+contains\s+(\S+)/g,
+  //     "contains($1, $2)"
+  //   );
 
-//   // Replace "oneOf" operator
-//   expression = expression.replace(/(\S+)\s+oneOf\s+(\S+)/g, "oneOf($1, $2)");
+  //   // Replace "oneOf" operator
+  //   expression = expression.replace(/(\S+)\s+oneOf\s+(\S+)/g, "oneOf($1, $2)");
 
-//   // Replace "matches" operator
-//   expression = expression.replace(
-//     /(\S+)\s+matches\s+(\S+)/g,
-//     (match, left, right) => {
-//       // If left side is not quoted and isn't a defined variable, add quotes
-//       if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
-//         left = `"${left}"`;
-//       }
-//       // If right side is not quoted and looks like a string literal, add quotes
-//       if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
-//         right = `"${right}"`;
-//       }
-//       return `matches(${left}, ${right})`;
-//     }
-//   );
-  
+  //   // Replace "matches" operator
+  //   expression = expression.replace(
+  //     /(\S+)\s+matches\s+(\S+)/g,
+  //     (match, left, right) => {
+  //       // If left side is not quoted and isn't a defined variable, add quotes
+  //       if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
+  //         left = `"${left}"`;
+  //       }
+  //       // If right side is not quoted and looks like a string literal, add quotes
+  //       if (!/^['"`]/.test(right)) {
+  //         right = `"${right}"`;
+  //       }
+  //       return `matches(${left}, ${right})`;
+  //     }
+  //   );
+
   // Replace "extract" operator if used with infix notation
   expression = expression.replace(
     /(\S+)\s+extract\s+(\S+)/g,
     (match, left, right) => {
       // If left side is not quoted and isn't a defined variable, add quotes
-      if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
+      if (
+        (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left)) ||
+        typeof left === "string"
+      ) {
         left = `"${left}"`;
       }
       // If right side is not quoted and looks like a string literal, add quotes
-      if (!/^['"`]/.test(right) && !/^[\d\{\}\[\]\(\)]/.test(right)) {
+      if (!/^['"`]/.test(right)) {
+        right = `"${right}"`;
+      }
+      return `extract(${left}, ${right})`;
+    }
+  );
+  // Fix quoting around "extract" operator
+  // If inputs are not quoted, add quotes
+  expression = expression.replace(
+    /extract\(([^,]+),\s*([^,]+)\)/g,
+    (match, left, right) => {
+      if (!/^['"`]/.test(left)) {
+        left = `"${left}"`;
+      }
+      if (!/^['"`]/.test(right)) {
         right = `"${right}"`;
       }
       return `extract(${left}, ${right})`;
@@ -412,15 +429,13 @@ function preprocessExpression(expression) {
  * Evaluates an assertion based on the given expression and context.
  * @param {string} assertion - The assertion expression.
  * @param {object} context - Context object containing meta values.
- * @param {string} scope - The scope level: 'spec', 'test', or 'step'.
  * @returns {boolean} - Whether the assertion passes.
  */
-async function evaluateAssertion(assertion, context, scope = "step") {
+async function evaluateAssertion(assertion, context) {
   try {
     const resolvedAssertion = await resolveExpression(
-      assertion,
-      context,
-      scope
+      {expression: assertion,
+      context: context}
     );
 
     // If the resolved assertion is already a boolean, return it
@@ -481,27 +496,27 @@ if (require.main === module) {
       };
 
       // Test basic matching
-    //   let expression = "$$steps.extractUserData.outputs.userName matches John";
-    //   console.log(`Original expression: ${expression}`);
-    //   let resolvedValue = await resolveExpression(expression, context);
-    //   console.log(`Resolved value: ${resolvedValue}`);
-      
+      //   let expression = "$$steps.extractUserData.outputs.userName matches John";
+      //   console.log(`Original expression: ${expression}`);
+      //   let resolvedValue = await resolveExpression(expression, context);
+      //   console.log(`Resolved value: ${resolvedValue}`);
+
       // Test extraction with no capture groups (returns array of full matches)
-    //   expression = "extract($$response.body.message, 'Success')";
-    //   console.log(`\nExtraction with no capture groups: ${expression}`);
-    //   resolvedValue = await resolveExpression(expression, context);
-    //   console.log(`Resolved value:`, resolvedValue);
-      
+      //   expression = "extract($$response.body.message, 'Success')";
+      //   console.log(`\nExtraction with no capture groups: ${expression}`);
+      //   resolvedValue = await resolveExpression(expression, context);
+      //   console.log(`Resolved value:`, resolvedValue);
+
       // Test extraction with capture groups
-    //   expression = "extract($$response.body.message, 'ID: (\\d+)')";
-    //   console.log(`\nExtraction with capture groups: ${expression}`);
-    //   resolvedValue = await resolveExpression(expression, context);
-    //   console.log(`Resolved value:`, resolvedValue);
-      
-    //   // Test extraction with multiple matches
+      //   expression = "extract($$response.body.message, 'ID: (\\d+)')";
+      //   console.log(`\nExtraction with capture groups: ${expression}`);
+      //   resolvedValue = await resolveExpression(expression, context);
+      //   console.log(`Resolved value:`, resolvedValue);
+
+      //   // Test extraction with multiple matches
       expression = "extract($$response.body.users[0].name, '(\\w+)')";
       console.log(`\nExtraction with multiple matches: ${expression}`);
-      resolvedValue = await resolveExpression(expression, context);
+      resolvedValue = await resolveExpression({expression: expression, context: context});
       console.log(`Resolved value:`, resolvedValue);
     } catch (error) {
       console.error(`Error running test: ${error.message}`);
