@@ -23,6 +23,7 @@ const { spawn } = require("child_process");
 const uuid = require("uuid");
 const { setAppiumHome } = require("./appium");
 const { loadDescription } = require("./openapi");
+const { resolveExpression } = require("./expressions");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -371,15 +372,15 @@ async function runSpecs(config, specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
 
     // Set spec report
-    let specReport = { 
+    let specReport = {
       specId: spec.specId,
       description: spec.description,
       contentPath: spec.contentPath,
-      tests: [] 
+      tests: [],
     };
     // Set meta values
     metaValues.specs[spec.specId] = { tests: {} };
-    
+
     report.specs.push(specReport);
 
     // Conditionally override contexts
@@ -425,7 +426,7 @@ async function runSpecs(config, specs) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
-        contexts: []
+        contexts: [],
       };
       // Set meta values
       metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
@@ -476,7 +477,9 @@ async function runSpecs(config, specs) {
           steps: [],
         };
         // Set meta values
-        metaValues.specs[spec.specId].tests[test.testId].contexts[context.contextId] = { steps: {} };
+        metaValues.specs[spec.specId].tests[test.testId].contexts[
+          context.contextId
+        ] = { steps: {} };
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext({
@@ -583,7 +586,9 @@ async function runSpecs(config, specs) {
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
           // Set meta values
-          metaValues.specs[spec.specId].tests[test.testId].contexts[context.contextId].steps[step.stepId] = {};
+          metaValues.specs[spec.specId].tests[test.testId].contexts[
+            context.contextId
+          ].steps[step.stepId] = {};
 
           // Run step
           const stepResult = await runStep({
@@ -738,7 +743,14 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep({ config, context, step, driver, metaValues, options = {} }) {
+async function runStep({
+  config,
+  context,
+  step,
+  driver,
+  metaValues,
+  options = {},
+}) {
   let actionResult;
   // Load values from environment variables
   step = replaceEnvs(step);
@@ -803,6 +815,17 @@ async function runStep({ config, context, step, driver, metaValues, options = {}
       driver.state.url = currentUrl;
       await instantiateCursor(driver);
     }
+  }
+  // If variables are defined, resolve and set them
+  if (step.variables) {
+    await Promise.all(Object.keys(step.variables).map(async (key) => {
+      const expression = step.variables[key];
+      const value = await resolveExpression({
+        expression: expression,
+        context: {...metaValues, ...actionResult.outputs},
+      });
+      process.env[key] = value;
+    }));
   }
   return actionResult;
 }
