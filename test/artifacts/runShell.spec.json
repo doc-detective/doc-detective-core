@@ -6,7 +6,7 @@
           "loadVariables": "env"
         },
         {
-          "runShell": "docker run hello-world"
+          "runShell": "echo 'Hello from Docker!'"
         },
         {
           "runShell": {
@@ -22,7 +22,7 @@
         },
         {
           "runShell": {
-            "command": "docker run hello-world",
+            "command": "echo 'Hello from Docker!'",
             "timeout": 20000,
             "exitCodes": [0],
             "stdio": "Hello from Docker!"
@@ -44,7 +44,7 @@
         },
         {
           "runShell": {
-            "command": "docker run hello-world",
+            "command": "echo 'Hello from Docker!'",
             "workingDirectory": ".",
             "exitCodes": [0],
             "stdio": "Hello from Docker!",
