@@ -1,5 +1,5 @@
 const { setConfig } = require("./config");
-const { setFiles, parseTests, log, cleanTemp } = require("./utils");
+const { qualityFiles, parseTests, log, cleanTemp } = require("./utils");
 const { runSpecs } = require("./tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./analysis");
 const { getSuggestions } = require("./suggest");
@@ -20,7 +20,7 @@ const supportMessage = `
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
   // Set config
-  config = await setConfig(config);
+  config = await setConfig({config});
   log(config, "debug", `CONFIG:`);
   log(config, "debug", config);
 
@@ -28,12 +28,12 @@ async function runTests(config) {
   telemetryNotice(config);
 
   // Set files
-  const files = await setFiles(config);
+  const files = await qualityFiles({config});
   log(config, "debug", `FILES:`);
   log(config, "debug", files);
 
   // Set test specs
-  const specs = await parseTests(config, files);
+  const specs = await parseTests({config, files});
   log(config, "debug", `SPECS:`);
   log(config, "debug", specs);
 
@@ -64,7 +64,7 @@ async function runCoverage(config) {
   telemetryNotice(config);
 
   // Set files
-  const files = await setFiles(config);
+  const files = await qualityFiles(config);
   log(config, "debug", `FILES:`);
   log(config, "debug", files);
 

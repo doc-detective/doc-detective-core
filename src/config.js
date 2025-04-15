@@ -1,12 +1,11 @@
 const os = require("os");
 const { validate } = require("doc-detective-common");
-const { log, spawnCommand, setEnvs, loadEnvs } = require("./utils");
+const { log, spawnCommand, loadEnvs, replaceEnvs } = require("./utils");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
 const edgedriver = require("edgedriver");
-const geckodriver = require("geckodriver");
 const { setAppiumHome } = require("./appium");
 const { loadDescription } = require("./openapi");
 
@@ -39,16 +38,69 @@ const defaultAppIDs = {
   },
 };
 
-// Validate config and set extra internal-only values.
-async function setConfig(config) {
+// List of default file type definitions
+// TODO: Add defaults for all supported files
+const defaultFileTypes = {
+  markdown_1_0: {
+    name: "markdown",
+    extensions: ["md", "markdown", "mdx"],
+    inlineStatements: {
+      testStart: [
+        "<!--\\s*testStart\\s*([\\s\\S]*?)\\s*-->",
+        "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)",
+      ],
+      testEnd: [
+        "<!--\\s*testEnd\\s*([\\s\\S]*?)\\s*-->",
+        "\\[comment\\]:\\s+#\\s+\\(test end\\)",
+      ],
+      ignoreStart: ["<!--\\s*ignoreStart\\s*-->"],
+      ignoreEnd: ["<!--\\s*ignoreEnd\\s*-->"],
+      step: [
+        "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
+        "\\[comment\\]:\\s+#\\s+\\(step\\s*(.*?)\\s*\\)",
+      ],
+    },
+    markup: [
+      {
+        name: "onscreenText",
+        regex: ["\\*\\*(.+?)\\*\\*"],
+        actions: ["find"],
+      },
+      {
+        name: "runBash",
+        regex: ["```(?:bash)\\b\\s*\\n(?<code>.*?)(?=\\n```)"],
+        batchMatches: true,
+        actions: [
+          {
+            runCode: {
+              language: "bash",
+              code: "$1",
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+// Set keyword versions
+defaultFileTypes.markdown = defaultFileTypes["markdown_1_0"];
+
+/**
+ * Sets up and validates the configuration object for Doc Detective
+ * @async
+ * @param {Object} config - The configuration object to process
+ * @returns {Promise<Object>} The processed and validated configuration object
+ * @throws Will exit process with code 1 if configuration is invalid
+ */
+async function setConfig({ config }) {
   // Set environment variables from file
-  if (config.envVariables) await setEnvs(config.envVariables);
+  if (config.loadVariables) await loadEnvs(config.loadVariables);
 
   // Load environment variables for `config`
-  config = loadEnvs(config);
+  config = replaceEnvs(config);
 
   // Validate inbound `config`.
-  const validityCheck = validate("config_v2", config);
+  const validityCheck = validate({ schemaKey: "config_v3", object: config });
   if (!validityCheck.valid) {
     // TODO: Improve error message reporting.
     log(
@@ -58,44 +110,92 @@ async function setConfig(config) {
     );
     process.exit(1);
   }
+  config = validityCheck.object;
+
+  // Replace fileType strings with objects
+  config.fileTypes = config.fileTypes.map((fileType) => {
+    if (typeof fileType === "object") return fileType;
+    const fileTypeObject = defaultFileTypes[fileType];
+    if (typeof fileTypeObject !== "undefined") return fileTypeObject;
+    log(
+      config,
+      "error",
+      `Invalid config. "${fileType}" isn't a valid fileType value.`
+    );
+    process.exit(1);
+  });
+
+  // TODO: Combine extended fileTypes with overrides
 
   // Standardize value formats
-  // Convert `input` into array
   if (typeof config.input === "string") config.input = [config.input];
-  if (config.runTests) {
-    // Convert `runTests.input` into array
-    if (config.runTests.input && typeof config.runTests.input === "string")
-      config.runTests.input = [config.runTests.input];
-    // Convert `runTests.setup` into array
-    if (config.runTests.setup && typeof config.runTests.setup === "string")
-      config.runTests.setup = [config.runTests.setup];
-    // Convert `runTests.cleanup` into array
-    if (config.runTests.cleanup && typeof config.runTests.cleanup === "string")
-      config.runTests.cleanup = [config.runTests.cleanup];
-  } else {
-    // If `runTests` is not defined, set it to an empty object.
-    config.runTests = {};
+  if (typeof config.beforeAny === "string") {
+    if (config.beforeAny === "") {
+      config.beforeAny = [];
+    } else {
+      config.beforeAny = [config.beforeAny];
+    }
   }
-  // Set download/media directories
-  config.runTests.downloadDirectory =
-    config.runTests?.downloadDirectory ||
-    config.runTests?.output ||
-    config.output;
-  config.runTests.downloadDirectory = path.resolve(
-    config.runTests.downloadDirectory
-  );
-  config.runTests.mediaDirectory =
-    config.runTests?.mediaDirectory || config.runTests?.output || config.output;
-  config.runTests.mediaDirectory = path.resolve(config.runTests.mediaDirectory);
+  if (typeof config.afterAll === "string") {
+    if (config.afterAll === "") {
+      config.afterAll = [];
+    } else {
+      config.afterAll = [config.afterAll];
+    }
+  }
+  if (typeof config.fileTypes === "string") {
+    config.fileTypes = [config.fileTypes];
+  }
+  config.fileTypes = config.fileTypes.map((fileType) => {
+    if (fileType.inlineStatements) {
+      if (typeof fileType.inlineStatements.testStart === "string")
+        fileType.inlineStatements.testStart = [
+          fileType.inlineStatements.testStart,
+        ];
+      if (typeof fileType.inlineStatements.testEnd === "string")
+        fileType.inlineStatements.testEnd = [fileType.inlineStatements.testEnd];
+      if (typeof fileType.inlineStatements.ignoreStart === "string")
+        fileType.inlineStatements.ignoreStart = [
+          fileType.inlineStatements.ignoreStart,
+        ];
+      if (typeof fileType.inlineStatements.ignoreEnd === "string")
+        fileType.inlineStatements.ignoreEnd = [
+          fileType.inlineStatements.ignoreEnd,
+        ];
+      if (typeof fileType.inlineStatements.step === "string")
+        fileType.inlineStatements.step = [fileType.inlineStatements.step];
+    }
+    if (fileType.markup) {
+      fileType.markup = fileType.markup.map((markup) => {
+        if (typeof markup.regex === "string") markup.regex = [markup.regex];
+        return markup;
+      });
+    }
+
+    return fileType;
+  });
 
   // Detect current environment.
   config.environment = getEnvironment();
   config.environment.apps = await getAvailableApps(config);
+  // TODO: Revise loadDescriptions() so it doesn't mutate the input but instead returns an updated object
   await loadDescriptions(config);
 
   return config;
 }
 
+/**
+ * Loads OpenAPI descriptions for all configured OpenAPI integrations.
+ *
+ * @async
+ * @param {Object} config - The configuration object.
+ * @returns {Promise<void>} - A promise that resolves when all descriptions are loaded.
+ *
+ * @remarks
+ * This function modifies the input config object by:
+ * 1. Adding a 'definition' property to each OpenAPI configuration with the loaded description.
+ * 2. Removing any OpenAPI configurations where the description failed to load.
+ */
 async function loadDescriptions(config) {
   if (config?.integrations?.openApi) {
     for (const openApiConfig of config.integrations.openApi) {
@@ -144,7 +244,7 @@ async function getAvailableApps(config) {
   const chrome = installedBrowsers.find(
     (browser) => browser.browser === "chrome"
   );
-  const chromeVersion = await getChromiumVersion(chrome.executablePath);
+  const chromeVersion = chrome.buildId;
   const chromedriver = installedBrowsers.find(
     (browser) => browser.browser === "chromedriver"
   );
@@ -216,36 +316,3 @@ async function getAvailableApps(config) {
 
   return apps;
 }
-
-// Detect version of Chromium-based browser.
-const getChromiumVersion = async (browserPath = "") => {
-  if (!browserPath) return;
-  browserPath = path.resolve(browserPath);
-  let version;
-  // Windows
-  if (process.platform === "win32") {
-    const command = `powershell -command "&{(Get-Item '${browserPath}').VersionInfo.ProductVersion}"`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${command}`);
-        console.error(stderr);
-        return;
-      }
-      version = stdout.trim();
-    });
-  }
-  // Mac and Linux
-  else {
-    const command = `"${browserPath}" --version`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${command}`);
-        console.error(stderr);
-        return;
-      }
-      version = stdout.trim().split(" ")[-1];
-    });
-  }
-
-  return version;
-};

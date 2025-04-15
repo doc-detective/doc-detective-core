@@ -1,6 +1,6 @@
 const { validate } = require("doc-detective-common");
+const { findElement } = require("./findElement");
 const { log } = require("../utils");
-const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const PNG = require("pngjs").PNG;
@@ -9,31 +9,62 @@ const pixelmatch = require("pixelmatch");
 
 exports.saveScreenshot = saveScreenshot;
 
-async function saveScreenshot(config, step, driver) {
+async function saveScreenshot({ config, step, driver }) {
   let result = {
     status: "PASS",
     description: "Saved screenshot.",
   };
+  let element;
 
   // Validate step payload
-  isValidStep = validate("saveScreenshot_v2", step);
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
 
-  // Set file name
-  if (!step.path) {
-    step.path = `${step.id}.png`;
-    if (step.directory) {
-      step.path = path.join(step.directory, step.path);
+  // Convert boolean to string
+  if (typeof step.screenshot === "boolean") {
+    step.screenshot = { path: `${step.stepId}.png` };
+  }
+  // Convert string to object
+  if (typeof step.screenshot === "string") {
+    step.screenshot = { path: step.screenshot };
+  }
+  // Compute path if unset
+  if (typeof step.screenshot.path === "undefined") {
+    step.screenshot.path = `${step.stepId}.png`;
+    // If `directory` is set, prepend it to the path
+    if (step.screenshot.directory) {
+      step.screenshot.path = path.resolve(
+        step.screenshot.directory,
+        step.screenshot.path
+      );
     }
   }
-  let filePath = step.path;
+  // Set default values
+  step.screenshot = {
+    ...step.screenshot,
+    maxVariation: step.screenshot.maxVariation || 0.05,
+    overwrite: step.screenshot.overwrite || "aboveVariation",
+  };
+  // Set default values for crop
+  if (typeof step.screenshot.crop === "object") {
+    step.screenshot.crop = {
+      ...step.screenshot.crop,
+      selector: step.screenshot.crop.selector || "",
+      elementText: step.screenshot.crop.elementText || "",
+      padding: step.screenshot.crop.padding || 0,
+    };
+  }
+
+  let filePath = step.screenshot.path;
 
   // Set path directory
-  const dir = path.dirname(step.path);
+  const dir = path.dirname(step.screenshot.path);
   // If `dir` doesn't exist, create it
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -42,7 +73,7 @@ async function saveScreenshot(config, step, driver) {
   // Check if file already exists
   let existFilePath;
   if (fs.existsSync(filePath)) {
-    if (step.overwrite == "false") {
+    if (step.screenshot.overwrite == "false") {
       // File already exists
       result.status = "SKIPPED";
       result.description = `File already exists: ${filePath}`;
@@ -50,12 +81,40 @@ async function saveScreenshot(config, step, driver) {
     } else {
       // Set temp file path
       existFilePath = filePath;
-      filePath = path.join(dir, `${step.id}_${Date.now()}.png`);
+      filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
     }
   }
 
-  if (step.crop) {
-    const element = await driver.$(step.crop.selector);
+  if (step.screenshot.crop) {
+    let findStep;
+    if (typeof step.screenshot.crop === "string") {
+      findStep = {
+        find: step.screenshot.crop,
+      };
+    } else {
+      findStep = {
+        find: {
+          selector: step.screenshot.crop?.selector,
+          elementText: step.screenshot.crop?.elementText,
+          timeout: step.screenshot.crop?.timeout,
+        },
+      };
+    }
+    const findResult = await findElement({
+      config,
+      step: findStep,
+      driver,
+    });
+    if (findResult.status === "FAIL") {
+      return findResult;
+    }
+    element = findResult.outputs.element;
+    if (!element) {
+      result.status = "FAIL";
+      result.description = `Couldn't find element to crop.`;
+      return result;
+    }
+
     // Determine if element bounding box + padding is within viewport
     const rect = await driver.execute((el) => {
       return el.getBoundingClientRect();
@@ -69,13 +128,13 @@ async function saveScreenshot(config, step, driver) {
 
     // Calculate padding
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
-    if (typeof step.crop.padding === "number") {
-      padding.top = step.crop.padding;
-      padding.right = step.crop.padding;
-      padding.bottom = step.crop.padding;
-      padding.left = step.crop.padding;
-    } else if (typeof step.crop.padding === "object") {
-      padding = step.crop.padding;
+    if (typeof step.screenshot.crop.padding === "number") {
+      padding.top = step.screenshot.crop.padding;
+      padding.right = step.screenshot.crop.padding;
+      padding.bottom = step.screenshot.crop.padding;
+      padding.left = step.screenshot.crop.padding;
+    } else if (typeof step.screenshot.crop.padding === "object") {
+      padding = step.screenshot.crop.padding;
     }
 
     // Check if element can fit in viewport
@@ -117,25 +176,21 @@ async function saveScreenshot(config, step, driver) {
   }
 
   // If crop is set, found bounds of element and crop image
-  if (step.crop) {
+  if (step.screenshot.crop) {
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
-    if (typeof step.crop.padding === "number") {
-      padding.top = step.crop.padding;
-      padding.right = step.crop.padding;
-      padding.bottom = step.crop.padding;
-      padding.left = step.crop.padding;
-    } else if (typeof step.crop.padding === "object") {
-      padding = step.crop.padding;
+    if (typeof step.screenshot.crop.padding === "number") {
+      padding.top = step.screenshot.crop.padding;
+      padding.right = step.screenshot.crop.padding;
+      padding.bottom = step.screenshot.crop.padding;
+      padding.left = step.screenshot.crop.padding;
+    } else if (typeof step.screenshot.crop.padding === "object") {
+      padding = step.screenshot.crop.padding;
     }
 
     // Get pixel density
     const pixelDensity = await driver.execute(() => window.devicePixelRatio);
 
-    // Get the element using the provided selector
-    const element = await driver.$(step.crop.selector);
-
     // Get the bounding rectangle of the element
-
     const rect = await driver.execute((el) => {
       return el.getBoundingClientRect();
     }, element);
@@ -197,9 +252,9 @@ async function saveScreenshot(config, step, driver) {
 
   // If file already exists
   // If overwrite is true, replace old file with new file
-  // If overwrite is byVariance, compare files and replace if variance is greater than threshold
+  // If overwrite is aboveVariation, compare files and replace if variance is greater than threshold
   if (existFilePath) {
-    if (step.overwrite == "true") {
+    if (step.screenshot.overwrite == "true") {
       // Replace old file with new file
       result.description += ` Overwrote existing file.`;
       fs.renameSync(filePath, existFilePath);
@@ -208,7 +263,7 @@ async function saveScreenshot(config, step, driver) {
     let percentDiff;
 
     // Perform numerical pixel diff with pixelmatch
-    if (step.maxVariation) {
+    if (step.screenshot.maxVariation) {
       const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
       const img2 = PNG.sync.read(fs.readFileSync(filePath));
 
@@ -262,21 +317,21 @@ async function saveScreenshot(config, step, driver) {
         percentDiff,
       });
 
-      if (percentDiff > step.maxVariation) {
-        if (step.overwrite == "byVariation") {
+      if (percentDiff > step.screenshot.maxVariation) {
+        if (step.screenshot.overwrite == "aboveVariation") {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
         result.status = "FAIL";
-        result.description = `Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
+        result.description += ` Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
         return result;
       } else {
-        result.description = `Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
+        result.description += ` Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
-        if (step.overwrite != "true") {
+        if (step.screenshot.overwrite != "true") {
           fs.unlinkSync(filePath);
         }
       }

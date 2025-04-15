@@ -4,6 +4,7 @@
   "output": ".",
   "recursive": true,
   "logLevel": "debug",
+  "relativePathBase": "file",
   "runTests": {
     "input": "./dev/doc-content.md",
     "output": ".",

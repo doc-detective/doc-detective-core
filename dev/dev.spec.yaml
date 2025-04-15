@@ -1,0 +1,5 @@
+tests:
+  - steps:
+      - goTo: https://duckduckgo.com
+      - screenshot:
+          directory: .

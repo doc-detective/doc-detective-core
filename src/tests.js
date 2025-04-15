@@ -1,6 +1,7 @@
 const kill = require("tree-kill");
 const wdio = require("webdriverio");
-const { log, loadEnvs } = require("./utils");
+const os = require("os");
+const { log, replaceEnvs } = require("./utils");
 const axios = require("axios");
 const { instantiateCursor } = require("./tests/moveTo");
 const { goTo } = require("./tests/goTo");
@@ -12,8 +13,9 @@ const { wait } = require("./tests/wait");
 const { saveScreenshot } = require("./tests/saveScreenshot");
 const { startRecording } = require("./tests/startRecording");
 const { stopRecording } = require("./tests/stopRecording");
-const { setVariables } = require("./tests/setVariables");
+const { loadVariables } = require("./tests/loadVariables");
 const { httpRequest } = require("./tests/httpRequest");
+const { clickElement } = require("./tests/click");
 const { runCode } = require("./tests/runCode");
 const fs = require("fs");
 const path = require("path");
@@ -21,6 +23,7 @@ const { spawn } = require("child_process");
 const uuid = require("uuid");
 const { setAppiumHome } = require("./appium");
 const { loadDescription } = require("./openapi");
+const { resolveExpression } = require("./expressions");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -29,16 +32,17 @@ exports.runSpecs = runSpecs;
 
 // Doc Detective actions that require a driver.
 const driverActions = [
-  "goTo",
+  "click",
+  "stopRecord",
   "find",
-  "typeKeys",
-  "saveScreenshot",
-  // "startRecording",
-  // "stopRecording",
+  "goTo",
+  "record",
+  "screenshot",
+  "type",
 ];
 
 // Get Appium driver capabilities and apply options.
-function getDriverCapabilities(config, name, options) {
+function getDriverCapabilities({ config, name, options }) {
   let capabilities = {};
   let args = [];
 
@@ -65,7 +69,7 @@ function getDriverCapabilities(config, name, options) {
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
           },
-          binary: options.path || firefox.path,
+          binary: firefox.path,
         },
       };
       break;
@@ -84,38 +88,33 @@ function getDriverCapabilities(config, name, options) {
       }
       break;
     case "chrome":
-    case "edge":
       // Set Chrome(ium) capabilities
       if (config.environment.apps.find((app) => app.name === name)) {
         const chromium = config.environment.apps.find(
           (app) => app.name === name
         );
         if (!chromium) break;
-
-        browserName = name === "edge" ? "MicrosoftEdge" : "chrome";
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
-        args.push(`--no-sandbox`);
-        // if (name === "edge") args.push("--disable-features=msEdgeIdentityFeatures");
         if (options.headless) args.push("--headless", "--disable-gpu");
         if (process.platform === "linux") args.push("--no-sandbox");
         // Set capabilities
         capabilities = {
           platformName: config.environment.platform,
           "appium:automationName": "Chromium",
-          "appium:executable": options.driverPath || chromium.driver,
-          browserName,
+          "appium:executable": chromium.driver,
+          browserName: "chrome",
           "wdio:enforceWebDriverClassic": true,
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              "download.default_directory": config.runTests.downloadDirectory,
+              "download.default_directory": os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
-            binary: options.path || chromium.path,
+            binary: chromium.path,
           },
         };
       }
@@ -127,65 +126,132 @@ function getDriverCapabilities(config, name, options) {
   return capabilities;
 }
 
-// Check if any specs/tests/steps require drivers.
+// Check if any steps require an Appium driver.
 function isAppiumRequired(specs) {
   let appiumRequired = false;
   specs.forEach((spec) => {
-    // Check if contexts are defined at the spec level.
-    if (spec.contexts && spec.contexts.length > 0) appiumRequired = true;
     spec.tests.forEach((test) => {
-      // Check if contexts are defined at the test level.
-      if (test.contexts && test.contexts.length > 0) appiumRequired = true;
       test.steps.forEach((step) => {
         // Check if test includes actions that require a driver.
-        if (driverActions.includes(step.action)) appiumRequired = true;
+        if (isDriverRequired({ test })) {
+          appiumRequired = true;
+        }
       });
     });
   });
   return appiumRequired;
 }
 
-function isDriverRequired(appiumRequired, test) {
+function isDriverRequired({ test }) {
   let driverRequired = false;
-  if (appiumRequired) {
-    if (test.contexts && test.contexts.length > 0) driverRequired = true;
-    test.steps.forEach((step) => {
-      // Check if test includes actions that require a driver.
-      if (driverActions.includes(step.action)) driverRequired = true;
+  test.steps.forEach((step) => {
+    // Check if test includes actions that require a driver.
+    driverActions.forEach((action) => {
+      if (typeof step[action] !== "undefined") driverRequired = true;
     });
-  }
+  });
   return driverRequired;
 }
 
 // Check if context is supported by current platform and available apps
-function isSupportedContext(context, apps, platform) {
-  // Check apps
+function isSupportedContext({ context, apps, platform }) {
+  // Check browsers
   let isSupportedApp = true;
-  if (context.app.name)
-    isSupportedApp = apps.find((app) => app.name === context.app.name);
-  // Check path
-  let isSupportedPath = true;
-  if (context.app.path) isSupportedPath = fs.existsSync(context.app.path);
   // Check platform
-  const isSupportedPlatform = context.platforms.includes(platform);
+  const isSupportedPlatform = context.platform === platform;
+  if (context?.browser?.name)
+    isSupportedApp = apps.find((app) => app.name === context.browser.name);
   // Return boolean
-  if (isSupportedApp && isSupportedPath && isSupportedPlatform) {
+  if (isSupportedApp && isSupportedPlatform) {
     return true;
   } else {
     return false;
   }
 }
 
-// Define default contexts based on config.runTests.contexts, then using a fallback strategy of Chrome(ium) and Firefox.
+function resolveContexts({ contexts, test }) {
+  const resolvedContexts = [];
+
+  // Check if current test requires a browser
+  let browserRequired = false;
+  test.steps.forEach((step) => {
+    // Check if test includes actions that require a driver.
+    driverActions.forEach((action) => {
+      if (typeof step[action] !== "undefined") browserRequired = true;
+    });
+  });
+
+  // Standardize context format
+  contexts.forEach((context) => {
+    if (context.browsers) {
+      if (
+        typeof context.browsers === "string" ||
+        (typeof context.browsers === "object" &&
+          !Array.isArray(context.browsers))
+      ) {
+        // If browsers is a string or an object, convert to array
+        context.browsers = [context.browsers];
+      }
+      context.browsers = context.browsers.map((browser) => {
+        if (typeof browser === "string") {
+          browser = { name: browser };
+        }
+        if (browser.name === "safari") browser.name = "webkit";
+        return browser;
+      });
+    }
+    if (context.platforms) {
+      if (typeof context.platforms === "string") {
+        context.platforms = [context.platforms];
+      }
+    }
+  });
+
+  // Resolve to final contexts. Each context should include a single platform and at most a single browser.
+  // If no browsers are required, filter down to platform-based contexts
+  // If browsers are required, create contexts for each specified combination of platform and browser
+
+  contexts.forEach((context) => {
+    const staticContexts = [];
+    context.platforms.forEach((platform) => {
+      const staticContext = { platform };
+      if (!browserRequired) {
+        staticContexts.push(staticContext);
+      } else {
+        context.browsers.forEach((browser) => {
+          staticContext.browser = browser;
+          staticContexts.push(staticContext);
+        });
+      }
+    });
+    // For each static context, check if a matching object already exists in resolvedContexts. If not, push to resolvedContexts.
+    staticContexts.forEach((staticContext) => {
+      const existingContext = resolvedContexts.find((resolvedContext) => {
+        return (
+          resolvedContext.platform === staticContext.platform &&
+          JSON.stringify(resolvedContext.browser) ===
+            JSON.stringify(staticContext.browser)
+        );
+      });
+      if (!existingContext) {
+        resolvedContexts.push(staticContext);
+      }
+    });
+  });
+
+  return resolvedContexts;
+}
+
+// Define default contexts based on config.runOn, then using a fallback strategy of Chrome(ium) and Firefox.
 // TODO: Update with additional browsers as they are supported.
 function getDefaultContexts(config) {
   const contexts = [];
   const apps = config.environment.apps;
   const platform = config.environment.platform;
   // Check if contexts are defined in config
-  if (config.runTests.contexts) {
+  if (config.runOn) {
     // Check if contexts are supported
-    config.runTests.contexts.forEach((context) => {
+    config.runOn.forEach((context) => {
       if (isSupportedContext(context, apps, platform)) {
         contexts.push(context);
       }
@@ -194,7 +260,7 @@ function getDefaultContexts(config) {
   // If no contexts are defined in config, or if none are supported, use fallback strategy
   // Select the first available app
   if (contexts.length === 0) {
-    const fallback = ["chrome", "firefox", "safari", "edge"];
+    const fallback = ["firefox", "chrome", "safari"];
     for (const browser of fallback) {
       if (contexts.length != 0) continue;
       const app = apps.find((app) => app.name === browser);
@@ -211,10 +277,7 @@ function getDefaultContexts(config) {
 
 // Set window size to match target viewport size
 async function setViewportSize(context, driver) {
-  if (
-    context.app?.options?.viewport_width ||
-    context.app?.options?.viewport_height
-  ) {
+  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
     // Get viewport size, not window size
     const viewportSize = await driver.executeScript(
       "return { width: window.innerWidth, height: window.innerHeight }",
@@ -224,10 +287,10 @@ async function setViewportSize(context, driver) {
     const windowSize = await driver.getWindowSize();
     // Get viewport size delta
     const deltaWidth =
-      (context.app?.options?.viewport_width || viewportSize.width) -
+      (context.browser?.viewport?.width || viewportSize.width) -
       viewportSize.width;
     const deltaHeight =
-      (context.app?.options?.viewport_height || viewportSize.height) -
+      (context.browser?.viewport?.height || viewportSize.height) -
       viewportSize.height;
     // Resize window if necessary
     await driver.setWindowSize(
@@ -245,9 +308,10 @@ async function setViewportSize(context, driver) {
 // Iterate through and execute test specifications and contained tests.
 async function runSpecs(config, specs) {
   // Set initial shorthand values
-  const configContexts = getDefaultContexts(config);
+  const configContexts = config.runOn || [];
   const platform = config.environment.platform;
   const availableApps = config.environment.apps;
+  const metaValues = { specs: {} };
   let appium;
   const report = {
     summary: {
@@ -305,17 +369,25 @@ async function runSpecs(config, specs) {
   // Iterate specs
   log(config, "info", "Running test specs.");
   for (const spec of specs) {
-    log(config, "debug", `SPEC: ${spec.id}`);
+    log(config, "debug", `SPEC: ${spec.specId}`);
 
-    let specReport = { id: spec.id };
-    if (spec.file) specReport.file = spec.file;
-    if (spec.description) specReport.description = spec.description;
-    specReport.tests = [];
+    // Set spec report
+    let specReport = {
+      specId: spec.specId,
+      description: spec.description,
+      contentPath: spec.contentPath,
+      tests: [],
+    };
+    // Set meta values
+    metaValues.specs[spec.specId] = { tests: {} };
+
+    report.specs.push(specReport);
 
     // Conditionally override contexts
-    const specContexts = spec.contexts || configContexts;
+    const specContexts = spec.runOn || configContexts;
 
     // Capture all OpenAPI definitions
+    // TODO: Refactor into standalone function
     const openApiDefinitions = [];
     if (config?.integrations?.openApi?.length > 0)
       openApiDefinitions.push(...config.integrations.openApi);
@@ -346,18 +418,27 @@ async function runSpecs(config, specs) {
 
     // Iterates tests
     for (const test of spec.tests) {
-      log(config, "debug", `TEST: ${test.id}`);
+      log(config, "debug", `TEST: ${test.testId}`);
 
+      // Set test report
       let testReport = {
-        id: test.id,
+        testId: test.testId,
+        description: test.description,
+        contentPath: test.contentPath,
+        detectSteps: test.detectSteps,
         contexts: [],
       };
-      if (test.description) testReport.description = test.description;
+      // Set meta values
+      metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
 
-      // Conditionally override contexts
-      const testContexts = test.contexts || specContexts;
+      // Resolve contexts
+      const testContexts = resolveContexts({
+        test,
+        contexts: test.runOn || specContexts,
+      });
 
       // Capture test-level OpenAPI definitions
+      // TODO: Refactor into standalone function
       if (test?.openApi?.length > 0) {
         for (const definition of test.openApi) {
           try {
@@ -387,50 +468,54 @@ async function runSpecs(config, specs) {
       // TODO: Support both serial and parallel execution
       for (const index in testContexts) {
         const context = testContexts[index];
-        log(config, "debug", `CONTEXT: ${context.app.name}`);
+        log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
+        // Set context report
         let contextReport = {
-          app: context.app.name,
-          path: context.app.path,
-          platform,
+          platform: context.platform,
+          browser: context.browser,
           steps: [],
         };
+        // Set meta values
+        metaValues.specs[spec.specId].tests[test.testId].contexts[
+          context.contextId
+        ] = { steps: {} };
 
         // Check if current environment supports given contexts
-        const supportedContext = isSupportedContext(
-          context,
-          availableApps,
-          platform
-        );
+        const supportedContext = isSupportedContext({
+          context: context,
+          apps: availableApps,
+          platform: platform,
+        });
 
         // If context isn't supported, skip it
         if (!supportedContext) {
-          let appList = [];
-          availableApps.forEach((app) => appList.push(app.name));
           log(
             config,
             "warning",
-            `Skipping context. The current platform (${platform}) and available apps (${appList.join(
-              ", "
-            )}) don't support don't support this context (${JSON.stringify(
+            `Skipping context. The current system doesn't support this context (${JSON.stringify(
               context
             )}).`
           );
           contextReport = { result: { status: "SKIPPED" }, ...contextReport };
           report.summary.contexts.skipped++;
+          testReport.contexts.push(contextReport);
           continue;
         }
 
         let driver;
-        const driverRequired = isDriverRequired(appiumRequired, test);
+        const driverRequired = isDriverRequired({ test: test });
         if (driverRequired) {
           // Define driver capabilities
           // TODO: Support custom apps
-          let caps = getDriverCapabilities(config, context.app.name, {
-            path: context.app?.path,
-            width: context.app?.options?.width || 1200,
-            height: context.app?.options?.height || 800,
-            headless: context.app?.options?.headless !== false,
+          let caps = getDriverCapabilities({
+            config: config,
+            name: context.browser.name,
+            options: {
+              width: context.browser?.window?.width || 1200,
+              height: context.browser?.window?.height || 800,
+              headless: context.browser?.headless !== false,
+            },
           });
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
@@ -444,21 +529,22 @@ async function runSpecs(config, specs) {
               log(
                 config,
                 "warning",
-                `Failed to start context '${context.app?.name}' on '${platform}'. Retrying as headless.`
+                `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
               );
-              if (typeof context.app.options === "undefined")
-                context.app.options = {};
-              context.app.options.headless = true;
-              caps = getDriverCapabilities(config, context.app.name, {
-                path: context.app?.path,
-                width: context.app?.options?.width || 1200,
-                height: context.app?.options?.height || 800,
-                headless: context.app?.options?.headless !== false,
+              context.browser.headless = true;
+              caps = getDriverCapabilities({
+                config: config,
+                name: context.browser.name,
+                options: {
+                  width: context.browser?.window?.width || 1200,
+                  height: context.browser?.window?.height || 800,
+                  headless: context.browser?.headless !== false,
+                },
               });
               driver = await driverStart(caps);
             } catch (error) {
-              let errorMessage = `Failed to start context '${context.app?.name}' on '${platform}'.`;
-              if (context.app?.name === "safari")
+              let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
+              if (context.browser?.name === "safari")
                 errorMessage =
                   errorMessage +
                   " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
@@ -474,21 +560,21 @@ async function runSpecs(config, specs) {
           }
 
           if (
-            context.app?.options?.viewport_width ||
-            context.app?.options?.viewport_height
+            context.browser?.viewport?.width ||
+            context.browser?.viewport?.height
           ) {
             // Set driver viewport size
             await setViewportSize(context, driver);
           } else if (
-            context.app?.options?.width ||
-            context.app?.options?.height
+            context.browser?.window?.width ||
+            context.browser?.window?.height
           ) {
             // Get driver window size
             const windowSize = await driver.getWindowSize();
             // Resize window if necessary
             await driver.setWindowSize(
-              context.app?.options?.width || windowSize.width,
-              context.app?.options?.height || windowSize.height
+              context.browser?.window?.width || windowSize.width,
+              context.browser?.window?.height || windowSize.height
             );
           }
         }
@@ -496,11 +582,24 @@ async function runSpecs(config, specs) {
         // Iterates steps
         for (let step of test.steps) {
           // Set step id if not defined
-          if (!step.id) step.id = `${uuid.v4()}`;
+          if (!step.stepId) step.stepId = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
-          const stepResult = await runStep(config, context, step, driver, {
-            openApiDefinitions,
+          // Set meta values
+          metaValues.specs[spec.specId].tests[test.testId].contexts[
+            context.contextId
+          ].steps[step.stepId] = {};
+
+          // Run step
+          const stepResult = await runStep({
+            config: config,
+            context: context,
+            step: step,
+            driver: driver,
+            metaValues: metaValues,
+            options: {
+              openApiDefinitions,
+            },
           });
           log(
             config,
@@ -508,6 +607,36 @@ async function runSpecs(config, specs) {
             `RESULT: ${stepResult.status}, ${stepResult.description}`
           );
 
+          stepResult.result = stepResult.status;
+          stepResult.resultDescription = stepResult.description;
+          delete stepResult.status;
+          delete stepResult.description;
+
+          // Add step result to report
+          const stepReport = {
+            ...stepResult,
+            ...step,
+          };
+          contextReport.steps.push(stepReport);
+          report.summary.steps[stepReport.result.toLowerCase()]++;
+        }
+
+        // If recording, stop recording
+        if (config.recording) {
+          const stopRecordStep = {
+            stopRecord: true,
+            description: "Stopping recording",
+            stepId: `${uuid.v4()}`,
+          };
+          const stepResult = await runStep({
+            config: config,
+            context: context,
+            step: stopRecordStep,
+            driver: driver,
+            options: {
+              openApiDefinitions,
+            },
+          });
           stepResult.result = stepResult.status;
           stepResult.resultDescription = stepResult.description;
           delete stepResult.status;
@@ -614,56 +743,70 @@ async function runSpecs(config, specs) {
 }
 
 // Run a specific step
-async function runStep(config, context, step, driver, options = {}) {
+async function runStep({
+  config,
+  context,
+  step,
+  driver,
+  metaValues,
+  options = {},
+}) {
   let actionResult;
   // Load values from environment variables
-  step = loadEnvs(step);
-  switch (step.action) {
-    case "goTo":
-      actionResult = await goTo(config, step, driver);
-      break;
-    case "find":
-      actionResult = await findElement(config, step, driver);
-      break;
-    case "typeKeys":
-      actionResult = await typeKeys(config, step, driver);
-      break;
-    case "saveScreenshot":
-      actionResult = await saveScreenshot(config, step, driver);
-      break;
-    case "startRecording":
-      actionResult = await startRecording(config, context, step, driver);
-      config.recording = actionResult.recording;
-      break;
-    case "stopRecording":
-      actionResult = await stopRecording(config, step, driver);
-      delete config.recording;
-      break;
-    case "wait":
-      actionResult = await wait(config, step);
-      break;
-    case "setVariables":
-      actionResult = await setVariables(config, step);
-      break;
-    case "runShell":
-      actionResult = await runShell(config, step);
-      break;
-    case "runCode":
-      actionResult = await runCode(config, step);
-      break;
-    case "checkLink":
-      actionResult = await checkLink(config, step);
-      break;
-    case "httpRequest":
-      actionResult = await httpRequest(
-        config,
-        step,
-        options?.openApiDefinitions
-      );
-      break;
-    default:
-      actionResult = { status: "FAIL", description: "Unsupported action." };
-      break;
+  step = replaceEnvs(step);
+  if (typeof step.click !== "undefined") {
+    actionResult = await clickElement({
+      config: config,
+      step: step,
+      driver: driver,
+    });
+  } else if (typeof step.checkLink !== "undefined") {
+    actionResult = await checkLink({ config: config, step: step });
+  } else if (typeof step.find !== "undefined") {
+    actionResult = await findElement({ config: config, step: step, driver });
+  } else if (typeof step.stopRecord !== "undefined") {
+    actionResult = await stopRecording({ config: config, step: step, driver });
+  } else if (typeof step.goTo !== "undefined") {
+    actionResult = await goTo({ config: config, step: step, driver: driver });
+  } else if (typeof step.loadVariables !== "undefined") {
+    actionResult = await loadVariables({ step: step });
+  } else if (typeof step.httpRequest !== "undefined") {
+    actionResult = await httpRequest({
+      config: config,
+      step: step,
+      openApiDefinitions: options?.openApiDefinitions,
+    });
+  } else if (typeof step.record !== "undefined") {
+    actionResult = await startRecording({
+      config: config,
+      context: context,
+      step: step,
+      driver: driver,
+    });
+    config.recording = actionResult.recording;
+  } else if (typeof step.runCode !== "undefined") {
+    actionResult = await runCode({ config: config, step: step });
+  } else if (typeof step.runShell !== "undefined") {
+    actionResult = await runShell({ config: config, step: step });
+  } else if (typeof step.screenshot !== "undefined") {
+    actionResult = await saveScreenshot({
+      config: config,
+      step: step,
+      driver: driver,
+    });
+  } else if (typeof step.type !== "undefined") {
+    actionResult = await typeKeys({
+      config: config,
+      step: step,
+      driver: driver,
+    });
+  } else if (typeof step.wait !== "undefined") {
+    actionResult = await wait({ step: step });
+  } else {
+    actionResult = {
+      status: "FAIL",
+      description: `Unknown step action: ${JSON.stringify(step)}`,
+    };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
   if (config.recording) {
@@ -672,6 +815,26 @@ async function runStep(config, context, step, driver, options = {}) {
       driver.state.url = currentUrl;
       await instantiateCursor(driver);
     }
+  }
+  // Clean up actionResult outputs
+  if (actionResult?.outputs?.element) {
+    // Remove everything but element.text
+    const element = actionResult.outputs.element;
+    actionResult.outputs.element = {
+      text: element.text
+    };
+  }
+
+  // If variables are defined, resolve and set them
+  if (step.variables) {
+    await Promise.all(Object.keys(step.variables).map(async (key) => {
+      const expression = step.variables[key];
+      const value = await resolveExpression({
+        expression: expression,
+        context: {...metaValues, ...actionResult.outputs},
+      });
+      process.env[key] = value;
+    }));
   }
   return actionResult;
 }

@@ -1,24 +1,61 @@
 const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
+const YAML = require("yaml");
 const axios = require("axios");
 const path = require("path");
 const uuid = require("uuid");
 const { spawn } = require("child_process");
-const { validate, resolvePaths } = require("doc-detective-common");
+const {
+  validate,
+  resolvePaths,
+  transformToSchemaKey,
+  readFile,
+} = require("doc-detective-common");
 
-exports.setFiles = setFiles;
+exports.qualityFiles = qualityFiles;
 exports.parseTests = parseTests;
 exports.outputResults = outputResults;
-exports.setEnvs = setEnvs;
+exports.loadEnvs = loadEnvs;
 exports.log = log;
 exports.timestamp = timestamp;
-exports.loadEnvs = loadEnvs;
+exports.replaceEnvs = replaceEnvs;
 exports.spawnCommand = spawnCommand;
 exports.inContainer = inContainer;
 exports.cleanTemp = cleanTemp;
 exports.calculatePercentageDifference = calculatePercentageDifference;
 exports.fetchFile = fetchFile;
+exports.isRelativeUrl = isRelativeUrl;
+
+function isRelativeUrl(url) {
+  try {
+    new URL(url);
+    // If no error is thrown, it's a complete URL
+    return false;
+  } catch (error) {
+    // If URL constructor throws an error, it's a relative URL
+    return true;
+  }
+}
+
+// Parse a JSON or YAML object
+function parseObject({stringifiedObject}) {
+  if (typeof stringifiedObject === "string") {
+    // If string, try to parse as JSON or YAML
+    try {
+      const json = JSON.parse(stringifiedObject);
+      return json;
+    } catch (jsonError) {
+      try {
+        const yaml = YAML.parse(stringifiedObject);
+        return yaml;
+      } catch (yamlError) {
+        throw new Error("Invalid JSON or YAML format");
+      }
+    }
+  }
+  return stringifiedObject;
+}
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
@@ -59,23 +96,23 @@ async function fetchFile(fileURL) {
   }
 }
 
-// Set array of test files
-async function setFiles(config) {
+// Inspect and qualify files as valid inputs
+async function qualityFiles({ config }) {
   let dirs = [];
   let files = [];
   let sequence = [];
 
   // Determine source sequence
-  const setup = config.runTests.setup;
+  const setup = config.beforeAny;
   if (setup) sequence = sequence.concat(setup);
-  const input = config.runTests.input || config.input;
+  const input = config.input;
   sequence = sequence.concat(input);
-  const cleanup = config.runTests.cleanup;
+  const cleanup = config.afterAll;
   if (cleanup) sequence = sequence.concat(cleanup);
 
   for (let source of sequence) {
-    // Check if file or directory
     log(config, "debug", `source: ${source}`);
+    // Check if source is a URL
     let isURL = source.startsWith("http://") || source.startsWith("https://");
     // If URL, fetch file and place in temp directory
     if (isURL) {
@@ -86,11 +123,12 @@ async function setFiles(config) {
       }
       source = fetch.path;
     }
+    // Check if source is a file or directory
     let isFile = fs.statSync(source).isFile();
     let isDir = fs.statSync(source).isDirectory();
 
     // Parse input
-    if (isFile && isValidSourceFile(config, files, source)) {
+    if (isFile && (await isValidSourceFile({ config, files, source }))) {
       // Passes all checks
       files.push(path.resolve(source));
     } else if (isDir) {
@@ -98,43 +136,49 @@ async function setFiles(config) {
       dirs = [];
       dirs[0] = source;
       for (const dir of dirs) {
-        fs.readdirSync(dir).forEach((object) => {
+        const objects = fs.readdirSync(dir);
+        for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
-          // Exclude node_modules
+          // Exclude node_modules for local installs
           if (content.includes("node_modules")) return;
           // Check if file or directory
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
           // Add to files or dirs array
-          if (isFile && isValidSourceFile(config, files, content)) {
+          if (
+            isFile &&
+            (await isValidSourceFile({ config, files, source: content }))
+          ) {
             files.push(path.resolve(content));
-          } else if (isDir && (config.runTests.recursive || config.recursive)) {
+          } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
           }
-        });
+        }
       }
     }
   }
   return files;
 }
 
-function isValidSourceFile(config, files, source) {
+// Check if a source file is valid based on fileType definitions
+async function isValidSourceFile({ config, files, source }) {
   log(config, "debug", `validation: ${source}`);
   // Determine allowed extensions
-  let allowedExtensions = [".json"];
+  let allowedExtensions = ["json", "yaml", "yml"];
   config.fileTypes.forEach((fileType) => {
     allowedExtensions = allowedExtensions.concat(fileType.extensions);
   });
   // Is present in files array already
   if (files.indexOf(source) >= 0) return false;
-  // Is JSON but isn't a valid spec-formatted JSON object
-  if (path.extname(source) === ".json") {
-    const jsonContent = fs.readFileSync(source).toString();
-    let json = {};
-    try {
-      json = JSON.parse(jsonContent);
-    } catch {
+  // Is JSON or YAML but isn't a valid spec-formatted JSON object
+  if (
+    path.extname(source) === ".json" ||
+    path.extname(source) === ".yaml" ||
+    path.extname(source) === ".yml"
+  ) {
+    const content = await readFile({ fileURLOrPath: source });
+    if (typeof content !== "object") {
       log(
         config,
         "debug",
@@ -142,7 +186,11 @@ function isValidSourceFile(config, files, source) {
       );
       return false;
     }
-    const validation = validate("spec_v2", json, false);
+    const validation = validate({
+      schemaKey: "spec_v3",
+      object: content,
+      addDefaults: false,
+    });
     if (!validation.valid) {
       log(config, "warning", validation);
       log(
@@ -152,36 +200,37 @@ function isValidSourceFile(config, files, source) {
       );
       return false;
     }
-    // If any objects in `tests` array have `setup` or `cleanup` property, make sure those files exist
-    for (const test of json.tests) {
-      if (test.setup) {
-        let setupPath = "";
+    // TODO: Move `before` and `after checking out of is and into a broader test validation function
+    // If any objects in `tests` array have `before` or `after` property, make sure those files exist
+    for (const test of content.tests) {
+      if (test.before) {
+        let beforePath = "";
         if (config.relativePathBase === "file") {
-          setupPath = path.resolve(path.dirname(source), test.setup);
+          beforePath = path.resolve(path.dirname(source), test.before);
         } else {
-          setupPath = path.resolve(test.setup);
+          beforePath = path.resolve(test.before);
         }
-        if (!fs.existsSync(setupPath)) {
+        if (!fs.existsSync(beforePath)) {
           log(
             config,
             "debug",
-            `${setupPath} is specified as a setup test but isn't a valid file. Skipping ${source}.`
+            `${beforePath} is specified to run before a test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
       }
-      if (test.cleanup) {
-        let cleanupPath = "";
+      if (test.after) {
+        let afterPath = "";
         if (config.relativePathBase === "file") {
-          cleanupPath = path.resolve(path.dirname(source), test.cleanup);
+          afterPath = path.resolve(path.dirname(source), test.after);
         } else {
-          cleanupPath = path.resolve(test.cleanup);
+          afterPath = path.resolve(test.after);
         }
-        if (!fs.existsSync(cleanupPath)) {
+        if (!fs.existsSync(afterPath)) {
           log(
             config,
             "debug",
-            `${cleanupPath} is specified as a cleanup test but isn't a valid file. Skipping ${source}.`
+            `${afterPath} is specified to run after a test but isn't a valid file. Skipping ${source}.`
           );
           return false;
         }
@@ -189,7 +238,8 @@ function isValidSourceFile(config, files, source) {
     }
   }
   // If extension isn't in list of allowed extensions
-  if (!allowedExtensions.includes(path.extname(source))) {
+  const extension = path.extname(source).substring(1);
+  if (!allowedExtensions.includes(extension)) {
     log(
       config,
       "debug",
@@ -201,34 +251,289 @@ function isValidSourceFile(config, files, source) {
   return true;
 }
 
+async function parseContent({ config, content, filePath, fileType }) {
+  const statements = [];
+  const statementTypes = [
+    "testStart",
+    "testEnd",
+    "ignoreStart",
+    "ignoreEnd",
+    "step",
+  ];
+
+  function findTest({ tests, testId }) {
+    test = tests.find((test) => test.testId === testId);
+    if (!test) {
+      test = { testId, steps: [] };
+      tests.push(test);
+    }
+    return test;
+  }
+
+  function replaceNumericVariables(stringOrObject, values) {
+    if (
+      typeof stringOrObject !== "string" &&
+      typeof stringOrObject !== "object"
+    )
+      throw new Error("Invalid stringOrObject type");
+    if (typeof values !== "object") throw new Error("Invalid values type");
+
+    Object.keys(stringOrObject).forEach((key) => {
+      if (typeof stringOrObject[key] === "object") {
+        // Iterate through object and recursively resolve variables
+        stringOrObject[key] = replaceNumericVariables(
+          stringOrObject[key],
+          values
+        );
+      } else if (typeof stringOrObject[key] === "string") {
+        // Replace $n with values[n]
+        stringOrObject[key] = stringOrObject[key].replace(
+          /\$[0-9]+/g,
+          (variable) => {
+            const index = variable.substring(1);
+            return values[index];
+          }
+        );
+      }
+      return key;
+    });
+    return stringOrObject;
+  }
+
+  // Test for each statement type
+  statementTypes.forEach((statementType) => {
+    // If inline statements aren't defined, skip
+    if (
+      typeof fileType.inlineStatements === "undefined" ||
+      typeof fileType.inlineStatements[statementType] === "undefined"
+    )
+      return;
+    // Check if fileType has inline statements
+    fileType.inlineStatements[statementType].forEach((statementRegex) => {
+      const regex = new RegExp(statementRegex, "g");
+      const matches = [...content.matchAll(regex)];
+      matches.forEach((match) => {
+        // Add 'type' property to each match
+        match.type = statementType;
+        // Add 'sortIndex' property to each match
+        match.sortIndex = match[1]
+          ? match.index + match[1].length
+          : match.index;
+      });
+      statements.push(...matches);
+    });
+  });
+
+  if (config.detectSteps && fileType.markup) {
+    fileType.markup.forEach((markup) => {
+      markup.regex.forEach((pattern) => {
+        const regex = new RegExp(pattern, "g");
+        const matches = [...content.matchAll(regex)];
+        if (matches.length > 0 && markup.batchMatches) {
+          // Combine all matches into a single match
+          const combinedMatch = {
+            1: matches.map((match) => match[1] || match[0]).join(""),
+            type: "detectedStep",
+            markup: markup,
+            sortIndex: Math.min(...matches.map((match) => match.index)),
+          };
+          statements.push(combinedMatch);
+        } else {
+          matches.forEach((match) => {
+            // Add 'type' property to each match
+            match.type = "detectedStep";
+            match.markup = markup;
+            // Add 'sortIndex' property to each match
+            match.sortIndex = match[1]
+              ? match.index + match[1].length
+              : match.index;
+          });
+          statements.push(...matches);
+        }
+      });
+    });
+  }
+
+  // Sort statements by index
+  statements.sort((a, b) => a.sortIndex - b.sortIndex);
+
+  // TODO: Split above into a separate function
+
+  // Process statements into tests and steps
+  let tests = [];
+  let testId = `${uuid.v4()}`;
+  let ignore = false;
+  let currentIndex = 0;
+
+  statements.forEach((statement) => {
+    let test = "";
+    let statementContent = "";
+    let stepsCleanup = false;
+    currentIndex = statement.sortIndex;
+    switch (statement.type) {
+      case "testStart":
+        // Test start statement
+        statementContent = statement[1] || statement[0];
+        test = parseObject({stringifiedObject: statementContent});
+
+        // If v2 schema, convert to v3
+        if (test.id || test.file || test.setup || test.cleanup) {
+          // Add temporary step to pass validation
+          if (!test.steps) {
+            test.steps = [{ action: "goTo", url: "https://doc-detective.com" }];
+            stepsCleanup = true;
+          }
+          test = transformToSchemaKey({
+            object: test,
+            currentSchema: "test_v2",
+            targetSchema: "test_v3",
+          });
+          // Remove temporary step
+          if (stepsCleanup) {
+            test.steps = [];
+            stepsCleanup = false;
+          }
+        }
+
+        if (test.testId) {
+          // If the testId already exists, update the variable
+          testId = `${test.testId}`;
+        } else {
+          // If the testId doesn't exist, set it
+          test.testId = `${testId}`;
+        }
+        if (!test.steps) {
+          // If the test doesn't have steps, add an empty array
+          test.steps = [];
+        }
+        tests.push(test);
+        break;
+      case "testEnd":
+        // Test end statement
+        testId = `${uuid.v4()}`;
+        ignore = false;
+        break;
+      case "ignoreStart":
+        // Ignore start statement
+        ignore = true;
+        break;
+      case "ignoreEnd":
+        // Ignore end statement
+        ignore = false;
+        break;
+      case "detectedStep":
+        // Transform detected content into a step
+        test = findTest({ tests, testId });
+        statement.markup.actions.forEach((action) => {
+          let step = {};
+          if (typeof action === "string") {
+            if (action === "runCode") return;
+            // If action is string, build step using simple syntax
+            step[action] = statement[1] || statement[0];
+            if (
+              config.origin &&
+              (action === "goTo" || action === "checkLink")
+            ) {
+              step[action].origin = config.origin;
+            }
+          } else {
+            // Substitute variables $n with match[n]
+            // TODO: Make key substitution recursive
+            step = replaceNumericVariables(action, statement);
+          }
+          // Make sure is valid v3 step schema
+          valid = validate({
+            schemaKey: "step_v3",
+            object: step,
+            addDefaults: false,
+          });
+          if (!valid) {
+            log(
+              config,
+              "warning",
+              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+            );
+            return false;
+          }
+          step = valid.object;
+          test.steps.push(step);
+        });
+        break;
+      case "step":
+        // Step statement
+        test = findTest({ tests, testId });
+        statementContent = statement[1] || statement[0];
+        let step = parseObject({stringifiedObject: statementContent});
+        // Make sure is valid v3 step schema
+        const validation = validate({
+          schemaKey: "step_v3",
+          object: step,
+          addDefaults: false,
+        });
+        if (!validation.valid) {
+          log(
+            config,
+            "warning",
+            `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+          );
+          return false;
+        }
+        step = validation.object;
+        test.steps.push(step);
+        break;
+      default:
+        break;
+    }
+  });
+
+  tests.forEach((test) => {
+    const validation = validate({
+      schemaKey: "test_v3",
+      object: test,
+      addDefaults: false,
+    });
+    if (!validation.valid) {
+      log(
+        config,
+        "warning",
+        `Couldn't convert some steps in ${filePath} to a valid test.Skipping. Errors: ${validation.errors}`
+      );
+      return false;
+    }
+    test = validation.object;
+  });
+
+  return tests;
+}
+
 // Parse files for tests
-async function parseTests(config, files) {
+async function parseTests({ config, files }) {
   let specs = [];
 
   // Loop through files
   for (const file of files) {
     log(config, "debug", `file: ${file}`);
-    const extension = path.extname(file);
+    const extension = path.extname(file).slice(1);
     let content = "";
-    content = fs.readFileSync(file).toString();
+    content = await readFile({ fileURLOrPath: file });
 
-    if (extension === ".json") {
-      // Process JSON
-      content = JSON.parse(content);
-        // Resolve to catch any relative setup or cleanup paths
-      content = await resolvePaths(config, content, file);
+    if (typeof content === "object") {
+      // Resolve to catch any relative setup or cleanup paths
+      content = await resolvePaths({
+        config: config,
+        object: content,
+        filePath: file,
+      });
 
       for (const test of content.tests) {
-        // If any objects in `tests` array have `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
-        if (test.setup) {
-          const setupContent = fs.readFileSync(test.setup).toString();
-          const setup = JSON.parse(setupContent);
+        // If any objects in `tests` array have `before` property, add `tests[0].steps` of before to the beginning of the object's `steps` array.
+        if (test.before) {
+          const setup = await readFile({ fileURLOrPath: test.before });
           test.steps = setup.tests[0].steps.concat(test.steps);
         }
-        // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
-        if (test.cleanup) {
-          const cleanupContent = fs.readFileSync(test.cleanup).toString();
-          const cleanup = JSON.parse(cleanupContent);
+        // If any objects in `tests` array have `after` property, add `tests[0].steps` of after to the end of the object's `steps` array.
+        if (test.after) {
+          const cleanup = await readFile({ fileURLOrPath: test.after });
           test.steps = test.steps.concat(cleanup.tests[0].steps);
         }
       }
@@ -236,7 +541,11 @@ async function parseTests(config, files) {
       for (const test of content.tests) {
         // Filter out steps that don't pass validation
         test.steps.forEach((step) => {
-          const validation = validate(`${step.action}_v2`, { ...step}, false);
+          const validation = validate({
+            schemaKey: `step_v3`,
+            object: { ...step },
+            addDefaults: false,
+          });
           if (!validation.valid) {
             log(
               config,
@@ -248,7 +557,11 @@ async function parseTests(config, files) {
           return true;
         });
       }
-      const validation = validate("spec_v2", content, false);
+      const validation = validate({
+        schemaKey: "spec_v3",
+        object: content,
+        addDefaults: false,
+      });
       if (!validation.valid) {
         log(config, "warning", validation);
         log(
@@ -258,281 +571,76 @@ async function parseTests(config, files) {
         );
         return false;
       }
+      // Make sure that object is now a valid v3 spec
+      content = validation.object;
       // Resolve previously unapplied defaults
-      content = await resolvePaths(config, content, file);
+      content = await resolvePaths({
+        config: config,
+        object: content,
+        filePath: file,
+      });
       specs.push(content);
     } else {
-      // Process non-JSON
+      // Process non-object
       let id = `${uuid.v4()}`;
-      let spec = { id, file, tests: [] };
-      content = content.split("\n");
+      let spec = { specId: id, contentPath: file, tests: [] };
       let ignore = false;
-      fileType = config.fileTypes.find((fileType) =>
+      const fileType = config.fileTypes.find((fileType) =>
         fileType.extensions.includes(extension)
       );
-      for (const line of content) {
-        // console.log(line);
-        if (line.includes(fileType.testStartStatementOpen)) {
-          // Test start statement
-          id = `${uuid.v4()}`;
-          startStatementOpen =
-            line.indexOf(fileType.testStartStatementOpen) +
-            fileType.testStartStatementOpen.length;
-          if (line.includes(fileType.testStartStatementClose)) {
-            startStatementClose = line.lastIndexOf(
-              fileType.testStartStatementClose
-            );
-          } else {
-            startStatementClose = line.length;
-          }
-          startStatement = line.substring(
-            startStatementOpen,
-            startStatementClose
-          );
-          // Parse JSON
-          statementJson = JSON.parse(startStatement);
-          // Add `file` property
-          statementJson.file = file;
-          // Add `steps` array
-          statementJson.steps = [];
-          // Set id if `id` is set
-          if (statementJson.id) {
-            // If `id` already exists in the spec, set it to the `id` with a dash and a new UUID
-            if (spec.tests.find((test) => test.id === statementJson.id)) {
-              statementJson.id = `${statementJson.id}-${uuid.v4()}`;
-            }
-            id = statementJson.id;
-          } else {
-            statementJson.id = id;
-          }
-          // The `test` has the `setup` property, add `tests[0].steps` of setup to the beginning of the object's `steps` array.
-          if (statementJson.setup) {
-            // If `setup` is a relative path, resolve it
-            if (
-              config.relativePathBase === "file" &&
-              !path.isAbsolute(statementJson.setup)
-            ) {
-              statementJson.setup = path.resolve(
-                path.dirname(file),
-                statementJson.setup
-              );
-            }
-            // Load setup steps
-            const setupContent = fs
-              .readFileSync(statementJson.setup)
-              .toString();
-            const setup = JSON.parse(setupContent);
-            if (
-              setup &&
-              setup.tests &&
-              setup.tests[0] &&
-              setup.tests[0].steps
-            ) {
-              statementJson.steps = setup.tests[0].steps.concat(
-                statementJson.steps
-              );
-            } else {
-              console.error("Setup file does not contain valid steps.");
-            }
-          }
-          // Push to spec
-          spec.tests.push(statementJson);
-          // Set `ignore` to false
-          ignore = false;
-        } else if (line.includes(fileType.testEndStatement)) {
-          // Find test with `id`
-          test = spec.tests.find((test) => test.id === id);
-          // If any objects in `tests` array have `cleanup` property, add `tests[0].steps` of cleanup to the end of the object's `steps` array.
-          if (test.cleanup) {
-            // If `cleanup` is a relative path, resolve it
-            if (
-              config.relativePathBase === "file" &&
-              !path.isAbsolute(test.cleanup)
-            ) {
-              test.cleanup = path.resolve(path.dirname(file), test.cleanup);
-            }
-            const cleanupContent = fs.readFileSync(test.cleanup).toString();
-            const cleanup = JSON.parse(cleanupContent);
-            test.steps = test.steps.concat(cleanup.tests[0].steps);
-          }
-          // Set `id` to new UUID
-          id = `${uuid.v4()}`;
-          // Set `ignore` to false
-          ignore = false;
-        } else if (line.includes(fileType.stepStatementOpen)) {
-          // Find step statement
-          if (line.includes(fileType.stepStatementOpen)) {
-            stepStatementOpen =
-              line.indexOf(fileType.stepStatementOpen) +
-              fileType.stepStatementOpen.length;
-            if (line.includes(fileType.stepStatementClose)) {
-              stepStatementClose = line.lastIndexOf(
-                fileType.stepStatementClose
-              );
-            } else {
-              stepStatementClose = line.length;
-            }
-            stepStatement = line.substring(
-              stepStatementOpen,
-              stepStatementClose
-            );
-            // Parse JSON
-            statementJson = JSON.parse(stepStatement);
-            // Find test with `id`
-            test = spec.tests.find((test) => test.id === id);
-            // If test doesn't exist, create it
-            if (!test) {
-              test = { id, file, steps: [] };
-              spec.tests.push(test);
-              test = spec.tests.find((test) => test.id === id);
-            }
-            // Push to test
-            test.steps.push(statementJson);
-          }
-        } else if (line.includes(fileType.testIgnoreStatement)) {
-          // Set `ignore` to true
-          ignore = true;
-        } else if (!ignore) {
-          // Test for markup/dynamically generate tests
 
-          // Find test with `id`
-          test = spec.tests.find((test) => test.id === id);
-          // If test doesn't exist, create it
-          if (!test) {
-            test = { id, file, steps: [] };
-            spec.tests.push(test);
-            test = spec.tests.find((test) => test.id === id);
-          }
-          // If `detectSteps` is false, skip
-          if (
-            (typeof config.runTests?.detectSteps == "undefined" &&
-              typeof test.detectSteps === "undefined") ||
-            (config.runTests?.detectSteps === false &&
-              typeof test.detectSteps === "undefined") ||
-            test.detectSteps === false
-          )
-            continue;
+      // Process executables
+      if (fileType.runShell) {
+        // Substitute all instances of $1 with the file path
+        let runShell = JSON.stringify(fileType.runShell);
+        runShell = runShell.replace(/\$1/g, file);
+        runShell = JSON.parse(runShell);
 
-          log(config, "debug", `line: ${line}`);
-          let steps = [];
+        const test = {
+          steps: [
+            {
+              runShell,
+            },
+          ],
+        };
 
-          fileType.markup.forEach((markup) => {
-            // Test for markup
-            regex = new RegExp(markup.regex, "g");
-            const matches = [];
-            markup.regex.forEach((regex) => {
-              const match = line.matchAll(regex);
-              if (match) matches.push(...match);
-            });
-            // If no matches, skip
-            if (matches.length === 0) return false;
-            log(config, "debug", `markup: ${markup.name}`);
-
-            const actionMap = {
-              checkLink: {
-                action: "checkLink",
-                url: "$1",
-              },
-              goTo: {
-                action: "goTo",
-                url: "$1",
-              },
-              find: {
-                action: "find",
-                selector: "aria/$1",
-              },
-              saveScreenshot: {
-                action: "saveScreenshot",
-                path: "$1",
-              },
-              startRecording: {
-                action: "startRecording",
-                path: "$1",
-              },
-              httpRequest: {
-                action: "httpRequest",
-                url: "$1",
-              },
-              runShell: {
-                action: "runShell",
-                command: "$1",
-              },
-              typeKeys: {
-                action: "typeKeys",
-                keys: "$1",
-              },
-            };
-
-            matches.forEach((match) => {
-              log(config, "debug", `match: ${JSON.stringify(match, null, 2)}`);
-
-              // If `match` doesn't have a capture group, set it to the entire match
-              if (match.length === 1) {
-                match[1] = match[0];
-              }
-              markup.actions.forEach((action) => {
-                let step = {};
-                if (typeof action === "string") {
-                  step = JSON.parse(JSON.stringify(actionMap[action]));
-                } else if (action.name) {
-                  // TODO v3: Remove this block
-                  if (action.params) {
-                    step = { action: action.name, ...action.params };
-                  } else {
-                    step = { action: action.name };
-                  }
-                } else {
-                  step = JSON.parse(JSON.stringify(action));
-                }
-                step.index = match.index;
-                // Substitute variables $n with match[n]
-                Object.keys(step).forEach((key) => {
-                  if (typeof step[key] !== "string") return;
-                  // Replace $n with match[n]
-                  step[key] = step[key].replace(/\$[0-9]+/g, (stepMatch) => {
-                    const index = stepMatch.substring(1);
-                    return match[index];
-                  });
-                });
-
-                log(config, "debug", `step: ${JSON.stringify(step, null, 2)}`);
-                steps.push(step);
-              });
-            });
-          });
-          log(config, "debug", `all steps: ${JSON.stringify(steps, null, 2)}`);
-          // Order steps by step.index
-          steps.sort((a, b) => a.index - b.index);
-          // Remove step.index
-          steps.forEach((step) => delete step.index);
+        // Validate test
+        const validation = validate({
+          schemaKey: "test_v3",
+          object: test,
+          addDefaults: false,
+        });
+        if (!validation.valid) {
           log(
             config,
-            "debug",
-            `cleaned steps: ${JSON.stringify(steps, null, 2)}`
+            "warning",
+            `Failed to convert ${file} to a runShell step: ${validation.errors}. Skipping.`
           );
-          // Filter out steps that don't pass validation
-          steps = steps.filter((step) => {
-            const validation = validate(`${step.action}_v2`, step, false);
-            if (!validation.valid) {
-              log(
-                config,
-                "warning",
-                `Step ${step} isn't a valid step. Skipping.`
-              );
-              return false;
-            }
-            return true;
-          });
-          // Push steps to test
-          test.steps.push(...steps);
+          continue;
         }
+
+        spec.tests.push(test);
+        continue;
       }
+
+      // Process content
+      const tests = await parseContent({
+        config: config,
+        content: content,
+        fileType: fileType,
+        filePath: file,
+      });
+      spec.tests.push(...tests);
 
       // Remove tests with no steps
       spec.tests = spec.tests.filter((test) => test.steps.length > 0);
 
       // Push spec to specs, if it is valid
-      const validation = validate("spec_v2", spec, false);
+      const validation = validate({
+        schemaKey: "spec_v3",
+        object: spec,
+        addDefaults: false,
+      });
       if (!validation.valid) {
         log(
           config,
@@ -541,7 +649,11 @@ async function parseTests(config, files) {
         );
       } else {
         // Resolve paths
-        spec = await resolvePaths(config, spec, file);
+        spec = await resolvePaths({
+          config: config,
+          object: spec,
+          filePath: file,
+        });
         specs.push(spec);
       }
     }
@@ -560,7 +672,16 @@ async function outputResults(path, results, config) {
   log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
-async function setEnvs(envsFile) {
+/**
+ * Loads environment variables from a specified .env file.
+ *
+ * @async
+ * @param {string} envsFile - Path to the environment variables file.
+ * @returns {Promise<Object>} An object containing the operation result.
+ * @returns {string} returns.status - "PASS" if environment variables were loaded successfully, "FAIL" otherwise.
+ * @returns {string} returns.description - A description of the operation result.
+ */
+async function loadEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     require("dotenv").config({ path: envsFile, override: true });
@@ -606,13 +727,13 @@ async function log(config, level, message) {
   }
 }
 
-function loadEnvs(stringOrObject) {
+function replaceEnvs(stringOrObject) {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
     // Iterate through object and recursively resolve variables
     Object.keys(stringOrObject).forEach((key) => {
       // Resolve all variables in key value
-      stringOrObject[key] = loadEnvs(stringOrObject[key]);
+      stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
     // Load variable from string
@@ -635,7 +756,7 @@ function loadEnvs(stringOrObject) {
           }
         } catch {}
         // Attempt to load additional variables in value
-        value = loadEnvs(value);
+        value = replaceEnvs(value);
         // Replace match with variable value
         if (typeof value === "string") {
           // Replace match with value. Supports whole- and sub-string matches.

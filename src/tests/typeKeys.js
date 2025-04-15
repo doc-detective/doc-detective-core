@@ -64,24 +64,49 @@ const specialKeyMap = {
 };
 
 // Type a sequence of keys in the active element.
-async function typeKeys(config, step, driver) {
+async function typeKeys({config, step, driver}) {
   let result = { status: "PASS", description: "Typed keys." };
 
   // Validate step payload
-  isValidStep = validate("typeKeys_v2", step);
+  const isValidStep = validate({schemaKey: "step_v3", object: step});
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
 
-  // Convert string to array for consistency
-  if (typeof step.keys === "string") step.keys = [step.keys];
+  // Convert to array
+  if (typeof step.type === "string") {
+    step.type = [step.type];
+  }
+  // Convert to object
+  if (Array.isArray(step.type)) {
+    step.type = { keys: step.type };
+  }
+  // Convert keys property to object
+  if (typeof step.type.keys === "string") {
+    step.type.keys = [step.type.keys];
+  }
+  // Set default values
+  step.type = {
+    ...step.type,
+    keys: step.type.keys || [],
+    inputDelay: step.type.inputDelay || 100,
+  };
+
+  // Skip if no keys to type
+  if (!step.type.keys.length) {
+    result.status = "SKIPPED";
+    result.description = "No keys to type.";
+    return result;
+  }
 
   // Split into array of strings, each containing a single key
   if (config.recording) {
     let keys = [];
-    step.keys.forEach((key) => {
+    step.type.keys.forEach((key) => {
       if (key.startsWith("$") && key.endsWith("$")) {
         // Just push special keys
         keys.push(key);
@@ -91,13 +116,13 @@ async function typeKeys(config, step, driver) {
         keys = keys.concat(chars);
       }
     });
-    step.keys = keys;
+    step.type.keys = keys;
   }
 
   // Substitute special keys
   // 1. For each key, identify if it following the escape pattern of `$...$`.
   // 2. If it does, replace it with the corresponding `Key` object from `specialKeyMap`.
-  step.keys = step.keys.map((key) =>
+  step.type.keys = step.type.keys.map((key) =>
     key.replace(/^\$.+\$$/gm, specialKeyMap[key])
   );
 
@@ -105,18 +130,18 @@ async function typeKeys(config, step, driver) {
   try {
     if (config.recording) {
       // Type keys one at a time
-      for (let i = 0; i < step.keys.length; i++) {
-        await driver.keys(step.keys[i]);
-        await new Promise((resolve) => setTimeout(resolve, step.delay)); // Add a 1-second delay between keystrokes
+      for (let i = 0; i < step.type.keys.length; i++) {
+        await driver.keys(step.type.keys[i]);
+        await new Promise((resolve) => setTimeout(resolve, step.type.inputDelay)); // Add a delay between keystrokes
       }
     } else {
       // Type all keys at once
-      await driver.keys(step.keys);
+      await driver.keys(step.type.keys);
     }
-  } catch {
-    // FAIL: Error opening URL
+  } catch (error) {
+    // FAIL: Error typing keys
     result.status = "FAIL";
-    result.description = "Couldn't type keys.";
+    result.description = `Couldn't type keys: ${error.message}.`;
     return result;
   }
 
