@@ -1,7 +1,6 @@
 {
   "id": "saveScreenshot_pixeldiff",
   "tests": [
-
     {
       "id": "no-match",
       "steps": [
@@ -22,7 +21,7 @@
           "action": "saveScreenshot",
           "path": "screenshot2.png",
           "maxVariation": 5,
-          "overwrite": "byVariation"      
+          "overwrite": "byVariation"
         }
       ]
     }

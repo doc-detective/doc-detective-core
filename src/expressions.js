@@ -1,7 +1,7 @@
 const { log } = require("./utils");
-const { JSONPath } = require("jsonpath-plus");
-const xpath = require("xpath");
-const { DOMParser } = require("xmldom");
+// const { JSONPath } = require("jsonpath-plus");
+// const xpath = require("xpath");
+// const { DOMParser } = require("xmldom");
 const jq = require("jq-web");
 
 module.exports = {
