@@ -6,11 +6,36 @@ const { wait } = require("./wait");
 
 exports.findElement = findElement;
 
+async function findElementByRegex({ pattern, timeout, driver }) {
+  await driver.pause(timeout);
+  // Find an element based on a regex pattern
+  const elements = await driver.$$("*");
+  for (const element of elements) {
+    const text = await element.getText();
+    if (text.match(pattern)) {
+      return { element, foundBy: "regex" };
+    }
+  }
+  return null;
+}
+
 async function findElementBySelectorOrText({ string, driver }) {
   // Find an element based on a string that could either be a selector or element text
+  const timeout = 5000;
+
+  // If regex, find element by regex
+  if (string.startsWith("/") && string.endsWith("/")) {
+    const pattern = new RegExp(string.slice(1, -1));
+    const result = await findElementByRegex({
+      pattern,
+      timeout,
+      driver,
+    });
+    return result;
+  }
+
   // Perform searches for both concurrently
   // Prefer a selector match over a text match
-  const timeout = 5000;
   const selectorPromise = driver.$(string);
   const textPromise = driver.$(`//*[text()="${string}"]`);
   // Wait for both promises to resolve
@@ -62,7 +87,19 @@ async function findElementBySelectorAndText({
   // Elements must match both selector and text
   let elements = await driver.$$(selector);
   elements = await elements.filter(
-    async (el) => (await el.getText()) === text && el.elementId
+    async (el) => {
+      const elementText = await el.getText();
+      if (!(elementText && el.elementId)) {
+        return false;
+      }
+      // If text is a regex, match against it
+      if (text.startsWith("/") && text.endsWith("/")) {
+        const pattern = new RegExp(text.slice(1, -1));
+        return pattern.test(elementText);
+      }
+      // If text is a string, match against it
+      return elementText === text;
+    }
   );
   if (elements.length === 0) {
     return { element: null, foundBy: null }; // No matching elements
