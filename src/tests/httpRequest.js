@@ -9,7 +9,7 @@ const { log, calculatePercentageDifference, replaceEnvs } = require("../utils");
 exports.httpRequest = httpRequest;
 
 async function httpRequest({ config, step, openApiDefinitions = [] }) {
-  let result = { status: "", description: "" };
+  let result = { status: "", description: "", outputs: {} };
   let openApiDefinition;
   let operation;
 
@@ -229,9 +229,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
-    result.actualResponse = {
+    result.outputs.response = {
       body: response.data,
-      status: response.status,
+      statusCode: response.status,
       headers: response.headers,
     };
   } else {
@@ -244,9 +244,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     } else {
       response.data = step.httpRequest.response.body;
     }
-    result.actualResponse = {
+    result.outputs.response = {
       body: response.data,
-      status: step.httpRequest.statusCodes[0],
+      statusCode: step.httpRequest.statusCodes[0],
       headers: step.httpRequest.response?.headers,
     };
     response.status = step.httpRequest.statusCodes[0];
