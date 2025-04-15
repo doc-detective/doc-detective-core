@@ -21,7 +21,7 @@
     "docs"
   ],
   "author": "Manny Silva",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "bugs": {
     "url": "https://github.com/doc-detective/doc-detective-core/issues"
   },
@@ -44,7 +44,7 @@
     "json-schema-faker": "^0.5.9",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
-    "posthog-node": "^4.11.5",
+    "posthog-node": "^4.11.6",
     "prompt-sync": "^4.2.0",
     "sharp": "^0.34.1",
     "tree-kill": "^1.2.2",
