@@ -40,7 +40,7 @@ const defaultAppIDs = {
 
 // List of default file type definitions
 // TODO: Add defaults for all supported files
-const defaultFileTypes = {
+let defaultFileTypes = {
   asciidoc_1_0: {
     name: "asciidoc",
     extensions: ["adoc", "asciidoc", "asc"],
@@ -147,9 +147,9 @@ const defaultFileTypes = {
 // Set keyword versions
 defaultFileTypes = {
   ...defaultFileTypes,
-  markdown: markdown_1_0,
-  asciidoc: asciidoc_1_0,
-  html: html_1_0,
+  markdown: defaultFileTypes.markdown_1_0,
+  asciidoc: defaultFileTypes.asciidoc_1_0,
+  html: defaultFileTypes.html_1_0,
 };
 
 /**
