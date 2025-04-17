@@ -41,6 +41,30 @@ const defaultAppIDs = {
 // List of default file type definitions
 // TODO: Add defaults for all supported files
 const defaultFileTypes = {
+  asciidoc_1_0: {
+    name: "asciidoc",
+    extensions: ["adoc", "asciidoc", "asc"],
+    inlineStatements: {
+      testStart: ["\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"],
+      testEnd: ["\\/\\/\\s+\\(\\s*test end\\s*\\)"],
+      ignoreStart: ["\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"],
+      ignoreEnd: ["\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"],
+      step: ["\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"],
+    },
+    markup: [],
+  },
+  html_1_0: {
+    name: "html",
+    extensions: ["html", "htm"],
+    inlineStatements: {
+      testStart: ["<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"],
+      testEnd: ["<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"],
+      ignoreStart: ["<!--\\s*test ignore start\\s*-->"],
+      ignoreEnd: ["<!--\\s*test ignore end\\s*-->"],
+      step: ["<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"],
+    },
+    markup: [],
+  },
   markdown_1_0: {
     name: "markdown",
     extensions: ["md", "markdown", "mdx"],
@@ -52,17 +76,18 @@ const defaultFileTypes = {
         "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)",
       ],
       testEnd: [
-        "{\\/\\*\\s*testEnd\\s*\\*\\/}",
-        "<!--\\s*testEnd\\s*([\\s\\S]*?)\\s*-->",
+        "{\\/\\*\\s*test end\\s*\\*\\/}",
+        "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->",
         "\\[comment\\]:\\s+#\\s+\\(test end\\)",
       ],
       ignoreStart: [
-        "{\\/\\*\\s*ignoreStart\\s*\\*\\/}",
-        "<!--\\s*ignoreStart\\s*-->"
+        "{\\/\\*\\s*test ignore start\\s*\\*\\/}",
+        "<!--\\s*test ignore start\\s*-->",
       ],
       ignoreEnd: [
-        "{\\/\\*\\s*ignoreEnd\\s*\\*\\/}",
-        "<!--\\s*ignoreEnd\\s*-->"],
+        "{\\/\\*\\s*test ignore end\\s*\\*\\/}",
+        "<!--\\s*test ignore end\\s*-->",
+      ],
       step: [
         "{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}",
         "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
@@ -71,28 +96,61 @@ const defaultFileTypes = {
     },
     markup: [
       {
-        name: "onscreenText",
-        regex: ["\\*\\*(.+?)\\*\\*"],
+        name: "checkHyperlink",
+        regex: [
+          '(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
+        ],
+        actions: ["checkLink"],
+      },
+      {
+        name: "clickOnscreenText",
+        regex: [
+          "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*",
+        ],
+      },
+      {
+        name: "findOnscreenText",
+        regex: ["`\\*\\*((?:(?!\\*\\*).)+)\\*\\*`"],
         actions: ["find"],
       },
       {
-        name: "runBash",
-        regex: ["```(?:bash)\\b\\s*\\n(?<code>.*?)(?=\\n```)"],
-        batchMatches: true,
-        actions: [
-          {
-            runCode: {
-              language: "bash",
-              code: "$1",
-            },
-          },
-        ],
+        name: "goToUrl",
+        regex: ["\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"],
+        actions: ["goTo"],
       },
+      {
+        name: "screenshotImage",
+        regex: ["!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}"],
+        actions: ["screenshot"],
+      },
+      {
+        name: "typeText",
+        regex: ["\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""],
+        actions: ["type"],
+      },
+      // {
+      //   name: "runBash",
+      //   regex: ["```(?:bash)\\b\\s*\\n(?<code>.*?)(?=\\n```)"],
+      //   batchMatches: true,
+      //   actions: [
+      //     {
+      //       runCode: {
+      //         language: "bash",
+      //         code: "$1",
+      //       },
+      //     },
+      //   ],
+      // },
     ],
   },
 };
 // Set keyword versions
-defaultFileTypes.markdown = defaultFileTypes["markdown_1_0"];
+defaultFileTypes = {
+  ...defaultFileTypes,
+  markdown: markdown_1_0,
+  asciidoc: asciidoc_1_0,
+  html: html_1_0,
+};
 
 /**
  * Sets up and validates the configuration object for Doc Detective
