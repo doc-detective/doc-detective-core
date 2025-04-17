@@ -46,16 +46,25 @@ const defaultFileTypes = {
     extensions: ["md", "markdown", "mdx"],
     inlineStatements: {
       testStart: [
-        "<!--\\s*testStart\\s*([\\s\\S]*?)\\s*-->",
+        "{\\/\\*\\s*test\\s+?([\\s\\S]*?)\\s*\\*\\/}",
+        "<!--\\s*test\\s*([\\s\\S]*?)\\s*-->",
+        "\\[comment\\]:\\s+#\\s+\\(test\\s*(.*?)\\s*\\)",
         "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)",
       ],
       testEnd: [
+        "{\\/\\*\\s*testEnd\\s*\\*\\/}",
         "<!--\\s*testEnd\\s*([\\s\\S]*?)\\s*-->",
         "\\[comment\\]:\\s+#\\s+\\(test end\\)",
       ],
-      ignoreStart: ["<!--\\s*ignoreStart\\s*-->"],
-      ignoreEnd: ["<!--\\s*ignoreEnd\\s*-->"],
+      ignoreStart: [
+        "{\\/\\*\\s*ignoreStart\\s*\\*\\/}",
+        "<!--\\s*ignoreStart\\s*-->"
+      ],
+      ignoreEnd: [
+        "{\\/\\*\\s*ignoreEnd\\s*\\*\\/}",
+        "<!--\\s*ignoreEnd\\s*-->"],
       step: [
+        "{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}",
         "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
         "\\[comment\\]:\\s+#\\s+\\(step\\s*(.*?)\\s*\\)",
       ],
