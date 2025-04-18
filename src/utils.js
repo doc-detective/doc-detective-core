@@ -140,7 +140,7 @@ async function qualityFiles({ config }) {
         for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
           // Exclude node_modules for local installs
-          if (content.includes("node_modules")) return;
+          if (content.includes("node_modules")) continue;
           // Check if file or directory
           const isFile = fs.statSync(content).isFile();
           const isDir = fs.statSync(content).isDirectory();
@@ -262,7 +262,7 @@ async function parseContent({ config, content, filePath, fileType }) {
   ];
 
   function findTest({ tests, testId }) {
-    test = tests.find((test) => test.testId === testId);
+    let test = tests.find((test) => test.testId === testId);
     if (!test) {
       test = { testId, steps: [] };
       tests.push(test);
@@ -274,9 +274,23 @@ async function parseContent({ config, content, filePath, fileType }) {
     if (
       typeof stringOrObject !== "string" &&
       typeof stringOrObject !== "object"
-    )
+    ) {
       throw new Error("Invalid stringOrObject type");
-    if (typeof values !== "object") throw new Error("Invalid values type");
+    }
+    if (typeof values !== "object") {
+      throw new Error("Invalid values type");
+    }
+
+    if (typeof stringOrObject === "string") {
+      // Replace $n with values[n]
+      stringOrObject = stringOrObject.replace(
+        /\$[0-9]+/g,
+        (variable) => {
+          const index = variable.substring(1);
+          return values[index];
+        }
+      );
+    }
 
     Object.keys(stringOrObject).forEach((key) => {
       if (typeof stringOrObject[key] === "object") {
