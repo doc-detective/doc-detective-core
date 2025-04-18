@@ -73,7 +73,7 @@ async function startRecording({ config, context, step, driver }) {
   // Check if file already exists
   if (fs.existsSync(filePath) && step.record.overwrite == "false") {
     // File already exists
-    result.status = "SKIP";
+    result.status = "SKIPPED";
     result.description = `File already exists: ${filePath}`;
     return result;
   }

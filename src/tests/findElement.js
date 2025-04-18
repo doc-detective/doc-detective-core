@@ -9,7 +9,7 @@ exports.findElement = findElement;
 async function findElementByRegex({ pattern, timeout, driver }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern
-  const elements = await driver.$$("*");
+  const elements = await driver.$$("//*[text()]");
   for (const element of elements) {
     const text = await element.getText();
     if (text.match(pattern)) {

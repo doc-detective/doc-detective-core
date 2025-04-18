@@ -77,10 +77,11 @@ async function runCode({ config, step }) {
 
   try {
     if (!step.runCode.command) {
+      const lang = step.runCode.language.toLowerCase();
       step.runCode.command =
-        step.runCode.language.toLowerCase() === "python"
+        step.runCode.language === "python"
           ? "python"
-          : step.runCode.language.toLowerCase() === "javascript"
+          : step.runCode.language === "javascript"
           ? "node"
           : "bash";
     }

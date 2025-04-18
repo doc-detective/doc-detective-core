@@ -64,11 +64,11 @@ const specialKeyMap = {
 };
 
 // Type a sequence of keys in the active element.
-async function typeKeys({config, step, driver}) {
+async function typeKeys({ config, step, driver }) {
   let result = { status: "PASS", description: "Typed keys." };
 
   // Validate step payload
-  const isValidStep = validate({schemaKey: "step_v3", object: step});
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
@@ -122,9 +122,12 @@ async function typeKeys({config, step, driver}) {
   // Substitute special keys
   // 1. For each key, identify if it following the escape pattern of `$...$`.
   // 2. If it does, replace it with the corresponding `Key` object from `specialKeyMap`.
-  step.type.keys = step.type.keys.map((key) =>
-    key.replace(/^\$.+\$$/gm, specialKeyMap[key])
-  );
+  step.type.keys = step.type.keys.map((key) => {
+    if (key.startsWith("$") && key.endsWith("$") && specialKeyMap[key]) {
+      return specialKeyMap[key];
+    }
+    return key;
+  });
 
   // Run action
   try {
@@ -132,7 +135,9 @@ async function typeKeys({config, step, driver}) {
       // Type keys one at a time
       for (let i = 0; i < step.type.keys.length; i++) {
         await driver.keys(step.type.keys[i]);
-        await new Promise((resolve) => setTimeout(resolve, step.type.inputDelay)); // Add a delay between keystrokes
+        await new Promise((resolve) =>
+          setTimeout(resolve, step.type.inputDelay)
+        ); // Add a delay between keystrokes
       }
     } else {
       // Type all keys at once

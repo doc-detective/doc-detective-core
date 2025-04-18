@@ -49,7 +49,6 @@ async function runShell({ config, step }) {
   };
 
   // Execute command
-  let foo = process?.env?.foo;
   const timeout = step.runShell.timeout;
   const options = {};
   if (step.runShell.workingDirectory)

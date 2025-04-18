@@ -6,7 +6,7 @@
           "goTo": "https://duckduckgo.com"
         },
         {
-          "find": "Set As Default Search"
+          "find": "/Set As.+/"
         }
       ]
     }
