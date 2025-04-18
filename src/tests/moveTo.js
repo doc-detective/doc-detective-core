@@ -120,22 +120,19 @@ async function instantiateCursor(driver, options = { position: "current" }) {
 }
 
 // Move mouse.
-async function moveTo(config, step, driver) {
+// TODO: Remove most of this function or rework it as it's own step.
+async function moveTo({config, step, driver, element}) {
   let result = {
     status: "PASS",
     description: "Moved mouse.",
   };
-
-  // Validate step payload
-  isValidStep = validate("moveTo_v2", step);
-  if (!isValidStep.valid) {
+  if (!element?.elementId){
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = `Couldn't find element.`;
     return result;
   }
-
+  
   // Calculate target coordinates based on selector, alignments, and offsets
-  const element = await driver.$(step.selector);
   const size = await element.getSize();
   const location = await element.getLocation();
   const dimensions = {

@@ -1,32 +1,36 @@
 const { validate } = require("doc-detective-common");
 const axios = require("axios");
-const jq = require("node-jq");
 const fs = require("fs");
 const path = require("path");
 const Ajv = require("ajv");
 const { getOperation, loadDescription } = require("../openapi");
-const { log, calculatePercentageDifference, loadEnvs } = require("../utils");
+const { log, calculatePercentageDifference, replaceEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest(config, step, openApiDefinitions = []) {
-  let result = { status: "", description: "" };
+async function httpRequest({ config, step, openApiDefinitions = [] }) {
+  let result = { status: "", description: "", outputs: {} };
   let openApiDefinition;
   let operation;
 
   // Identify OpenAPI definition
-  if (step.openApi) {
-    if (step.openApi.descriptionPath) {
+  if (step.httpRequest.openApi) {
+    if (step.httpRequest.openApi.descriptionPath) {
       // Load OpenAPI definition from step
-      openApiDefinition = await loadDescription(step.openApi.descriptionPath);
-    } else if (step.openApi.name && openApiDefinitions.length > 0) {
+      openApiDefinition = await loadDescription(
+        step.httpRequest.openApi.descriptionPath
+      );
+    } else if (step.httpRequest.openApi.name && openApiDefinitions.length > 0) {
       // Load OpenAPI definition from config
       let integration = openApiDefinitions.find(
-        (openApiConfig) => openApiConfig.name === step.openApi.name
+        (openApiConfig) => openApiConfig.name === step.httpRequest.openApi.name
       );
       openApiDefinition = integration.definition;
-      step.openApi = { ...integration, ...step.openApi };
-      delete step.openApi.definition;
+      step.httpRequest.openApi = {
+        ...integration,
+        ...step.httpRequest.openApi,
+      };
+      delete step.httpRequest.openApi.definition;
     } else if (openApiDefinitions.length > 0) {
       // Identify first definition that contains the operation
       for (const openApiConfig of openApiDefinitions) {
@@ -34,11 +38,14 @@ async function httpRequest(config, step, openApiDefinitions = []) {
           for (const method in openApiConfig.definition.paths[path]) {
             if (
               openApiConfig.definition.paths[path][method].operationId ===
-              step.openApi.operationId
+              step.httpRequest.openApi.operationId
             ) {
               openApiDefinition = openApiConfig.definition;
-              step.openApi = { ...openApiConfig, ...step.openApi };
-              delete step.openApi.definition;
+              step.httpRequest.openApi = {
+                ...openApiConfig,
+                ...step.httpRequest.openApi,
+              };
+              delete step.httpRequest.openApi.definition;
               break;
             }
           }
@@ -54,103 +61,138 @@ async function httpRequest(config, step, openApiDefinitions = []) {
 
     operation = await getOperation(
       openApiDefinition,
-      step.openApi.operationId,
-      step.openApi.statusCode,
-      step.openApi.exampleKey,
-      step.openApi.server
+      step.httpRequest.openApi.operationId,
+      step.httpRequest.openApi.statusCode,
+      step.httpRequest.openApi.exampleKey,
+      step.httpRequest.openApi.server
     );
     if (!operation) {
       result.status = "FAIL";
-      result.description = `Couldn't find operation '${step.openApi.operationId}' in OpenAPI definition.`;
+      result.description = `Couldn't find operation '${step.httpRequest.openApi.operationId}' in OpenAPI definition.`;
       return result;
     }
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
 
     // Set request info from OpenAPI config
     // URL
-    if (!step.url) step.url = operation.example.url;
+    if (!step.httpRequest.url) step.httpRequest.url = operation.example.url;
     // Method
-    step.method = operation.method;
+    step.httpRequest.method = operation.method;
     // Headers
-    if (step.openApi.requestHeaders)
-      step.requestHeaders = {
-        ...step.openApi.requestHeaders,
-        ...(step.requestHeaders || {}),
+    if (step.httpRequest.openApi.headers) {
+      if (typeof step.httpRequest.request === "undefined") step.httpRequest.request = {};
+      
+      step.httpRequest.request.headers = {
+        ...step.httpRequest.openApi.headers,
+        ...(step.httpRequest.request.headers || {}),
       };
+    }
 
     // Set request info from example
     if (
-      step.openApi.useExample === "request" ||
-      step.openApi.useExample === "both"
+      step.httpRequest.openApi.useExample === "request" ||
+      step.httpRequest.openApi.useExample === "both"
     ) {
-      if (Object.keys(operation.example.request.parameters).length > 0)
-        step.requestParams = {
+      if (typeof step.httpRequest.request === "undefined") step.httpRequest.request = {};
+      if (Object.keys(operation.example.request?.parameters).length > 0)
+        step.httpRequest.request.parameters = {
           ...operation.example.request.parameters,
-          ...(step.requestParams || {}),
+          ...(step.httpRequest.request.parameters || {}),
         };
-      if (Object.keys(operation.example.request.headers).length > 0)
-        step.requestHeaders = {
+      if (Object.keys(operation.example.request?.headers).length > 0)
+        step.httpRequest.request.headers = {
           ...operation.example.request.headers,
-          ...(step.requestHeaders || {}),
+          ...(step.httpRequest.request.headers || {}),
         };
-      if (Object.keys(operation.example.request.body).length > 0)
-        step.requestData = {
+      if (Object.keys(operation.example.request?.body).length > 0)
+        step.httpRequest.request.body = {
           ...operation.example.request.body,
-          ...(step.requestData || {}),
+          ...(step.httpRequest?.request?.body || {}),
         };
     }
     // Set response info
     if (
-      step.openApi.useExample === "response" ||
-      step.openApi.useExample === "both"
+      step.httpRequest.openApi.useExample === "response" ||
+      step.httpRequest.openApi.useExample === "both"
     ) {
-      if (Object.keys(operation.example.response.headers).length > 0)
-        step.responseHeaders = {
+      if (typeof step.httpRequest.response === "undefined") step.httpRequest.response = {};
+      if (Object.keys(operation.example.response?.headers).length > 0)
+        step.httpRequest.response.headers = {
           ...operation.example.response.headers,
-          ...(step.responseHeaders || {}),
+          ...(step.httpRequest.response.headers || {}),
         };
-      if (Object.keys(operation.example.response.body).length > 0)
-        step.responseData = {
+      if (Object.keys(operation.example.response?.body).length > 0)
+        step.httpRequest.response.body = {
           ...operation.example.response.body,
-          ...(step.responseData || {}),
+          ...(step.httpRequest.response.body || {}),
         };
     }
     // Set status code
-    if (step.openApi.statusCode) {
-      step.statusCodes = [step.openApi.statusCode, ...(step.statusCodes || [])];
-    } else if (!step.statusCodes) {
-      step.statusCodes = Object.keys(operation.definition.responses).filter(
-        (code) => code.startsWith("2")
-      );
+    if (step.httpRequest.openApi.statusCode) {
+      step.httpRequest.statusCodes = [
+        step.httpRequest.openApi.statusCode,
+        ...(step.httpRequest.statusCodes || []),
+      ];
+    } else if (!step.httpRequest.statusCodes) {
+      step.httpRequest.statusCodes = Object.keys(
+        operation.definition.responses
+      ).filter((code) => code.startsWith("2"));
     }
   }
 
   // Make sure there's a protocol
-  if (step.url && !step.url.includes("://")) step.url = "https://" + step.url;
+  if (step.httpRequest.url && !step.httpRequest.url.includes("://"))
+    step.httpRequest.url = "https://" + step.httpRequest.url;
 
   // Load environment variables
-  step = await loadEnvs(step);
+  // Have to do it again to catch any changes made to the OpenAPI config
+  step = await replaceEnvs(step);
 
   // Validate step payload
-  isValidStep = validate("httpRequest_v2", step);
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  // Accept coerced and defaulted values
+  step = isValidStep.object;
+  // Resolve to object
+  if (typeof step.httpRequest === "string") {
+    step.httpRequest = { url: step.httpRequest };
+  }
+  // Set default values
+  step.httpRequest = {
+    ...step.httpRequest,
+    method: step.httpRequest.method || "get",
+    statusCodes: step.httpRequest.statusCodes || [200, 201],
+    request: step.httpRequest.request || {
+      params: {},
+      headers: {},
+      body: {},
+    },
+    response: step.httpRequest.response || {
+      headers: {},
+      body: {},
+    },
+    allowAdditionalFields: typeof step.httpRequest.allowAdditionalFields !== "undefined" ? step.httpRequest.allowAdditionalFields : true,
+    overwrite: step.httpRequest.overwrite || "aboveVariation",
+    maxVariation: step.httpRequest.maxVariation || 0,
+    timeout: step.httpRequest.timeout || 60000,
+  };
 
   const request = {
-    url: step.url,
-    method: step.method,
-    headers: step.requestHeaders,
-    params: step.requestParams,
-    data: step.requestData,
+    url: step.httpRequest.url,
+    method: step.httpRequest.method,
+    headers: step.httpRequest.request.headers,
+    params: step.httpRequest.request.parameters,
+    data: step.httpRequest.request.body,
   };
 
   // Validate request payload against OpenAPI definition
   if (
-    (step.openApi?.validateAgainstSchema === "request" ||
-      step.openApi?.validateAgainstSchema === "both") &&
+    (step.httpRequest.openApi?.validateAgainstSchema === "request" ||
+      step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.request
   ) {
     // Validate request payload against OpenAPI definition
@@ -162,12 +204,12 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       coerceTypes: false,
     });
     const validate = ajv.compile(operation.schemas.request);
-    const valid = validate(step.requestData);
+    const valid = validate(step.httpRequest.request.body);
     if (valid) {
-      result.description = ` Request data matched the OpenAPI schema.`;
+      result.description = ` Request body matched the OpenAPI schema.`;
     } else {
       result.status = "FAIL";
-      result.description = ` Request data didn't match the OpenAPI schema. ${JSON.stringify(
+      result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
@@ -177,7 +219,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
   }
 
   let response = {};
-  if (!step?.openApi?.mockResponse) {
+  if (!step?.httpRequest?.openApi?.mockResponse) {
     // Perform request
     response = await axios(request)
       .then((response) => {
@@ -187,39 +229,47 @@ async function httpRequest(config, step, openApiDefinitions = []) {
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
-    result.actualResponseData = response.data;
+    result.outputs.response = {
+      body: response.data,
+      statusCode: response.status,
+      headers: response.headers,
+    };
   } else {
     // Mock response
     if (
-      JSON.stringify(step.responseData) == "{}" &&
-      JSON.stringify(operation.example.response.body) != "{}"
+      typeof step.httpRequest.response.body === "undefined" &&
+      typeof operation.example.response.body !== "undefined"
     ) {
       response.data = operation.example.response.body;
     } else {
-      response.data = step.responseData;
+      response.data = step.httpRequest.response.body;
     }
-    result.actualResponseData = response.data;
-    response.status = step.statusCodes[0];
-    response.headers = step.responseHeaders;
+    result.outputs.response = {
+      body: response.data,
+      statusCode: step.httpRequest.statusCodes[0],
+      headers: step.httpRequest.response?.headers,
+    };
+    response.status = step.httpRequest.statusCodes[0];
+    response.headers = step.httpRequest?.response?.headers;
   }
 
   // Compare status codes
-  if (step.statusCodes) {
-    if (step.statusCodes.indexOf(response.status) >= 0) {
+  if (step.httpRequest.statusCodes) {
+    if (step.httpRequest.statusCodes.indexOf(response.status) >= 0) {
       result.status = "PASS";
       result.description = `Returned ${response.status}.`;
     } else {
       result.status = "FAIL";
       result.description = `Returned ${
         response.status
-      }. Expected one of ${JSON.stringify(step.statusCodes)}.`;
+      }. Expected one of ${JSON.stringify(step.httpRequest.statusCodes)}.`;
     }
   }
 
   // Validate response payload against OpenAPI definition
   if (
-    (step.openApi?.validateAgainstSchema === "response" ||
-      step.openApi?.validateAgainstSchema === "both") &&
+    (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
+      step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.response
   ) {
     // Validate request payload against OpenAPI definition
@@ -245,10 +295,13 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     }
   }
 
-  // Compare response.data and responseData
-  if (!step.allowAdditionalFields) {
+  // Compare response.body
+  if (!step.httpRequest.allowAdditionalFields) {
     // Do a deep comparison
-    let dataComparison = objectExistsInObject(response.data, step.responseData);
+    const dataComparison = objectExistsInObject(
+      step.httpRequest.response.body,
+      response.data
+    );
     if (dataComparison.result.status === "FAIL") {
       result.status = "FAIL";
       result.description += " Response contained unexpected fields.";
@@ -256,24 +309,59 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     }
   }
 
-  if (JSON.stringify(step.responseData) != "{}") {
-    let dataComparison = objectExistsInObject(step.responseData, response.data);
-    if (dataComparison.result.status === "PASS") {
-      if (result.status != "FAIL") result.status = "PASS";
-      result.description += ` Expected response data was present in actual response data.`;
-    } else {
+  if (typeof step.httpRequest.response?.body !== "undefined") {
+    // Check if response body is the same type
+    if (
+      typeof step.httpRequest.response.body !== typeof response.data ||
+      (typeof step.httpRequest.response.body === "object" &&
+        Array.isArray(step.httpRequest.response.body) !==
+          Array.isArray(response.data))
+    ) {
       result.status = "FAIL";
-      result.description =
-        result.description + " " + dataComparison.result.description;
+      result.description += ` Expected response body type didn't match actual response body type.`;
+      return result;
+    }
+    // Check if response body is a string or object
+    if (typeof step.httpRequest.response.body === "string") {
+      if (step.httpRequest.response.body !== response.data) {
+        result.status = "FAIL";
+        result.description += ` Expected response body didn't match actual response body.`;
+      }
+      return result;
+    } else if (typeof step.httpRequest.response.body === "object") {
+      const dataComparison = objectExistsInObject(
+        step.httpRequest.response.body,
+        response.data
+      );
+      if (dataComparison.result.status === "PASS") {
+        if (result.status != "FAIL") result.status = "PASS";
+        result.description += ` Expected response body was present in actual response body.`;
+      } else {
+        result.status = "FAIL";
+        result.description =
+          result.description + " " + dataComparison.result.description;
+        return result;
+      }
     }
   }
 
-  // Compare response.headers and responseHeaders
-  if (JSON.stringify(step.responseHeaders) != "{}") {
-    dataComparison = objectExistsInObject(
-      step.responseHeaders,
-      response.headers
-    );
+  // Compare response.headers
+  if (
+    typeof step.httpRequest.response?.headers !== "undefined" &&
+    JSON.stringify(step.httpRequest.response?.headers) != "{}"
+  ) {
+    // Preprocess headers to lowercase
+    const headers = {};
+    Object.keys(step.httpRequest.response.headers).forEach((key) => {
+      headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
+    });
+    const responseHeaders = {};
+    Object.keys(response.headers).forEach((key) => {
+      responseHeaders[key.toLowerCase()] = response.headers[key];
+    });
+    // Perform comparison
+    const dataComparison = objectExistsInObject(headers, responseHeaders);
+    // Check if headers are present in actual response
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
       result.description += ` Expected response headers were present in actual response headers.`;
@@ -283,33 +371,15 @@ async function httpRequest(config, step, openApiDefinitions = []) {
     }
   }
 
-  // Set environment variables from response data
-  for (const variable of step.envsFromResponseData) {
-    let value = await jq.run(variable.jqFilter, response.data, {
-      input: "json",
-      output: "compact",
-    });
-    if (value) {
-      // Trim quotes if present
-      value = value.replace(/^"(.*)"$/, "$1");
-      process.env[variable.name] = value;
-      result.description =
-        result.description + ` Set '$${variable.name}' environment variable.`;
-    } else {
-      if (result.status != "FAIL") result.status = "WARNING";
-      result.description += ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
-    }
-  }
-
   // Check if command output is saved to a file
-  if (step.savePath) {
-    const dir = path.dirname(step.savePath);
+  if (step.httpRequest.path) {
+    const dir = path.dirname(step.httpRequest.path);
     // If `dir` doesn't exist, create it
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     // Set filePath
-    let filePath = step.savePath;
+    let filePath = step.httpRequest.path;
     log(config, "debug", `Saving output to file: ${filePath}`);
 
     // Check if file already exists
@@ -321,7 +391,7 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       );
       result.description += ` Saved output to file.`;
     } else {
-      if (step.overwrite == "false") {
+      if (step.httpRequest.overwrite == "false") {
         // File already exists
         result.description += ` Didn't save output. File already exists.`;
       }
@@ -336,8 +406,8 @@ async function httpRequest(config, step, openApiDefinitions = []) {
       );
       log(config, "debug", `Percentage difference: ${percentDiff}%`);
 
-      if (percentDiff > step.maxVariation) {
-        if (step.overwrite == "byVariation") {
+      if (percentDiff > step.httpRequest.maxVariation * 100) {
+        if (step.httpRequest.overwrite == "aboveVariation") {
           // Overwrite file
           await fs.promises.writeFile(
             filePath,
@@ -345,11 +415,13 @@ async function httpRequest(config, step, openApiDefinitions = []) {
           );
         }
         result.status = "FAIL";
-        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${step.maxVariation}%).`;
+        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${
+          step.httpRequest.maxVariation * 100
+        }%).`;
         return result;
       }
 
-      if (step.overwrite == "true") {
+      if (step.httpRequest.overwrite == "true") {
         // Overwrite file
         fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
       }
@@ -464,7 +536,7 @@ function objectExistsInObject(expected, actual) {
     if (!actual.hasOwnProperty(key)) {
       // Key doesn't exist in actual
       description =
-        description + `The '${key}' key did't exist in returned JSON. `;
+        description + `The '${key}' key didn't exist in returned JSON. `;
       status = "FAIL";
     } else if (typeof expected[key] === "object") {
       if (Array.isArray(expected[key])) {
@@ -484,7 +556,7 @@ function objectExistsInObject(expected, actual) {
       // Actual value doesn't match expected
       description =
         description +
-        `The '${key}' key did't match the expected value. Expected: '${expected[key]}'. Actual: '${actual[key]}'. `;
+        `The '${key}' key didn't match the expected value. Expected: '${expected[key]}'. Actual: '${actual[key]}'. `;
       status = "FAIL";
     }
 
@@ -494,4 +566,47 @@ function objectExistsInObject(expected, actual) {
   });
   result = { status, description };
   return { result };
+}
+
+// If run directly, perform httpRequest
+if (require.main === module) {
+  const config = {
+    logLevel: "debug",
+  };
+  const step = {
+    httpRequest: {
+      url: `https://reqres.in/api/users`,
+      method: "post",
+      statusCodes: [200, 201],
+      request: {
+        body: {
+          name: "John Doe",
+          job: "Software Engineer",
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        parameters: {},
+      },
+      response: {
+        body: {},
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          server: "cloudflare",
+        },
+      },
+      allowAdditionalFields: false,
+      path: "response.json",
+      directory: "media",
+      maxVariation: 0.1,
+      overwrite: "aboveVariation",
+    },
+  };
+  httpRequest({ config, step })
+    .then((result) => {
+      console.log(result);
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 }

@@ -1,8 +1,6 @@
 const path = require("path");
-const { spawnCommand } = require("../src/utils");
 const browsers = require("@puppeteer/browsers");
 const geckodriver = require("geckodriver");
-const edgedriver = require("edgedriver");
 
 async function main() {
   await installBrowsers();
@@ -72,14 +70,6 @@ async function installBrowsers() {
     });
   } catch (e) {
     console.log("ChromeDriver download not available.");
-  }
-
-  // Install EdgeDriver
-  try {
-    console.log("Installing EdgeDriver binary");
-    const edgeDriverPath = await edgedriver.download();
-  } catch (e) {
-    console.log("Edge browser not available.");
   }
 
   // Install Geckodriver
