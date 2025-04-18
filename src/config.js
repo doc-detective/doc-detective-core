@@ -5,7 +5,6 @@ const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const browsers = require("@puppeteer/browsers");
-const edgedriver = require("edgedriver");
 const { setAppiumHome } = require("./appium");
 const { loadDescription } = require("./openapi");
 
@@ -342,22 +341,6 @@ async function getAvailableApps(config) {
       version: firefox.buildId,
       path: firefox.executablePath,
     });
-  }
-
-  // Detect Edge
-  let edgeDriverPath;
-  try {
-    edgeDriverPath = await edgedriver.download();
-    if (edgeDriverPath && appiumChromium) {
-      apps.push({
-        name: "edge",
-        version: "",
-        path: "",
-        driver: edgeDriverPath,
-      });
-    }
-  } catch {
-    // Edge not available
   }
 
   // Detect Safari
