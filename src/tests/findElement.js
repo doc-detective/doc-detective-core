@@ -36,19 +36,19 @@ async function findElementBySelectorOrText({ string, driver }) {
 
   // Perform searches for both concurrently
   // Prefer a selector match over a text match
-  const selectorPromise = driver.$(string);
-  const textPromise = driver.$(`//*[text()="${string}"]`);
+  const selectorPromise = driver.$(string).then(async (el) => {
+      await el.waitForExist({ timeout });
+      return el;
+    });
+  const textPromise = driver.$(`//*[text()="${string}"]`).then(async (el) => {
+      await el.waitForExist({ timeout });
+      return el;
+    });
   // Wait for both promises to resolve
 
   const results = await Promise.allSettled([
-    selectorPromise
-      .waitForExist({ timeout })
-      .then(() => selectorPromise)
-      .catch(() => null),
-    textPromise
-      .waitForExist({ timeout })
-      .then(() => textPromise)
-      .catch(() => null),
+    selectorPromise,
+    textPromise,
   ]);
 
   const selectorResult =

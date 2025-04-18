@@ -26,7 +26,7 @@ main();
 // });
 
 async function main() {
-  json = {
+  const json = {
     fileTypes: ["markdown",
       {
       name: "pythonCodeBlocks",

@@ -4,10 +4,6 @@ const { log } = require("./utils");
 // const { DOMParser } = require("xmldom");
 const jq = require("jq-web");
 
-module.exports = {
-  resolveExpression,
-};
-
 /**
  * Resolves runtime expressions that may contain meta values and operators.
  * Can handle both standalone expressions and strings with embedded expressions.
@@ -172,35 +168,38 @@ async function resolveEmbeddedExpressions(str, context) {
   if (typeof str !== "string") {
     return str;
   }
-
   const expressionRegex = /\{\{([^{}]+)\}\}/g;
 
-  return str.replace(expressionRegex, async (match, expression) => {
+  const parts = [];
+  let lastIdx = 0;
+  for (const m of str.matchAll(expressionRegex)) {
+    parts.push(str.slice(lastIdx, m.index));
     try {
-      // First resolve any meta values within the expression
+      // Resolve any meta values within the expression
       const resolvedExpression = await resolveExpression({
-        expression: expression.trim(),
+        expression: m[1].trim(),
         context: context,
       });
 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
-        return "";
+        parts.push("");
+      } else if (typeof resolvedExpression === "object") {
+        parts.push(JSON.stringify(resolvedExpression));
+      } else {
+        parts.push(String(resolvedExpression));
       }
-
-      if (typeof resolvedExpression === "object") {
-        return JSON.stringify(resolvedExpression);
-      }
-
-      return String(resolvedExpression);
     } catch (error) {
       log(
-        `Error evaluating embedded expression '${expression}': ${error.message}`,
+        `Error evaluating embedded expression '${m[1]}': ${error.message}`,
         "error"
       );
-      return match; // Return the original expression if evaluation fails
+      parts.push(m[0]); // Return the original expression if evaluation fails
     }
-  });
+    lastIdx = m.index + m[0].length;
+  }
+  parts.push(str.slice(lastIdx));
+  return parts.join("");
 }
 
 /**

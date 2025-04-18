@@ -6,19 +6,7 @@
           "goTo": "https://duckduckgo.com"
         },
         {
-          "find": {
-            "selector": "#searchbox_input",
-            "moveTo": true,
-            "click": true,
-            "type": ["Doc Detective", "$ENTER$"],
-            "timeout": 10000
-          }
-        },
-        {
-          "wait": 2000
-        },
-        {
-          "screenshot": "click.png"
+          "find": "Set As Default Search"
         }
       ]
     }
