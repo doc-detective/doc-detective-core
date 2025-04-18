@@ -39,7 +39,7 @@ function isRelativeUrl(url) {
 }
 
 // Parse a JSON or YAML object
-function parseObject({stringifiedObject}) {
+function parseObject({ stringifiedObject }) {
   if (typeof stringifiedObject === "string") {
     // If string, try to parse as JSON or YAML
     try {
@@ -374,7 +374,7 @@ async function parseContent({ config, content, filePath, fileType }) {
       case "testStart":
         // Test start statement
         statementContent = statement[1] || statement[0];
-        test = parseObject({stringifiedObject: statementContent});
+        test = parseObject({ stringifiedObject: statementContent });
 
         // If v2 schema, convert to v3
         if (test.id || test.file || test.setup || test.cleanup) {
@@ -424,46 +424,48 @@ async function parseContent({ config, content, filePath, fileType }) {
       case "detectedStep":
         // Transform detected content into a step
         test = findTest({ tests, testId });
-        statement.markup.actions.forEach((action) => {
-          let step = {};
-          if (typeof action === "string") {
-            if (action === "runCode") return;
-            // If action is string, build step using simple syntax
-            step[action] = statement[1] || statement[0];
-            if (
-              config.origin &&
-              (action === "goTo" || action === "checkLink")
-            ) {
-              step[action].origin = config.origin;
+        if (statement?.markup?.actions) {
+          statement.markup.actions.forEach((action) => {
+            let step = {};
+            if (typeof action === "string") {
+              if (action === "runCode") return;
+              // If action is string, build step using simple syntax
+              step[action] = statement[1] || statement[0];
+              if (
+                config.origin &&
+                (action === "goTo" || action === "checkLink")
+              ) {
+                step[action].origin = config.origin;
+              }
+            } else {
+              // Substitute variables $n with match[n]
+              // TODO: Make key substitution recursive
+              step = replaceNumericVariables(action, statement);
             }
-          } else {
-            // Substitute variables $n with match[n]
-            // TODO: Make key substitution recursive
-            step = replaceNumericVariables(action, statement);
-          }
-          // Make sure is valid v3 step schema
-          valid = validate({
-            schemaKey: "step_v3",
-            object: step,
-            addDefaults: false,
+            // Make sure is valid v3 step schema
+            valid = validate({
+              schemaKey: "step_v3",
+              object: step,
+              addDefaults: false,
+            });
+            if (!valid) {
+              log(
+                config,
+                "warning",
+                `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+              );
+              return false;
+            }
+            step = valid.object;
+            test.steps.push(step);
           });
-          if (!valid) {
-            log(
-              config,
-              "warning",
-              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
-            );
-            return false;
-          }
-          step = valid.object;
-          test.steps.push(step);
-        });
+        }
         break;
       case "step":
         // Step statement
         test = findTest({ tests, testId });
         statementContent = statement[1] || statement[0];
-        let step = parseObject({stringifiedObject: statementContent});
+        let step = parseObject({ stringifiedObject: statementContent });
         // Make sure is valid v3 step schema
         const validation = validate({
           schemaKey: "step_v3",
