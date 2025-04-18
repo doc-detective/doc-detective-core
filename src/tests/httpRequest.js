@@ -185,7 +185,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     url: step.httpRequest.url,
     method: step.httpRequest.method,
     headers: step.httpRequest.request.headers,
-    params: step.httpRequest.request.params,
+    params: step.httpRequest.request.parameters,
     data: step.httpRequest.request.body,
   };
 
@@ -298,9 +298,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   // Compare response.body
   if (!step.httpRequest.allowAdditionalFields) {
     // Do a deep comparison
-    let dataComparison = objectExistsInObject(
-      response.data,
-      step.httpRequest.response.body
+    const dataComparison = objectExistsInObject(
+      step.httpRequest.response.body,
+      response.data
     );
     if (dataComparison.result.status === "FAIL") {
       result.status = "FAIL";
@@ -355,8 +355,12 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     Object.keys(step.httpRequest.response.headers).forEach((key) => {
       headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
     });
+    const responseHeaders = {};
+    Object.keys(response.headers).forEach((key) => {
+      responseHeaders[key.toLowerCase()] = response.headers[key];
+    });
     // Perform comparison
-    dataComparison = objectExistsInObject(headers, response.headers);
+    const dataComparison = objectExistsInObject(headers, responseHeaders);
     // Check if headers are present in actual response
     if (dataComparison.result.status === "PASS") {
       if (result.status != "FAIL") result.status = "PASS";
