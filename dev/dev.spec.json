@@ -1,21 +1,12 @@
 {
   "tests": [
     {
-      "id": "saveScreenshot_selector",
-      "description": "Save a screenshot of a specific element",
       "steps": [
         {
-          "action": "goTo",
-          "url": "http://www.duckduckgo.com"
+          "goTo": "https://duckduckgo.com"
         },
         {
-          "action": "saveScreenshot",
-          "crop": {
-            "selector": "#searchbox_homepage",
-            "padding": 10
-          },
-          "path": "test/artifacts/saveScreenshot_selector.png",
-          "overwrite": "true"
+          "find": "/Set As.+/"
         }
       ]
     }

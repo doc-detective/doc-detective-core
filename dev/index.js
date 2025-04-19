@@ -26,58 +26,90 @@ main();
 // });
 
 async function main() {
-  json = {
-    envVariables: "",
-    input: ".",
-    output: ".",
-    recursive: true,
+  const json = {
+    fileTypes: ["markdown",
+      {
+      name: "pythonCodeBlocks",
+      extensions: ["md"],
+      markup: [
+        {
+          name: "python",
+          regex: "```python([\\s\\S]*?)```",
+          batchMatches: true,
+          actions: [{
+            runCode: {
+              language: "python",
+              code: "$1",
+            }
+          }]
+        },
+      ]
+    }],
+    input: "./dev/dev.spec.json",
+    runOn: [
+      {
+        platforms: ["linux", "windows"],
+        browsers: {
+          name:"firefox",
+          headless: false
+        },
+      },
+      {
+        platforms: ["linux", "mac"],
+        browsers: ["firefox", "chrome", "safari"],
+      }
+    ],
     logLevel: "debug",
-    runTests: {
-      input: "./dev/dev.spec.json",
-      output: ".",
-      setup: "",
-      cleanup: "",
-      recursive: true,
-      detectSteps: false,
-      mediaDirectory: ".",
-      downloadDirectory: ".",
-      contexts: [
-        {
-          app: {
-            name: "firefox",
-            options: {
-              headless: false,
-            },
-          },
-          platforms: ["mac", "linux"],
-        },
-      ],
-    },
-    runCoverage: {
-      recursive: true,
-      input: ".dev/",
-      output: ".",
-      markup: [],
-    },
-    suggestTests: {
-      recursive: true,
-      input: ".",
-      output: ".",
-      markup: [],
-    },
-    integrations: {
-      openApi: [
-        {
-          name: "reqres_live",
-          descriptionPath: "./test/artifacts/reqres.openapi.yaml",
-          server: "https://reqres.in/api",
-          useExample: "request",
-        },
-      ],
-    },
-    telemetry: {
-      send: false,
-    },
+    //   envVariables: "",
+  //   input: ".",
+  //   output: ".",
+  //   recursive: true,
+  //   logLevel: "debug",
+  //   runTests: {
+  //     output: ".",
+  //     setup: "",
+  //     cleanup: "",
+  //     recursive: true,
+  //     detectSteps: false,
+  //     mediaDirectory: ".",
+  //     downloadDirectory: ".",
+  //     contexts: [
+  //       {
+  //         app: {
+  //           name: "firefox",
+  //           options: {
+  //             headless: false,
+  //           },
+  //         },
+  //         platforms: ["mac", "linux"],
+  //       },
+  //     ],
+  //   },
+  //   runCoverage: {
+  //     recursive: true,
+  //     input: ".dev/",
+  //     output: ".",
+  //     markup: [],
+  //   },
+  //   suggestTests: {
+  //     recursive: true,
+  //     input: ".",
+  //     output: ".",
+  //     markup: [],
+  //   },
+  //   integrations: {
+  //     openApi: [
+  //       {
+  //         name: "reqres_live",
+  //         descriptionPath: "./test/artifacts/reqres.openapi.yaml",
+  //         server: "https://reqres.in/api",
+  //         useExample: "request",
+  //       },
+  //     ],
+  //   },
+  //   telemetry: {
+  //     send: false,
+  //   },
   };
   // console.log(json);
   result = await runTests(json);

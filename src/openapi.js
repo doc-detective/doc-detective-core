@@ -1,4 +1,4 @@
-const { loadEnvs } = require("./utils");
+const { replaceEnvs } = require("./utils");
 const { JSONSchemaFaker } = require("json-schema-faker");
 const { readFile } = require("doc-detective-common");
 const parser = require("@apidevtools/json-schema-ref-parser");
@@ -18,7 +18,7 @@ async function loadDescription(descriptionPath = "") {
   }
 
   // Load the definition from the URL or local file path
-  const definition = await readFile(descriptionPath);
+  const definition = await readFile({ fileURLOrPath: descriptionPath });
 
   // Dereference the definition
   const dereferencedDefinition = await parser.dereference(definition);
@@ -190,7 +190,7 @@ function compileExample(
   }
 
   // Load environment variables
-  example = loadEnvs(example);
+  example = replaceEnvs(example);
   // console.log(JSON.stringify(example, null, 2));
   return example;
 }
