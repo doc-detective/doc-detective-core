@@ -27,38 +27,7 @@ main();
 
 async function main() {
   const json = {
-    fileTypes: ["markdown",
-      {
-      name: "pythonCodeBlocks",
-      extensions: ["md"],
-      markup: [
-        {
-          name: "python",
-          regex: "```python([\\s\\S]*?)```",
-          batchMatches: true,
-          actions: [{
-            runCode: {
-              language: "python",
-              code: "$1",
-            }
-          }]
-        },
-      ]
-    }],
-    input: "./dev/dev.spec.json",
-    runOn: [
-      {
-        platforms: ["linux", "windows"],
-        browsers: {
-          name:"firefox",
-          headless: false
-        },
-      },
-      {
-        platforms: ["linux", "mac"],
-        browsers: ["firefox", "chrome", "safari"],
-      }
-    ],
+    input: "./dev/dev.spec.yaml",
     logLevel: "debug",
     //   envVariables: "",
   //   input: ".",
