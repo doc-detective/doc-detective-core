@@ -1,5 +1,6 @@
+specId: spec
 tests:
-  - steps:
-      - goTo: https://duckduckgo.com
-      - screenshot:
-          directory: .
+  - testId: test
+    steps:
+      - stepId: step
+        runShell: echo 'Hello World!'

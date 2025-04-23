@@ -169,7 +169,7 @@ function isSupportedContext({ context, apps, platform }) {
   }
 }
 
-function resolveContexts({ contexts, test }) {
+function resolveContexts({ contexts, test, config }) {
   const resolvedContexts = [];
 
   // Check if current test requires a browser
@@ -238,6 +238,27 @@ function resolveContexts({ contexts, test }) {
       }
     });
   });
+
+  // If no contexts are defined, use default contexts
+  if (resolvedContexts.length === 0) {
+    const defaultContext = {
+      platform: config.environment.platform,
+    };
+    if (browserRequired && config.environment.apps.length > 0) {
+      // Select browser
+      const firefox = config.environment.apps.find(
+        (app) => app.name === "firefox"
+      );
+      const chrome = config.environment.apps.find(
+        (app) => app.name === "chrome"
+      );
+      const safari = config.environment.apps.find(
+        (app) => app.name === "safari"
+      );
+      defaultContext.browser = firefox || chrome || safari;
+    }
+    resolvedContexts.push(defaultContext);
+  }
 
   return resolvedContexts;
 }
@@ -433,8 +454,9 @@ async function runSpecs(config, specs) {
 
       // Resolve contexts
       const testContexts = resolveContexts({
-        test,
+        test: test,
         contexts: test.runOn || specContexts,
+        config: config,
       });
 
       // Capture test-level OpenAPI definitions
@@ -821,20 +843,22 @@ async function runStep({
     // Remove everything but element.text
     const element = actionResult.outputs.element;
     actionResult.outputs.element = {
-      text: element.text
+      text: element.text,
     };
   }
 
   // If variables are defined, resolve and set them
   if (step.variables) {
-    await Promise.all(Object.keys(step.variables).map(async (key) => {
-      const expression = step.variables[key];
-      const value = await resolveExpression({
-        expression: expression,
-        context: {...metaValues, ...actionResult.outputs},
-      });
-      process.env[key] = value;
-    }));
+    await Promise.all(
+      Object.keys(step.variables).map(async (key) => {
+        const expression = step.variables[key];
+        const value = await resolveExpression({
+          expression: expression,
+          context: { ...metaValues, ...actionResult.outputs },
+        });
+        process.env[key] = value;
+      })
+    );
   }
   return actionResult;
 }
