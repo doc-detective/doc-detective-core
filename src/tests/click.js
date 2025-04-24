@@ -1,5 +1,8 @@
 const { validate } = require("doc-detective-common");
-const { findElementBySelectorAndText } = require("./findStrategies");
+const {
+  findElementBySelectorAndText,
+  findElementBySelectorOrText,
+} = require("./findStrategies");
 
 exports.clickElement = clickElement;
 
@@ -19,32 +22,64 @@ async function clickElement({ config, step, driver, element }) {
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
-  // Set default values
-  step.click = {
-    ...step.click,
-    button: step.click.button || "left",
-  };
 
+  if (typeof step.click === "object") {
+    // Set default values
+    step.click = {
+      ...step.click,
+      button: step.click.button || "left",
+    };
+  }
+
+  // Find element
   if (!element?.elementId) {
-    // Find element
-    const { element: foundElement, foundBy } = await findElementBySelectorAndText({
-      selector: step.click.selector,
-      text: step.click.elementText,
-      timeout: step.click.timeout || 5000,
-      driver,
-    });
-    if (!foundElement) {
-      result.status = "FAIL";
-      result.description = `Couldn't find element.`;
-      return result;
+    // Handle combo selector/text string
+    if (typeof step.click === "string") {
+      const { element: foundElement, foundBy } = await findElementBySelectorOrText({
+        string: step.click,
+        driver,
+      });
+      if (foundElement) {
+        // Wait for timeout
+        try {
+          await foundElement.waitForExist({ timeout: 5000 });
+        } catch {
+          // No matching elements
+          if (!foundElement.elementId) {
+            result.status = "FAIL";
+            result.description = "No elements matched selector or text.";
+            return result;
+          }
+        }
+        result.description += ` Found element by ${foundBy}.`;
+        element = foundElement;
+      } else {
+        // No matching elements
+        result.status = "FAIL";
+        result.description = "No elements matched selector or text.";
+        return result;
+      }
+    } else {
+      const { element: foundElement, foundBy } =
+        await findElementBySelectorAndText({
+          selector: step.click.selector,
+          text: step.click.elementText,
+          timeout: step.click.timeout || 5000,
+          driver,
+        });
+      if (!foundElement) {
+        result.status = "FAIL";
+        result.description = `Couldn't find element.`;
+        return result;
+      }
+      element = foundElement;
+      result.description += ` Found element by ${foundBy}.`;
     }
-    element = foundElement;
-    result.description += ` Found element by ${foundBy}.`;
   }
 
   try {
     await element.click({
-      button: step.click.button,
+      button: step?.click?.button || "left",
     });
     result.description += " Clicked element.";
   } catch (error) {
