@@ -1,5 +1,5 @@
 const { validate } = require("doc-detective-common");
-const { findElement } = require("./findElement");
+const { findElementBySelectorAndText } = require("./findStrategies");
 
 exports.clickElement = clickElement;
 
@@ -26,27 +26,20 @@ async function clickElement({ config, step, driver, element }) {
   };
 
   if (!element?.elementId) {
-    const findStep = {
-      find: {
-        selector: step.click.selector,
-        elementText: step.click.elementText,
-      },
-    };
     // Find element
-    const findResult = await findElement({
-      config,
-      step: findStep,
+    const { element: foundElement, foundBy } = await findElementBySelectorAndText({
+      selector: step.click.selector,
+      text: step.click.elementText,
+      timeout: step.click.timeout || 5000,
       driver,
     });
-    if (findResult.status === "FAIL") {
-      return findResult;
-    }
-    element = findResult.outputs.element;
-    if (!element) {
+    if (!foundElement) {
       result.status = "FAIL";
       result.description = `Couldn't find element.`;
       return result;
     }
+    element = foundElement;
+    result.description += ` Found element by ${foundBy}.`;
   }
 
   try {
