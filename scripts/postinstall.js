@@ -32,8 +32,8 @@ async function installBrowsers() {
       buildId,
       cacheDir,
     });
-  } catch (e) {
-    console.log("Chrome download not available.");
+  } catch (error) {
+    console.log("Chrome download not available.", error);
   }
 
   // Install Firefox
@@ -50,8 +50,8 @@ async function installBrowsers() {
       buildId,
       cacheDir,
     });
-  } catch (e) {
-    console.log("Firefox download not available.");
+  } catch (error) {
+    console.log("Firefox download not available.", error);
   }
 
   // Install ChromeDriver
@@ -68,8 +68,8 @@ async function installBrowsers() {
       buildId,
       cacheDir,
     });
-  } catch (e) {
-    console.log("ChromeDriver download not available.");
+  } catch (error) {
+    console.log("ChromeDriver download not available.", error);
   }
 
   // Install Geckodriver
@@ -86,8 +86,8 @@ async function installBrowsers() {
     }
     process.env.GECKODRIVER_CACHE_DIR = binPath;
     const geckoInstall = await geckodriver.download();
-  } catch (e) {
-    console.log("Geckodriver download not available.");
+  } catch (error) {
+    console.log("Geckodriver download not available.", error);
   }
   // Move back to original directory
   process.chdir(cwd);
