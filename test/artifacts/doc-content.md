@@ -1,18 +1,23 @@
 # Doc Detective documentation overview
 
-[comment]: # (test start {"id":"search-kittens", "detectSteps":false})
+<!-- test
+testId: doc-detective-docs
+detectSteps: false
+-->
 
 [Doc Detective documentation](https://doc-detective.com) is split into a few key sections:
 
-[comment]: # (step {"action":"goTo", "url":"https://doc-detective.com"})
+<!-- step checkLink: "https://doc-detective.com" -->
 
--   The landing page discusses what Doc Detective is, what it does, and who might find it useful.
--   [Get started](https://doc-detective.com/get-started.html) covers how to quickly get up and running with Doc Detective.
-    [comment]: # (step {"action":"goTo", "url":"https://doc-detective.com/docs/get-started.html"})
--   The [references](https://doc-detective.com/reference/) detail the various JSON objects that Doc Detective expects for configs, test specifications, tests, actions, and more. Each object schema includes an object description, field definitions, and examples.
+- The landing page discusses what Doc Detective is, what it does, and who might find it useful.
+- [Get started](https://doc-detective.com/docs/get-started/intro) covers how to quickly get up and running with Doc Detective.
 
-    [comment]: # (step {"action":"goTo", "url":"https://doc-detective.com/docs/references/schemas/typeKeys"})
-    [comment]: # (step {"action":"find", "selector":"h2#fields", "matchText":"Fields"})
-    [comment]: # (step {"action":"find", "selector":"h2#examples", "matchText":"Examples"})
+  <!-- step checkLink: "https://doc-detective.com/docs/get-started/intro" -->
 
-[comment]: # (test end)
+Some pages also have unique headings. If you open [type](https://doc-detective.com/docs/get-started/actions/type) it has **Special keys**.
+
+<!-- step goTo: "https://doc-detective.com/docs/get-started/actions/type" -->
+<!-- step find: Special keys -->
+
+![Search results.](reference.png){ .screenshot }
+<!-- step screenshot: reference.png -->
