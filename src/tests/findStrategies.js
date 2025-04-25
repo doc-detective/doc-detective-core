@@ -13,7 +13,7 @@ async function findElementByRegex({ pattern, timeout, driver }) {
       return { element, foundBy: "regex" };
     }
   }
-  return null;
+  return { element: null, foundBy: null };
 }
 
 async function findElementBySelectorOrText({ string, driver }) {
@@ -62,7 +62,7 @@ async function findElementBySelectorOrText({ string, driver }) {
     return result;
   }
   // No matching elements
-  return null;
+  return { element: null, foundBy: null };
 }
 
 async function findElementBySelectorAndText({
