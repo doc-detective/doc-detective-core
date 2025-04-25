@@ -64,7 +64,7 @@ async function resolveExpression({ expression, context }) {
  */
 function replaceMetaValues(expression, context) {
   // Regular expression to match meta values with optional JSON pointer
-  const metaValueRegex = /\$\$([\w\.]+(?:\.\{\{[\w]+\}\})*(?:#\/[\w\/]+)*)/g;
+  const metaValueRegex = /\$\$([\w\.\[\]]+(?:#\/[\w\/\[\]]+)*)/g;
 
   let result = expression;
   let match;
@@ -205,7 +205,7 @@ async function resolveEmbeddedExpressions(str, context) {
 /**
  * Gets a nested property from an object by its path.
  * @param {object} obj - The object to get the property from.
- * @param {string} path - The path to the property (e.g., 'a.b.c').
+ * @param {string} path - The path to the property (e.g., 'a.b.c' or 'a.b[0].c').
  * @returns {*} - The value of the property, or undefined if not found.
  */
 function getNestedProperty(obj, path) {
@@ -216,7 +216,22 @@ function getNestedProperty(obj, path) {
 
   for (const part of parts) {
     if (current === null || current === undefined) return undefined;
-    current = current[part];
+    
+    // Check if this part uses array notation like "data[0]"
+    const arrayMatch = part.match(/^([\w$]+)(?:\[(\d+)\])$/);
+    if (arrayMatch) {
+      const [, propName, indexStr] = arrayMatch;
+      const index = parseInt(indexStr, 10);
+      
+      // First access the array property
+      current = current[propName];
+      if (current === null || current === undefined) return undefined;
+      
+      // Then access the array index
+      current = current[index];
+    } else {
+      current = current[part];
+    }
   }
 
   return current;
