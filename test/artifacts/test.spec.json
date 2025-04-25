@@ -13,7 +13,7 @@
         },
         {
           "action": "httpRequest",
-          "url": "https://reqres.in/api/users",
+          "url": "http://localhost:8080/api/users",
           "method": "post",
           "requestData": {
             "name": "morpheus",

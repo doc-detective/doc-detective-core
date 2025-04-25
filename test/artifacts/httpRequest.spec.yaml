@@ -1,12 +1,13 @@
 tests:
 - steps:
+  - loadVariables: env
   - httpRequest:
       url: http://localhost:8080/api/users
       method: post
       request:
         body:
-          name: John Doe
-          job: Software Engineer
+          name: $USER
+          job: $JOB
       response:
         body:
           name: John Doe

@@ -27,7 +27,7 @@ main();
 
 async function main() {
   const json = {
-    input: "./dev/doc-content-yaml.md",
+    input: "./dev/dev.spec.yaml",
     logLevel: "debug",
     //   envVariables: "",
   //   input: ".",
