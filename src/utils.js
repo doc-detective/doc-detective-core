@@ -283,13 +283,10 @@ async function parseContent({ config, content, filePath, fileType }) {
 
     if (typeof stringOrObject === "string") {
       // Replace $n with values[n]
-      stringOrObject = stringOrObject.replace(
-        /\$[0-9]+/g,
-        (variable) => {
-          const index = variable.substring(1);
-          return values[index];
-        }
-      );
+      stringOrObject = stringOrObject.replace(/\$[0-9]+/g, (variable) => {
+        const index = variable.substring(1);
+        return values[index];
+      });
     }
 
     Object.keys(stringOrObject).forEach((key) => {
@@ -438,6 +435,9 @@ async function parseContent({ config, content, filePath, fileType }) {
       case "detectedStep":
         // Transform detected content into a step
         test = findTest({ tests, testId });
+        if (typeof test.detectSteps !== "undefined" && !test.detectSteps) {
+          break;
+        }
         if (statement?.markup?.actions) {
           statement.markup.actions.forEach((action) => {
             let step = {};

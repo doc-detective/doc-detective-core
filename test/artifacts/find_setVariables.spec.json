@@ -5,24 +5,24 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://doc-detective.com/docs/references/schemas/typeKeys"
+          "url": "https://doc-detective.com/docs/get-started/actions/type"
         },
         {
-          "description": "Set EXAMPLES variable to the text of the element with id 'examples'",
+          "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
           "action": "find",
-          "selector": "h2#examples",
+          "selector": "h2#special-keys",
           "setVariables": [
             {
-              "name": "EXAMPLES",
+              "name": "HEADING",
               "regex": ".*"
             }
           ]
         },
         {
-          "description": "Print and validate the value of the EXAMPLES variable.",
+          "description": "Print and validate the value of the HEADING variable.",
           "action": "runShell",
-          "command": "echo $EXAMPLES",
-          "output": "Examples"
+          "command": "echo $HEADING",
+          "output": "Special keys"
         }
       ]
     }
