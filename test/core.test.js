@@ -18,12 +18,22 @@ const server = createServer({
 
 // Start the server before tests
 before(async () => {
-  await server.start();
+  try {
+    await server.start();
+  } catch (error) {
+    console.error(`Failed to start test server: ${error.message}`);
+    throw error;
+  }
 });
 
 // Stop the server after tests
 after(async () => {
-  await server.stop();
+  try {
+    await server.stop();
+  } catch (error) {
+    console.error(`Failed to stop test server: ${error.message}`);
+    // Don't rethrow here to avoid masking test failures
+  }
 });
 
 describe("Run tests successfully", function() {

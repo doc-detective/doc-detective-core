@@ -31,22 +31,27 @@ function createServer(options = {}) {
   }
 
   // Echo API endpoint that returns the request body
-  app.all("/api/*", (req, res) => {
-    const requestBody = req.method === "GET" ? req.query : req.body;
-    const modifiedResponse = modifyResponse(req, requestBody);
-    console.log("Request:", {
-      Method: req.method,
-      Path: req.path,
-      Query: req.query,
-      Headers: req.headers,
-      Body: req.body,
-    });
-    
-    res.set("x-server", "doc-detective-echo-server");
+  app.all("/api/:path", (req, res) => {
+    try {
+      const requestBody = req.method === "GET" ? req.query : req.body;
+      const modifiedResponse = modifyResponse(req, requestBody);
+      console.log("Request:", {
+        Method: req.method,
+        Path: req.path,
+        Query: req.query,
+        Headers: req.headers,
+        Body: req.body,
+      });
 
-    console.log("Response:", {Body: modifiedResponse});
+      res.set("x-server", "doc-detective-echo-server");
 
-    res.json(modifiedResponse);
+      console.log("Response:", { Body: modifiedResponse });
+
+      res.json(modifiedResponse);
+    } catch (error) {
+      console.error("Error processing request:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   return {
@@ -54,13 +59,24 @@ function createServer(options = {}) {
      * Start the server
      * @returns {Promise} Promise that resolves with the server address
      */
+
     start: () => {
-      return new Promise((resolve) => {
-        server = app.listen(port, () => {
-          const serverAddress = `http://localhost:${port}`;
-          console.log(`Echo server running at ${serverAddress}`);
-          resolve(serverAddress);
-        });
+      return new Promise((resolve, reject) => {
+        try {
+          server = app.listen(port, () => {
+            const serverAddress = `http://localhost:${port}`;
+            console.log(`Echo server running at ${serverAddress}`);
+            resolve(serverAddress);
+          });
+
+          server.on("error", (error) => {
+            console.error(`Failed to start server: ${error.message}`);
+            reject(error);
+          });
+        } catch (error) {
+          console.error(`Error setting up server: ${error.message}`);
+          reject(error);
+        }
       });
     },
 
@@ -71,10 +87,15 @@ function createServer(options = {}) {
     stop: () => {
       return new Promise((resolve) => {
         if (server) {
-          server.close(() => {
-            console.log("Echo server stopped");
-            server = null;
-            resolve();
+          server.close((error) => {
+            if (error) {
+              console.error("Error stopping server:", error);
+              reject(error);
+            } else {
+              console.log("Echo server stopped");
+              server = null;
+              resolve();
+            }
           });
         } else {
           resolve();
@@ -97,7 +118,9 @@ module.exports = { createServer };
 if (require.main === module) {
   const server = createServer({
     port: process.env.PORT || 8080,
-    staticDir: process.env.STATIC_DIR || path.join(process.cwd(), "./test/server/public"),
+    staticDir:
+      process.env.STATIC_DIR ||
+      path.join(process.cwd(), "./test/server/public"),
   });
 
   server.start();
