@@ -1,9 +1,30 @@
 const { runTests } = require("../src");
+const { createServer } = require("./server");
 const assert = require("assert").strict;
 const path = require("path");
 const artifactPath = path.resolve("./test/artifacts");
 const config_base = require(`${artifactPath}/config.json`);
 const inputPath = artifactPath;
+
+// Create a server with custom options
+const server = createServer({
+  port: 8080,
+  staticDir: './test/server/public',
+  modifyResponse: (req, body) => {
+    // Optional modification of responses
+    return { ...body, extraField: 'added by server' };
+  }
+});
+
+// Start the server before tests
+before(async () => {
+  await server.start();
+});
+
+// Stop the server after tests
+after(async () => {
+  await server.stop();
+});
 
 describe("Run tests successfully", function() {
   // Set indefinite timeout
