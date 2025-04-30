@@ -9,7 +9,7 @@ const { log, calculatePercentageDifference, replaceEnvs } = require("../utils");
 exports.httpRequest = httpRequest;
 
 async function httpRequest({ config, step, openApiDefinitions = [] }) {
-  let result = { status: "", description: "", outputs: {} };
+  step = {...step, result: "", resultDescription: "", outputs: {} };
   let openApiDefinition;
   let operation;
 
@@ -54,9 +54,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
 
     if (!openApiDefinition) {
-      result.status = "FAIL";
-      result.description = `OpenAPI definition not found.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `OpenAPI definition not found.`;
+      return step;
     }
 
     operation = await getOperation(
@@ -67,9 +67,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       step.httpRequest.openApi.server
     );
     if (!operation) {
-      result.status = "FAIL";
-      result.description = `Couldn't find operation '${step.httpRequest.openApi.operationId}' in OpenAPI definition.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Couldn't find operation '${step.httpRequest.openApi.operationId}' in OpenAPI definition.`;
+      return step;
     }
     log(config, "debug", `Operation: ${JSON.stringify(operation, null, 2)}`);
 
@@ -151,9 +151,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -206,15 +206,15 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     const validate = ajv.compile(operation.schemas.request);
     const valid = validate(step.httpRequest.request.body);
     if (valid) {
-      result.description = ` Request body matched the OpenAPI schema.`;
+      step.resultDescription = ` Request body matched the OpenAPI schema.`;
     } else {
-      result.status = "FAIL";
-      result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
+      step.result = "FAIL";
+      step.resultDescription = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
       )}`;
-      return result;
+      return step;
     }
   }
 
@@ -229,7 +229,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
-    result.outputs.response = {
+    step.outputs.response = {
       body: response.data,
       statusCode: response.status,
       headers: response.headers,
@@ -244,7 +244,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     } else {
       response.data = step.httpRequest.response.body;
     }
-    result.outputs.response = {
+    step.outputs.response = {
       body: response.data,
       statusCode: step.httpRequest.statusCodes[0],
       headers: step.httpRequest.response?.headers,
@@ -256,11 +256,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
   // Compare status codes
   if (step.httpRequest.statusCodes) {
     if (step.httpRequest.statusCodes.indexOf(response.status) >= 0) {
-      result.status = "PASS";
-      result.description = `Returned ${response.status}.`;
+      step.result = "PASS";
+      step.resultDescription = `Returned ${response.status}.`;
     } else {
-      result.status = "FAIL";
-      result.description = `Returned ${
+      step.result = "FAIL";
+      step.resultDescription = `Returned ${
         response.status
       }. Expected one of ${JSON.stringify(step.httpRequest.statusCodes)}.`;
     }
@@ -283,15 +283,15 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     const validate = ajv.compile(operation.schemas.response);
     const valid = validate(response.data);
     if (valid) {
-      result.description += ` Response data matched the OpenAPI schema.`;
+      step.resultDescription += ` Response data matched the OpenAPI schema.`;
     } else {
-      result.status = "FAIL";
-      result.description += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
+      step.result = "FAIL";
+      step.resultDescription += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
         validate.errors,
         null,
         2
       )}`;
-      return result;
+      return step;
     }
   }
 
@@ -303,9 +303,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       response.data
     );
     if (dataComparison.result.status === "FAIL") {
-      result.status = "FAIL";
-      result.description += " Response contained unexpected fields.";
-      return result;
+      step.result = "FAIL";
+      step.resultDescription += " Response contained unexpected fields.";
+      return step;
     }
   }
 
@@ -317,30 +317,30 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
         Array.isArray(step.httpRequest.response.body) !==
           Array.isArray(response.data))
     ) {
-      result.status = "FAIL";
-      result.description += ` Expected response body type didn't match actual response body type.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription += ` Expected response body type didn't match actual response body type.`;
+      return step;
     }
     // Check if response body is a string or object
     if (typeof step.httpRequest.response.body === "string") {
       if (step.httpRequest.response.body !== response.data) {
-        result.status = "FAIL";
-        result.description += ` Expected response body didn't match actual response body.`;
+        step.result = "FAIL";
+        step.resultDescription += ` Expected response body didn't match actual response body.`;
       }
-      return result;
+      return step;
     } else if (typeof step.httpRequest.response.body === "object") {
       const dataComparison = objectExistsInObject(
         step.httpRequest.response.body,
         response.data
       );
       if (dataComparison.result.status === "PASS") {
-        if (result.status != "FAIL") result.status = "PASS";
-        result.description += ` Expected response body was present in actual response body.`;
+        if (step.result != "FAIL") step.result = "PASS";
+        step.resultDescription += ` Expected response body was present in actual response body.`;
       } else {
-        result.status = "FAIL";
-        result.description =
-          result.description + " " + dataComparison.result.description;
-        return result;
+        step.result = "FAIL";
+        step.resultDescription =
+          step.resultDescription + " " + dataComparison.result.description;
+        return step;
       }
     }
   }
@@ -363,11 +363,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     const dataComparison = objectExistsInObject(headers, responseHeaders);
     // Check if headers are present in actual response
     if (dataComparison.result.status === "PASS") {
-      if (result.status != "FAIL") result.status = "PASS";
-      result.description += ` Expected response headers were present in actual response headers.`;
+      if (step.result != "FAIL") step.result = "PASS";
+      step.resultDescription += ` Expected response headers were present in actual response headers.`;
     } else {
-      result.description =
-        result.description + " " + dataComparison.result.description;
+      step.resultDescription =
+        step.resultDescription + " " + dataComparison.result.description;
     }
   }
 
@@ -389,11 +389,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
         filePath,
         JSON.stringify(response.data, null, 2)
       );
-      result.description += ` Saved output to file.`;
+      step.resultDescription += ` Saved output to file.`;
     } else {
       if (step.httpRequest.overwrite == "false") {
         // File already exists
-        result.description += ` Didn't save output. File already exists.`;
+        step.resultDescription += ` Didn't save output. File already exists.`;
       }
 
       // Read existing file
@@ -414,11 +414,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
             JSON.stringify(response.data, null, 2)
           );
         }
-        result.status = "FAIL";
-        result.description += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${
+        step.result = "FAIL";
+        step.resultDescription += ` The percentage difference between the existing file content and command output content (${percentDiff}%) is greater than the max accepted variation (${
           step.httpRequest.maxVariation * 100
         }%).`;
-        return result;
+        return step;
       }
 
       if (step.httpRequest.overwrite == "true") {
@@ -428,8 +428,8 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     }
   }
 
-  result.description = result.description.trim();
-  return result;
+  step.resultDescription = step.resultDescription.trim();
+  return step;
 }
 
 function arrayExistsInArray(expected, actual) {

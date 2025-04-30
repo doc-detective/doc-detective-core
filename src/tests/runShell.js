@@ -82,7 +82,7 @@ async function runShell({ config, step }) {
   // Evaluate exit code
   if (!step.runShell.exitCodes.includes(step.outputs.exitCode)) {
     step.result = "FAIL";
-    step.resultresultDescription = `Returned exit code ${
+    step.resultDescription = `Returned exit code ${
       step.outputs.exitCode
     }. Expected one of ${JSON.stringify(step.runShell.exitCodes)}`;
   }
