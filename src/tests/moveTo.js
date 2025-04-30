@@ -123,6 +123,7 @@ async function instantiateCursor(driver, options = { position: "current" }) {
 // TODO: Remove most of this function or rework it as it's own step.
 async function moveTo({config, step, driver, element}) {
   step = {
+    ...step,
     result: "PASS",
     resultDescription: "Moved mouse.",
   };
