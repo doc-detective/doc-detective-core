@@ -8,17 +8,18 @@ exports.clickElement = clickElement;
 
 // Click an element.
 async function clickElement({ config, step, driver, element }) {
-  const result = {
-    status: "PASS",
-    description: "Clicked element.",
+  step = {
+    ...step,
+    result: "PASS",
+    resultDescription: "Clicked element.",
   };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -46,18 +47,18 @@ async function clickElement({ config, step, driver, element }) {
         } catch {
           // No matching elements
           if (!foundElement.elementId) {
-            result.status = "FAIL";
-            result.description = "No elements matched selector or text.";
-            return result;
+            step.result = "FAIL";
+            step.resultDescription = "No elements matched selector or text.";
+            return step;
           }
         }
-        result.description += ` Found element by ${foundBy}.`;
+        step.resultDescription += ` Found element by ${foundBy}.`;
         element = foundElement;
       } else {
         // No matching elements
-        result.status = "FAIL";
-        result.description = "No elements matched selector or text.";
-        return result;
+        step.result = "FAIL";
+        step.resultDescription = "No elements matched selector or text.";
+        return step;
       }
     } else {
       const { element: foundElement, foundBy } =
@@ -68,12 +69,12 @@ async function clickElement({ config, step, driver, element }) {
           driver,
         });
       if (!foundElement) {
-        result.status = "FAIL";
-        result.description = `Couldn't find element.`;
-        return result;
+        step.result = "FAIL";
+        step.resultDescription = `Couldn't find element.`;
+        return step;
       }
       element = foundElement;
-      result.description += ` Found element by ${foundBy}.`;
+      step.resultDescription += ` Found element by ${foundBy}.`;
     }
   }
 
@@ -81,12 +82,12 @@ async function clickElement({ config, step, driver, element }) {
     await element.click({
       button: step?.click?.button || "left",
     });
-    result.description += " Clicked element.";
+    step.resultDescription += " Clicked element.";
   } catch (error) {
-    result.status = "FAIL";
-    result.description = `Couldn't click element. Error: ${error.message}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't click element. Error: ${error.message}`;
+    return step;
   }
   // PASS
-  return result;
+  return step;
 }

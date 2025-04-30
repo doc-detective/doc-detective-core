@@ -18,9 +18,9 @@ async function instantiateCursor(driver, options = { position: "current" }) {
   );
   } catch {
     // FAIL
-    result.status = "FAIL";
-    result.description = `Couldn't wait for page to load.`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't wait for page to load.`;
+    return step;
   }
 
   // Detect if cursor is instantiated
@@ -122,14 +122,14 @@ async function instantiateCursor(driver, options = { position: "current" }) {
 // Move mouse.
 // TODO: Remove most of this function or rework it as it's own step.
 async function moveTo({config, step, driver, element}) {
-  let result = {
-    status: "PASS",
-    description: "Moved mouse.",
+  step = {
+    result: "PASS",
+    resultDescription: "Moved mouse.",
   };
   if (!element?.elementId){
-    result.status = "FAIL";
-    result.description = `Couldn't find element.`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't find element.`;
+    return step;
   }
   
   // Calculate target coordinates based on selector, alignments, and offsets
@@ -185,11 +185,11 @@ async function moveTo({config, step, driver, element}) {
       .perform();
   } catch {
     // FAIL
-    result.status = "FAIL";
-    result.description = `Couldn't move mouse.`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't move mouse.`;
+    return step;
   }
 
   // PASS
-  return result;
+  return step;
 }

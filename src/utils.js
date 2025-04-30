@@ -701,9 +701,9 @@ async function loadEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     require("dotenv").config({ path: envsFile, override: true });
-    return { status: "PASS", description: "Envs set." };
+    return { result: "PASS", resultDescription: "Envs set." };
   } else {
-    return { status: "FAIL", description: "Invalid file." };
+    return { result: "FAIL", resultDescription: "Invalid file." };
   }
 }
 

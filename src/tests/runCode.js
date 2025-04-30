@@ -38,18 +38,19 @@ function createTempScript(code, language) {
 
 // Run gather, compile, and run code.
 async function runCode({ config, step }) {
-  const result = {
-    status: "PASS",
-    description: "Executed code.",
+  step = {
+    ...step,
+    result: "PASS",
+    resultDescription: "Executed code.",
     outputs: {},
   };
 
   // Validate step object
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -69,9 +70,9 @@ async function runCode({ config, step }) {
   try {
     scriptPath = createTempScript(step.runCode.code, step.runCode.language);
   } catch (error) {
-    result.status = "FAIL";
-    result.description = error.message;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = error.message;
+    return step;
   }
   log(config, "debug", `Created temporary script at: ${scriptPath}`);
 
@@ -89,16 +90,16 @@ async function runCode({ config, step }) {
     // Make sure the command is available
     const commandExists = await spawnCommand(command, ["--version"]);
     if (commandExists.exitCode !== 0) {
-      result.status = "FAIL";
-      result.description = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
+      return step;
     }
 
     // if Windows and command is bash
     if (os.platform() === "win32" && command === "bash") {
-      result.status = "FAIL";
-      result.description = `runCode currently doesn't support bash on Windows. Use a different command, a different language, or a runShell step.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `runCode currently doesn't support bash on Windows. Use a different command, a different language, or a runShell step.`;
+      return step;
     }
 
     // Prepare shell command based on language
@@ -119,12 +120,12 @@ async function runCode({ config, step }) {
     const shellResult = await runShell({ config: config, step: shellStep });
 
     // Copy results
-    result.status = shellResult.status;
-    result.description = shellResult.description;
-    result.outputs = {...result.outputs, ...shellResult.outputs};
+    step.result = shellResult.result;
+    step.resultDescription = shellResult.resultDescription;
+    step.outputs = {...step.outputs, ...shellResult.outputs};
   } catch (error) {
-    result.status = "FAIL";
-    result.description = error.message;
+    step.result = "FAIL";
+    step.resultDescription = error.message;
   } finally {
     // Clean up temporary script file
     try {
@@ -135,7 +136,7 @@ async function runCode({ config, step }) {
     }
   }
 
-  return result;
+  return step;
 }
 
 // If run directly, perform runCode

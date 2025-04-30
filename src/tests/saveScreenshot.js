@@ -10,18 +10,19 @@ const pixelmatch = require("pixelmatch");
 exports.saveScreenshot = saveScreenshot;
 
 async function saveScreenshot({ config, step, driver }) {
-  let result = {
-    status: "PASS",
-    description: "Saved screenshot.",
+  step = {
+    ...step,
+    result: "PASS",
+    resultDescription: "Saved screenshot.",
   };
   let element;
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -75,9 +76,9 @@ async function saveScreenshot({ config, step, driver }) {
   if (fs.existsSync(filePath)) {
     if (step.screenshot.overwrite == "false") {
       // File already exists
-      result.status = "SKIPPED";
-      result.description = `File already exists: ${filePath}`;
-      return result;
+      step.result = "SKIPPED";
+      step.resultDescription = `File already exists: ${filePath}`;
+      return step;
     } else {
       // Set temp file path
       existFilePath = filePath;
@@ -105,14 +106,14 @@ async function saveScreenshot({ config, step, driver }) {
       step: findStep,
       driver,
     });
-    if (findResult.status === "FAIL") {
+    if (findResult.result === "FAIL") {
       return findResult;
     }
     element = findResult.outputs.element;
     if (!element) {
-      result.status = "FAIL";
-      result.description = `Couldn't find element to crop.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Couldn't find element to crop.`;
+      return step;
     }
 
     // Determine if element bounding box + padding is within viewport
@@ -142,9 +143,9 @@ async function saveScreenshot({ config, step, driver }) {
       rect.x + rect.width + padding.right + padding.left > viewport.width ||
       rect.y + rect.height + padding.top + padding.bottom > viewport.height
     ) {
-      result.status = "FAIL";
-      result.description = `Element can't fit in viewport.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Element can't fit in viewport.`;
+      return step;
     }
 
     // Scroll to element top + padding top
@@ -170,9 +171,9 @@ async function saveScreenshot({ config, step, driver }) {
     }
   } catch (error) {
     // Couldn't save screenshot
-    result.status = "FAIL";
-    result.description = `Couldn't save screenshot. ${error}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't save screenshot. ${error}`;
+    return step;
   }
 
   // If crop is set, found bounds of element and crop image
@@ -234,9 +235,9 @@ async function saveScreenshot({ config, step, driver }) {
       let retryLimit = 50;
       while (!fs.existsSync(croppedPath)) {
         if (--retryLimit === 0) {
-          result.status = "FAIL";
-          result.description = `Couldn't write cropped image to file.`;
-          return result;
+          step.result = "FAIL";
+          step.resultDescription = `Couldn't write cropped image to file.`;
+          return step;
         }
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
@@ -244,9 +245,9 @@ async function saveScreenshot({ config, step, driver }) {
       // Replace the original file with the cropped file
       fs.renameSync(croppedPath, filePath);
     } catch (error) {
-      result.status = "FAIL";
-      result.description = `Couldn't crop image. ${error}`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Couldn't crop image. ${error}`;
+      return step;
     }
   }
 
@@ -256,9 +257,9 @@ async function saveScreenshot({ config, step, driver }) {
   if (existFilePath) {
     if (step.screenshot.overwrite == "true") {
       // Replace old file with new file
-      result.description += ` Overwrote existing file.`;
+      step.resultDescription += ` Overwrote existing file.`;
       fs.renameSync(filePath, existFilePath);
-      return result;
+      return step;
     }
     let percentDiff;
 
@@ -272,9 +273,9 @@ async function saveScreenshot({ config, step, driver }) {
         Math.round((img1.width / img1.height) * 100) / 100 !==
         Math.round((img2.width / img2.height) * 100) / 100
       ) {
-        result.status = "FAIL";
-        result.description = `Couldn't compare images. Images have different aspect ratios.`;
-        return result;
+        step.result = "FAIL";
+        step.resultDescription = `Couldn't compare images. Images have different aspect ratios.`;
+        return step;
       }
 
       // Resize images to same size
@@ -322,13 +323,13 @@ async function saveScreenshot({ config, step, driver }) {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
-        result.status = "FAIL";
-        result.description += ` Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
+        step.result = "FAIL";
+        step.resultDescription += ` Screenshots are beyond maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
-        return result;
+        return step;
       } else {
-        result.description += ` Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
+        step.resultDescription += ` Screenshots are within maximum accepted variation: ${percentDiff.toFixed(
           2
         )}%.`;
         if (step.screenshot.overwrite != "true") {
@@ -339,5 +340,5 @@ async function saveScreenshot({ config, step, driver }) {
   }
 
   // PASS
-  return result;
+  return step;
 }

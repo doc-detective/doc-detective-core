@@ -20,18 +20,19 @@ async function setOutputs({ element }) {
 
 // Find a single element
 async function findElement({ config, step, driver }) {
-  let result = {
+  step = {
+    ...step,
     status: "PASS",
-    description: "Found an element matching selector.",
+    resultDescription: "Found an element matching selector.",
     outputs: {},
   };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -49,20 +50,20 @@ async function findElement({ config, step, driver }) {
       } catch {
         // No matching elements
         if (!element.elementId) {
-          result.status = "FAIL";
-          result.description = "No elements matched selector or text.";
-          return result;
+          step.result = "FAIL";
+          step.resultDescription = "No elements matched selector or text.";
+          return step;
         }
       }
-      result.outputs.element = element;
-      result.description += ` Found element by ${foundBy}.`;
-      result.outputs = await setOutputs({ element });
-      return result;
+      step.outputs.element = element;
+      step.resultDescription += ` Found element by ${foundBy}.`;
+      step.outputs = await setOutputs({ element });
+      return step;
     } else {
       // No matching elements
-      result.status = "FAIL";
-      result.description = "No elements matched selector or text.";
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = "No elements matched selector or text.";
+      return step;
     }
   }
   // Apply default values
@@ -88,13 +89,13 @@ async function findElement({ config, step, driver }) {
       });
     if (foundElement) {
       element = foundElement;
-      result.outputs.element = element;
-      result.description += ` Found element by ${foundBy}.`;
+      step.outputs.element = element;
+      step.resultDescription += ` Found element by ${foundBy}.`;
     } else {
       // No matching elements
-      result.status = "FAIL";
-      result.description = "No elements matched selector and text.";
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = "No elements matched selector and text.";
+      return step;
     }
   } else if (step.find.selector) {
     element = await driver.$(step.find.selector);
@@ -108,20 +109,20 @@ async function findElement({ config, step, driver }) {
     } catch {}
   } else {
     // No selector or text
-    result.status = "FAIL";
-    result.description = "No selector or text provided.";
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = "No selector or text provided.";
+    return step;
   }
 
   // No matching elements
   if (!element.elementId) {
-    result.status = "FAIL";
-    result.description = "No elements matched selector and/or text.";
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = "No elements matched selector and/or text.";
+    return step;
   }
 
   // Set element in outputs
-  result.outputs = await setOutputs({ element });
+  step.outputs = await setOutputs({ element });
 
   // Move to element
   if (step.find.moveTo) {
@@ -136,7 +137,7 @@ async function findElement({ config, step, driver }) {
     };
 
     await moveTo({ config, step: moveToStep, driver, element });
-    result.description = result.description + " Moved to element.";
+    step.resultDescription = step.resultDescription + " Moved to element.";
   }
 
   // Click element
@@ -154,11 +155,11 @@ async function findElement({ config, step, driver }) {
       driver: driver,
       element: element,
     });
-    if (clickResult.status === "FAIL") {
-      result.status = "FAIL";
-      result.description += clickResult.description;
+    if (clickResult.result === "FAIL") {
+      step.result = "FAIL";
+      step.resultDescription += clickResult.resultDescription;
     } else {
-      result.description += " Clicked element.";
+      step.resultDescription += " Clicked element.";
     }
   }
 
@@ -172,11 +173,11 @@ async function findElement({ config, step, driver }) {
       step: typeStep,
       driver: driver,
     });
-    if (typeResult.status === "FAIL") {
-      result.status = "FAIL";
-      result.description = `${result.description} ${typeResult.description}`;
+    if (typeResult.result === "FAIL") {
+      step.result = "FAIL";
+      step.resultDescription = `${step.resultDescription} ${typeResult.resultDescription}`;
     } else {
-      result.description += " Typed keys.";
+      step.resultDescription += " Typed keys.";
     }
   }
 
@@ -185,5 +186,5 @@ async function findElement({ config, step, driver }) {
     await wait({ config: config, step: { wait: 2000 }, driver: driver });
   }
   // PASS
-  return result;
+  return step;
 }
