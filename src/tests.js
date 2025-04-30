@@ -624,21 +624,12 @@ async function runSpecs(config, specs) {
           log(
             config,
             "debug",
-            `RESULT: ${stepResult.status}, ${stepResult.description}`
+            `RESULT: ${stepResult.result}, ${stepResult.resultDescription}`
           );
 
-          stepResult.result = stepResult.status;
-          stepResult.resultDescription = stepResult.description;
-          delete stepResult.status;
-          delete stepResult.description;
-
           // Add step result to report
-          const stepReport = {
-            ...stepResult,
-            ...step,
-          };
-          contextReport.steps.push(stepReport);
-          report.summary.steps[stepReport.result.toLowerCase()]++;
+          contextReport.steps.push(stepResult);
+          report.summary.steps[stepResult.result.toLowerCase()]++;
         }
 
         // If recording, stop recording

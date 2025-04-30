@@ -4,14 +4,14 @@ exports.wait = wait;
 
 // Open a URI in the browser
 async function wait({ step }) {
-  let result = { status: "PASS", description: "Waited." };
+  step = { ...step, result: "PASS", resultDescription: "Waited.", };
 
   // Validate step payload
   const isValidStep = validate({schemaKey: "step_v3", object: step});
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
 
   // Resolve wait value
@@ -19,16 +19,16 @@ async function wait({ step }) {
     // True boolean
     step.wait = 5000;
   } else if (step.wait === false || step.wait === "false") {
-    result.status = "SKIPPED";
-    result.description = "Wait skipped.";
-    return result;
+    step.result = "SKIPPED";
+    step.resultDescription = "Wait skipped.";
+    return step;
   } else if (typeof step.wait === "string") {
     // Convert to number
     const waitValue = parseInt(step.wait, 10);
     if (isNaN(waitValue)) {
-      result.status = "FAIL";
-      result.description = `Invalid wait value: ${step.wait}. Must be a number or boolean.`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Invalid wait value: ${step.wait}. Must be a number or boolean.`;
+      return step;
     }
     // Set wait value
     step.wait = waitValue;
@@ -39,13 +39,13 @@ async function wait({ step }) {
     await new Promise((r) => setTimeout(r, step.wait));
   } catch (error) {
     // FAIL: Error waiting
-    result.status = "FAIL";
-    result.description = `Couldn't wait. ${error.message}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't wait. ${error.message}`;
+    return step;
   }
 
   // PASS
-  result.status = "PASS";
-  result.description = "Wait completed successfully.";
-  return result;
+  step.result = "PASS";
+  step.resultDescription = "Wait completed successfully.";
+  return step;
 }
