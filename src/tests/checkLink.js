@@ -5,7 +5,7 @@ const axios = require("axios");
 exports.checkLink = checkLink;
 
 async function checkLink({ config, step }) {
-  let result = { status: "PASS", description: "Checked link." };
+  step = { ...step, result: "PASS", resultDescription: "Checked link." };
 
   // Resolve to object
   if (typeof step.checkLink === "string") {
@@ -15,10 +15,10 @@ async function checkLink({ config, step }) {
   // Set origin for relative URLs
   if (isRelativeUrl(step.checkLink.url)) {
     if (!step.checkLink.origin && !config.origin) {
-      result.status = "FAIL";
-      result.description =
+      step.result = "FAIL";
+      step.resultDescription =
         "Relative URL provided without origin. Specify an origin in either the step or the config.";
-      return result;
+      return step;
     }
     step.checkLink.origin = step.checkLink.origin || config.origin;
     // If there isn't the necessary slash, add it
@@ -38,9 +38,9 @@ async function checkLink({ config, step }) {
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -64,21 +64,21 @@ async function checkLink({ config, step }) {
 
   // If request returned an error
   if (req.error) {
-    result.status = "FAIL";
-    result.description = `Invalid or unresolvable URL: ${step.checkLink.url}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid or unresolvable URL: ${step.checkLink.url}`;
+    return step;
   }
 
   // Compare status codes
   if (step.checkLink.statusCodes.indexOf(req.statusCode) >= 0) {
-    result.status = "PASS";
-    result.description = `Returned ${req.statusCode}`;
+    step.result = "PASS";
+    step.resultDescription = `Returned ${req.statusCode}`;
   } else {
-    result.status = "FAIL";
-    result.description = `Returned ${
+    step.result = "FAIL";
+    step.resultDescription = `Returned ${
       req.statusCode
     }. Expected one of ${JSON.stringify(step.checkLink.statusCodes)}`;
   }
 
-  return result;
+  return step;
 }

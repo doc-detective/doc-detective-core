@@ -9,17 +9,18 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 exports.startRecording = startRecording;
 
 async function startRecording({ config, context, step, driver }) {
-  let result = {
-    status: "PASS",
-    description: "Started recording.",
+  step = {
+    ...step,
+    result: "PASS",
+    resultDescription: "Started recording.",
   };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -48,9 +49,9 @@ async function startRecording({ config, context, step, driver }) {
 
   // If headless is true, skip recording
   if (context.browser?.headless) {
-    result.status = "SKIPPED";
-    result.description = `Recording isn't supported in headless mode.`;
-    return result;
+    step.result = "SKIPPED";
+    step.resultDescription = `Recording isn't supported in headless mode.`;
+    return step;
   }
 
   // Set file name
@@ -73,9 +74,9 @@ async function startRecording({ config, context, step, driver }) {
   // Check if file already exists
   if (fs.existsSync(filePath) && step.record.overwrite == "false") {
     // File already exists
-    result.status = "SKIPPED";
-    result.description = `File already exists: ${filePath}`;
-    return result;
+    step.result = "SKIPPED";
+    step.resultDescription = `File already exists: ${filePath}`;
+    return step;
   }
 
   if (
@@ -170,7 +171,7 @@ async function startRecording({ config, context, step, driver }) {
       document.title = documentTitle;
     }, documentTitle);
     // Set recorder
-    result.recording = {
+    step.recording = {
       type: "MediaRecorder",
       tab: recorderTab.handle,
       downloadPath: path.join(os.tmpdir(), `${baseName}.webm`), // Where the recording will be downloaded.
@@ -179,9 +180,9 @@ async function startRecording({ config, context, step, driver }) {
   } else {
     // Other context
 
-    result.status = "SKIPPED";
-    result.description = `Recording is not supported for this context.`;
-    return result;
+    step.result = "SKIPPED";
+    step.resultDescription = `Recording is not supported for this context.`;
+    return step;
 
     const dimensions = await driver.execute(() => {
       return {
@@ -296,15 +297,15 @@ async function startRecording({ config, context, step, driver }) {
       //   console.log(`child process exited with code ${code}`);
       // });
 
-      result.recording = ffmpegProcess;
+      step.recording = ffmpegProcess;
     } catch (error) {
       // Couldn't save screenshot
-      result.status = "FAIL";
-      result.description = `Couldn't start recording. ${error}`;
-      return result;
+      step.result = "FAIL";
+      step.resultDescription = `Couldn't start recording. ${error}`;
+      return step;
     }
   }
 
   // PASS
-  return result;
+  return step;
 }

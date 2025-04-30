@@ -5,7 +5,7 @@ exports.goTo = goTo;
 
 // Open a URI in the browser
 async function goTo({ config, step, driver }) {
-  let result = { status: "PASS", description: "Opened URL." };
+  step = { ...step, result: "PASS", resultDescription: "Opened URL." };
 
   // Resolve to object
   if (typeof step.goTo === "string") {
@@ -15,10 +15,10 @@ async function goTo({ config, step, driver }) {
   // Set origin for relative URLs
   if (isRelativeUrl(step.goTo.url)) {
     if (!step.goTo.origin && !config.origin) {
-      result.status = "FAIL";
-      result.description =
+      step.result = "FAIL";
+      step.resultDescription =
         "Relative URL provided without origin. Specify an origin in either the step or the config.";
-      return result;
+      return step;
     }
     step.goTo.origin = step.goTo.origin || config.origin;
     // If there isn't the necessary slash, add it
@@ -38,9 +38,9 @@ async function goTo({ config, step, driver }) {
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
 
   // Run action
@@ -61,16 +61,16 @@ async function goTo({ config, step, driver }) {
       );
     } catch (timeoutError) {
       // The page took too long to load, but we'll still proceed
-      result.status = "WARNING";
-      result.description = "Opened URL, but page didn't fully load within the timeout period.";
+      step.result = "WARNING";
+      step.resultDescription = "Opened URL, but page didn't fully load within the timeout period.";
     }
   } catch (error) {
     // FAIL: Error opening URL
-    result.status = "FAIL";
-    result.description = `Couldn't open URL: ${error.message}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't open URL: ${error.message}`;
+    return step;
   }
 
   // PASS
-  return result;
+  return step;
 }

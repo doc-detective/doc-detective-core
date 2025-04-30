@@ -8,26 +8,27 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 exports.stopRecording = stopRecording;
 
 async function stopRecording({ config, step, driver }) {
-  let result = {
-    status: "PASS",
-    description: "Stopped recording.",
+  step = {
+    ...step,
+    result: "PASS",
+    resultDescription: "Stopped recording.",
   };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.status = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
   // Skip if recording is not started
   if (!config.recording) {
-    result.status = "SKIPPED";
-    result.description = `Recording isn't started.`;
-    return result;
+    step.status = "SKIPPED";
+    step.resultDescription = `Recording isn't started.`;
+    return step;
   }
 
   try {
@@ -71,11 +72,11 @@ async function stopRecording({ config, step, driver }) {
     }
   } catch (error) {
     // Couldn't stop recording
-    result.status = "FAIL";
-    result.description = `Couldn't stop recording. ${error}`;
-    return result;
+    step.status = "FAIL";
+    step.resultDescription = `Couldn't stop recording. ${error}`;
+    return step;
   }
 
   // PASS
-  return result;
+  return step;
 }

@@ -65,14 +65,14 @@ const specialKeyMap = {
 
 // Type a sequence of keys in the active element.
 async function typeKeys({ config, step, driver }) {
-  let result = { status: "PASS", description: "Typed keys." };
+  step = { ...step, result: "PASS", resultDescription: "Typed keys." };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Invalid step definition: ${isValidStep.errors}`;
+    return step;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
@@ -98,9 +98,9 @@ async function typeKeys({ config, step, driver }) {
 
   // Skip if no keys to type
   if (!step.type.keys.length) {
-    result.status = "SKIPPED";
-    result.description = "No keys to type.";
-    return result;
+    step.result = "SKIPPED";
+    step.resultDescription = "No keys to type.";
+    return step;
   }
 
   // Split into array of strings, each containing a single key
@@ -145,11 +145,11 @@ async function typeKeys({ config, step, driver }) {
     }
   } catch (error) {
     // FAIL: Error typing keys
-    result.status = "FAIL";
-    result.description = `Couldn't type keys: ${error.message}.`;
-    return result;
+    step.result = "FAIL";
+    step.resultDescription = `Couldn't type keys: ${error.message}.`;
+    return step;
   }
 
   // PASS
-  return result;
+  return step;
 }
