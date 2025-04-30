@@ -22,7 +22,7 @@ async function setOutputs({ element }) {
 async function findElement({ config, step, driver }) {
   step = {
     ...step,
-    status: "PASS",
+    result: "PASS",
     resultDescription: "Found an element matching selector.",
     outputs: {},
   };
