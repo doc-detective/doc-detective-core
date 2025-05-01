@@ -402,8 +402,6 @@ async function runSpecs(config, specs) {
     // Set meta values
     metaValues.specs[spec.specId] = { tests: {} };
 
-    report.specs.push(specReport);
-
     // Conditionally override contexts
     const specContexts = spec.runOn || configContexts;
 
