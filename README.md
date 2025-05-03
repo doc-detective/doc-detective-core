@@ -24,19 +24,9 @@ const { runTests, runCoverage } = require("doc-detective-core");
 
 ## Functions
 
-### `runTests(config)`
+### `runTests({config})`
 
-Run test specifications. Returns a test report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runTests.input` for test specifications to perform.
-
-### `runCoverage(config)`
-
-Analyze test coverage in documentation source files. Returns a coverage report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` or `config.runCoverage.input` for documentation source files to analyze. Parses markup based on file's type and the markup definitions specified in `config.fileTypes.markup`.
-
-### `suggestTests(config)` (Experimental)
-
-> **Note:** This is experimental and subject to change. 
-
-Dynamically built tests to address uncovered markup in documentation source files. Returns a suggested test specification. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input.
+Run test specifications. Returns a test report object. Takes [`config`](https://doc-detective.com/reference/schemas/config.html) as input. Parses paths in the `config.input` for test specifications to perform.
 
 ## Contributions
 
