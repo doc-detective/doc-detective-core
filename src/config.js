@@ -106,10 +106,11 @@ let defaultFileTypes = {
         regex: [
           "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*",
         ],
+        actions: ["click"],
       },
       {
         name: "findOnscreenText",
-        regex: ["`\\*\\*((?:(?!\\*\\*).)+)\\*\\*`"],
+        regex: ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
         actions: ["find"],
       },
       {
