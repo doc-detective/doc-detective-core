@@ -214,12 +214,12 @@ function resolveContexts({ contexts, test, config }) {
   contexts.forEach((context) => {
     const staticContexts = [];
     context.platforms.forEach((platform) => {
-      const staticContext = { platform };
       if (!browserRequired) {
+        const staticContext = { platform };
         staticContexts.push(staticContext);
       } else {
         context.browsers.forEach((browser) => {
-          staticContext.browser = browser;
+          const staticContext = { platform, browser };
           staticContexts.push(staticContext);
         });
       }
