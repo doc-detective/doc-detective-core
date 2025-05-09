@@ -47,7 +47,7 @@ async function instantiateCursor(driver, options = { position: "current" }) {
       const cursor = document.createElement("dd-mouse-pointer");
       cursor.style.display = "none";
       const styleElement = document.createElement("style");
-      styleElement.innerHTML = `
+      styleElement.textContent = `
       dd-mouse-pointer {
         pointer-events: none;
         position: absolute;
