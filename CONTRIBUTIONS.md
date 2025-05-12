@@ -20,7 +20,7 @@ To contribute code,
 
 ## License
 
-By contributing to `doc-detective-core`, you agree that your contributions will be licensed under the [MIT license](https://github.com/doc-detective/doc-detective-core/blob/main/LICENCE).
+By contributing to `doc-detective-core`, you agree that your contributions will be licensed under the [AGPL license](https://github.com/doc-detective/doc-detective-core/blob/main/LICENCE).
 
 ## Thank you
 
