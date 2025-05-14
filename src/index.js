@@ -1,5 +1,5 @@
-const { setConfig } = require("./config");
-const { qualityFiles, parseTests, log, cleanTemp } = require("./utils");
+const { detectTests, detectAndResolveTests } = require("doc-detective-resolver");
+const { log, cleanTemp } = require("./utils");
 const { runSpecs } = require("./tests");
 const { telemetryNotice, sendTelemetry } = require("./telem");
 
@@ -15,26 +15,17 @@ const supportMessage = `
 
 // Run tests defined in specifications and documentation source files.
 async function runTests(config) {
-  // Set config
-  config = await setConfig({config});
-  log(config, "debug", `CONFIG:`);
-  log(config, "debug", config);
-
   // Telemetry notice
   telemetryNotice(config);
 
-  // Set files
-  const files = await qualityFiles({config});
-  log(config, "debug", `FILES:`);
-  log(config, "debug", files);
-
-  // Set test specs
-  const specs = await parseTests({config, files});
-  log(config, "debug", `SPECS:`);
-  log(config, "debug", specs);
+  const resolvedTests = await detectAndResolveTests({ config });
+  if (!resolvedTests || resolvedTests.specs.length === 0) {
+    log(config, "warn", "Couldn't resolve any tests.");
+    return null;
+  }
 
   // Run test specs
-  const results = await runSpecs(config, specs);
+  const results = await runSpecs({ resolvedTests });
   log(config, "info", "RESULTS:");
   log(config, "info", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
