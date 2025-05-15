@@ -28,7 +28,7 @@ tests:
     variables:
       ID: $$response.body.data[0].id
   - httpRequest:
-      url: http://localhost:8080/api/users/$ID
+      url: http://localhost:8080/api/$ID
       method: get
       timeout: 1000
     savePath: response.json
