@@ -17,13 +17,12 @@ const { loadVariables } = require("./tests/loadVariables");
 const { httpRequest } = require("./tests/httpRequest");
 const { clickElement } = require("./tests/click");
 const { runCode } = require("./tests/runCode");
-const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const uuid = require("uuid");
 const { setAppiumHome } = require("./appium");
-const { loadDescription } = require("./openapi");
 const { resolveExpression } = require("./expressions");
+const { getEnvironment, getAvailableApps } = require("./config");
 
 exports.runSpecs = runSpecs;
 // exports.appiumStart = appiumStart;
@@ -131,9 +130,9 @@ function isAppiumRequired(specs) {
   let appiumRequired = false;
   specs.forEach((spec) => {
     spec.tests.forEach((test) => {
-      test.steps.forEach((step) => {
+      test.contexts.forEach((context) => {
         // Check if test includes actions that require a driver.
-        if (isDriverRequired({ test })) {
+        if (isDriverRequired({ test: context })) {
           appiumRequired = true;
         }
       });
@@ -167,6 +166,18 @@ function isSupportedContext({ context, apps, platform }) {
   } else {
     return false;
   }
+}
+
+function getDefaultBrowser({ runnerDetails }) {
+  let browser = {};
+  const browserNames = ["firefox", "chrome", "safari"];
+  for (const name of browserNames) {
+    if (runnerDetails.environment.apps.find(app => app.name === name)) {
+      browser = { name };
+      break;
+    }
+  }
+  return browser;
 }
 
 function resolveContexts({ contexts, test, config }) {
@@ -327,11 +338,20 @@ async function setViewportSize(context, driver) {
 }
 
 // Iterate through and execute test specifications and contained tests.
-async function runSpecs(config, specs) {
+async function runSpecs({ resolvedTests }) {
+  const config = resolvedTests.config;
+  const specs = resolvedTests.specs;
+
+  // Get runner details
+  const runnerDetails = {
+    environment: getEnvironment(),
+    availableApps: await getAvailableApps({ config }),
+  };
+
   // Set initial shorthand values
   const configContexts = config.runOn || [];
-  const platform = config.environment.platform;
-  const availableApps = config.environment.apps;
+  const platform = runnerDetails.environment.platform;
+  const availableApps = runnerDetails.availableApps;
   const metaValues = { specs: {} };
   let appium;
   const report = {
@@ -402,39 +422,6 @@ async function runSpecs(config, specs) {
     // Set meta values
     metaValues.specs[spec.specId] = { tests: {} };
 
-    // Conditionally override contexts
-    const specContexts = spec.runOn || configContexts;
-
-    // Capture all OpenAPI definitions
-    // TODO: Refactor into standalone function
-    const openApiDefinitions = [];
-    if (config?.integrations?.openApi?.length > 0)
-      openApiDefinitions.push(...config.integrations.openApi);
-    if (spec?.openApi?.length > 0) {
-      for (const definition of spec.openApi) {
-        try {
-          const openApiDefinition = await loadDescription(
-            definition.descriptionPath
-          );
-          definition.definition = openApiDefinition;
-        } catch (error) {
-          log(
-            config,
-            "error",
-            `Failed to load OpenAPI definition from ${definition.descriptionPath}: ${error.message}`
-          );
-          continue; // Skip this definition
-        }
-        const existingDefinitionIndex = openApiDefinitions.findIndex(
-          (def) => def.name === definition.name
-        );
-        if (existingDefinitionIndex > -1) {
-          openApiDefinitions.splice(existingDefinitionIndex, 1);
-        }
-        openApiDefinitions.push(definition);
-      }
-    }
-
     // Iterates tests
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
@@ -450,44 +437,18 @@ async function runSpecs(config, specs) {
       // Set meta values
       metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
 
-      // Resolve contexts
-      const testContexts = resolveContexts({
-        test: test,
-        contexts: test.runOn || specContexts,
-        config: config,
-      });
-
-      // Capture test-level OpenAPI definitions
-      // TODO: Refactor into standalone function
-      if (test?.openApi?.length > 0) {
-        for (const definition of test.openApi) {
-          try {
-            const openApiDefinition = await loadDescription(
-              definition.descriptionPath
-            );
-            definition.definition = openApiDefinition;
-          } catch (error) {
-            log(
-              config,
-              "error",
-              `Failed to load OpenAPI definition from ${definition.descriptionPath}: ${error.message}`
-            );
-            continue; // Skip this definition
-          }
-          const existingDefinitionIndex = openApiDefinitions.findIndex(
-            (def) => def.name === definition.name
-          );
-          if (existingDefinitionIndex > -1) {
-            openApiDefinitions.splice(existingDefinitionIndex, 1);
-          }
-          openApiDefinitions.push(definition);
-        }
-      }
-
       // Iterate contexts
       // TODO: Support both serial and parallel execution
-      for (const index in testContexts) {
-        const context = testContexts[index];
+      for (const context of test.contexts) {
+        // If "platform" is not defined, set it to the current platform
+        if (!context.platform)
+          context.platform = runnerDetails.environment.platform;
+
+        // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
+        if (!context.browser && isDriverRequired({ test: context })) {
+          context.browser = getDefaultBrowser({ runnerDetails });
+        }
+
         log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
         // Set context report
@@ -524,7 +485,7 @@ async function runSpecs(config, specs) {
         }
 
         let driver;
-        const driverRequired = isDriverRequired({ test: test });
+        const driverRequired = isDriverRequired({ test: context });
         if (driverRequired) {
           // Define driver capabilities
           // TODO: Support custom apps
@@ -600,7 +561,7 @@ async function runSpecs(config, specs) {
         }
 
         // Iterates steps
-        for (let step of test.steps) {
+        for (let step of context.steps) {
           // Set step id if not defined
           if (!step.stepId) step.stepId = `${uuid.v4()}`;
           log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
@@ -618,7 +579,7 @@ async function runSpecs(config, specs) {
             driver: driver,
             metaValues: metaValues,
             options: {
-              openApiDefinitions,
+              openApiDefinitions: context.openApi || [],
             },
           });
           log(
