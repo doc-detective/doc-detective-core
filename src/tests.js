@@ -41,21 +41,21 @@ const driverActions = [
 ];
 
 // Get Appium driver capabilities and apply options.
-function getDriverCapabilities({ config, name, options }) {
+function getDriverCapabilities({ runnerDetails, name, options }) {
   let capabilities = {};
   let args = [];
 
   // Set Firefox capabilities
   switch (name) {
     case "firefox":
-      firefox = config.environment.apps.find((app) => app.name === "firefox");
+      firefox = runnerDetails.availableApps.find((app) => app.name === "firefox");
       if (!firefox) break;
       // Set args
       // Reference: https://wiki.mozilla.org/Firefox/CommandLineOptions
       if (options.headless) args.push("--headless");
       // Set capabilities
       capabilities = {
-        platformName: config.environment.platform,
+        platformName: runnerDetails.environment.platform,
         "appium:automationName": "Gecko",
         "wdio:enforceWebDriverClassic": true,
         browserName: "MozillaFirefox",
@@ -74,8 +74,8 @@ function getDriverCapabilities({ config, name, options }) {
       break;
     case "safari":
       // Set Safari capabilities
-      if (config.environment.apps.find((app) => app.name === "safari")) {
-        safari = config.environment.apps.find((app) => app.name === "safari");
+      if (runnerDetails.availableApps.find((app) => app.name === "safari")) {
+        safari = runnerDetails.availableApps.find((app) => app.name === "safari");
         if (!safari) break;
         // Set capabilities
         capabilities = {
@@ -88,8 +88,8 @@ function getDriverCapabilities({ config, name, options }) {
       break;
     case "chrome":
       // Set Chrome(ium) capabilities
-      if (config.environment.apps.find((app) => app.name === name)) {
-        const chromium = config.environment.apps.find(
+      if (runnerDetails.availableApps.find((app) => app.name === name)) {
+        const chromium = runnerDetails.availableApps.find(
           (app) => app.name === name
         );
         if (!chromium) break;
@@ -100,7 +100,7 @@ function getDriverCapabilities({ config, name, options }) {
         if (process.platform === "linux") args.push("--no-sandbox");
         // Set capabilities
         capabilities = {
-          platformName: config.environment.platform,
+          platformName: runnerDetails.environment.platform,
           "appium:automationName": "Chromium",
           "appium:executable": chromium.driver,
           browserName: "chrome",
@@ -172,7 +172,7 @@ function getDefaultBrowser({ runnerDetails }) {
   let browser = {};
   const browserNames = ["firefox", "chrome", "safari"];
   for (const name of browserNames) {
-    if (runnerDetails.environment.apps.find(app => app.name === name)) {
+    if (runnerDetails.availableApps.find(app => app.name === name)) {
       browser = { name };
       break;
     }
@@ -490,7 +490,7 @@ async function runSpecs({ resolvedTests }) {
           // Define driver capabilities
           // TODO: Support custom apps
           let caps = getDriverCapabilities({
-            config: config,
+            runnerDetails: runnerDetails,
             name: context.browser.name,
             options: {
               width: context.browser?.window?.width || 1200,
