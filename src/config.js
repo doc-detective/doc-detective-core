@@ -10,6 +10,7 @@ const { loadDescription } = require("./openapi");
 
 exports.setConfig = setConfig;
 exports.getAvailableApps = getAvailableApps;
+exports.getEnvironment = getEnvironment;
 
 // Map of Node-detected platforms to common-term equivalents
 const platformMap = {
@@ -115,17 +116,21 @@ let defaultFileTypes = {
       },
       {
         name: "goToUrl",
-        regex: ["\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"],
+        regex: [
+          '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
+        ],
         actions: ["goTo"],
       },
       {
         name: "screenshotImage",
-        regex: ["!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}"],
+        regex: [
+          '!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}',
+        ],
         actions: ["screenshot"],
       },
       {
         name: "typeText",
-        regex: ["\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""],
+        regex: ['\\b(?:press|enter|type)\\b\\s+"([^"]+)"'],
         actions: ["type"],
       },
       // {
@@ -296,7 +301,7 @@ function getEnvironment() {
 }
 
 // Detect available apps.
-async function getAvailableApps(config) {
+async function getAvailableApps({ config }) {
   setAppiumHome();
   cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
