@@ -3,6 +3,9 @@
 
 name: Test (& Publish)
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -48,6 +51,8 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
