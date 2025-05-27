@@ -485,6 +485,10 @@ async function runSpecs({ resolvedTests }) {
         }
 
         let driver;
+        // Ensure context contains a 'steps' property
+        if (!context.steps) {
+          context.steps = [];
+        }
         const driverRequired = isDriverRequired({ test: context });
         if (driverRequired) {
           // Define driver capabilities
