@@ -32,10 +32,16 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Install specific version of doc-detective-resolver
+    - name: Get version of doc-detective-common from resolver
+      id: common_version
       run: |
-        npm install doc-detective-resolver@${{ steps.version.outputs.version }} || {
-          echo "Failed to install doc-detective-resolver@${{ steps.version.outputs.version }}"
+        COMMON_VERSION=$(npm view doc-detective-resolver@${{ steps.version.outputs.version }} dependencies --json | jq -r '.["doc-detective-common"]')
+        echo "common_version=$COMMON_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Install specific versions of doc-detective-resolver and doc-detective-common
+      run: |
+        npm install doc-detective-resolver@${{ steps.version.outputs.version }} doc-detective-common@${{ steps.common_version.outputs.common_version }} || {
+          echo "Failed to install doc-detective-resolver@${{ steps.version.outputs.version }} or doc-detective-common@${{ steps.common_version.outputs.common_version }}"
           exit 1
         }
     
