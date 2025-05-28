@@ -102,7 +102,7 @@ async function findElement({ config, step, driver }) {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}
   } else if (step.find.elementText) {
-    element = await driver.$(`//*[text()="${step.find.elementText}"]`);
+    element = await driver.$(`//*[normalize-space(text())="${step.find.elementText}"]`);
     try {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}
