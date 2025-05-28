@@ -29,56 +29,12 @@ async function main() {
   const json = {
     input: "./dev/dev.spec.yaml",
     logLevel: "debug",
-    //   envVariables: "",
-  //   input: ".",
-  //   output: ".",
-  //   recursive: true,
-  //   logLevel: "debug",
-  //   runTests: {
-  //     output: ".",
-  //     setup: "",
-  //     cleanup: "",
-  //     recursive: true,
-  //     detectSteps: false,
-  //     mediaDirectory: ".",
-  //     downloadDirectory: ".",
-  //     contexts: [
-  //       {
-  //         app: {
-  //           name: "firefox",
-  //           options: {
-  //             headless: false,
-  //           },
-  //         },
-  //         platforms: ["mac", "linux"],
-  //       },
-  //     ],
-  //   },
-  //   runCoverage: {
-  //     recursive: true,
-  //     input: ".dev/",
-  //     output: ".",
-  //     markup: [],
-  //   },
-  //   suggestTests: {
-  //     recursive: true,
-  //     input: ".",
-  //     output: ".",
-  //     markup: [],
-  //   },
-  //   integrations: {
-  //     openApi: [
-  //       {
-  //         name: "reqres_live",
-  //         descriptionPath: "./test/artifacts/reqres.openapi.yaml",
-  //         server: "https://reqres.in/api",
-  //         useExample: "request",
-  //       },
-  //     ],
-  //   },
-  //   telemetry: {
-  //     send: false,
-  //   },
+    runOn: [
+      {
+        platforms: ["windows", "linux", "mac"],
+        browsers: [{ name: "firefox", headless: false }],
+      },
+    ],
   };
   // console.log(json);
   result = await runTests(json);
