@@ -49,6 +49,7 @@ jobs:
     
     - name: Test the installation
       run: |
+        npm install
         npm test
     
     - name: Commit changes
