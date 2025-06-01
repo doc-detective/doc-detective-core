@@ -27,14 +27,8 @@ main();
 
 async function main() {
   const json = {
-    input: "./dev/dev.spec.yaml",
+    input: "./dev/doc-content.md",
     logLevel: "debug",
-    runOn: [
-      {
-        platforms: ["windows", "linux", "mac"],
-        browsers: [{ name: "firefox", headless: false }],
-      },
-    ],
   };
   // console.log(json);
   result = await runTests(json);

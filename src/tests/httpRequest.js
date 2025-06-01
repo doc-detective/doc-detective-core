@@ -181,6 +181,31 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     timeout: step.httpRequest.timeout || 60000,
   };
 
+  // Standardize step values
+  // request.headers from string to object
+  if (typeof step.httpRequest.request.headers === "string") {
+    // Example string: "Content-Type: application/json\nAuthorization: Bearer token"
+    const headers = {};
+    step.httpRequest.request.headers.split("\n").forEach((header) => {
+      const [key, value] = header.split(":").map((s) => s.trim());
+      if (key && value) {
+        headers[key] = value;
+      }
+    });
+    step.httpRequest.request.headers = headers;
+  }
+  // request.body is stringified JSON
+  if (
+    typeof step.httpRequest.request.body === "string" &&
+    step.httpRequest.request.body.trim().startsWith("{")
+  ) {
+    try {
+      step.httpRequest.request.body = JSON.parse(step.httpRequest.request.body);
+    } catch (error) {
+      result.description = `Failed to parse request body as JSON. Continued as string.`;
+    }
+  }
+
   const request = {
     url: step.httpRequest.url,
     method: step.httpRequest.method,
