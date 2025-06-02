@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "3.0.11",
+  "version": "3.0.12",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -31,7 +31,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@puppeteer/browsers": "^2.10.5",
     "ajv": "^8.17.1",
-    "appium": "^2.18.0",
+    "appium": "^2.19.0",
     "appium-chromium-driver": "1.5.1",
     "appium-geckodriver": "^1.4.3",
     "appium-safari-driver": "^3.5.24",
