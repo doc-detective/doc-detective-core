@@ -49,7 +49,7 @@ async function findElement({ config, step, driver }) {
       }
       result.outputs.element = element;
       result.description += ` Found element by ${foundBy}.`;
-      result.outputs = await setElementOutputs({ element });
+      result.outputs.element = { ...(await setElementOutputs({ element })) };
       return result;
     } else {
       // No matching elements
@@ -95,7 +95,9 @@ async function findElement({ config, step, driver }) {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}
   } else if (step.find.elementText) {
-    element = await driver.$(`//*[normalize-space(text())="${step.find.elementText}"]`);
+    element = await driver.$(
+      `//*[normalize-space(text())="${step.find.elementText}"]`
+    );
     try {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}

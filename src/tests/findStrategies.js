@@ -5,6 +5,7 @@ exports.findElementBySelectorOrText =
 
 // Set element outputs
 exports.setElementOutputs = setElementOutputs;
+
 async function setElementOutputs({ element }) {
   // Set element in outputs
   const outputs = { element: {}, rawElement: element };

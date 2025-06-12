@@ -37,10 +37,11 @@ async function clickElement({ config, step, driver, element }) {
   if (!element?.elementId) {
     // Handle combo selector/text string
     if (typeof step.click === "string") {
-      const { element: foundElement, foundBy } = await findElementBySelectorOrText({
-        string: step.click,
-        driver,
-      });
+      const { element: foundElement, foundBy } =
+        await findElementBySelectorOrText({
+          string: step.click,
+          driver,
+        });
       if (foundElement) {
         // Wait for timeout
         try {
@@ -78,7 +79,7 @@ async function clickElement({ config, step, driver, element }) {
       result.description += ` Found element by ${foundBy}.`;
     }
   }
-  result.outputs.element = await setElementOutputs({ element });
+  result.outputs = await setElementOutputs({ element });
 
   try {
     await element.click({
