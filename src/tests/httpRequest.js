@@ -200,10 +200,6 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
     });
     step.httpRequest.request.headers = headers;
   }
-  // detected request.body was "undefined", delete it
-  if (typeof step.httpRequest.request.body === "undefined") {
-    delete step.httpRequest.request.body;
-  }
   // request.body is stringified JSON
   if (
     typeof step.httpRequest.request.body === "string" &&
