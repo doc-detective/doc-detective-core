@@ -2,6 +2,7 @@ const { validate } = require("doc-detective-common");
 const {
   findElementBySelectorAndText,
   findElementBySelectorOrText,
+  setElementOutputs,
 } = require("./findStrategies");
 
 exports.clickElement = clickElement;
@@ -11,6 +12,7 @@ async function clickElement({ config, step, driver, element }) {
   const result = {
     status: "PASS",
     description: "Clicked element.",
+    outputs: {},
   };
 
   // Validate step payload
@@ -76,6 +78,7 @@ async function clickElement({ config, step, driver, element }) {
       result.description += ` Found element by ${foundBy}.`;
     }
   }
+  result.outputs.element = await setElementOutputs({ element });
 
   try {
     await element.click({

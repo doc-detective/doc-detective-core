@@ -13,6 +13,7 @@ async function saveScreenshot({ config, step, driver }) {
   let result = {
     status: "PASS",
     description: "Saved screenshot.",
+    outputs: {},
   };
   let element;
 
@@ -108,12 +109,13 @@ async function saveScreenshot({ config, step, driver }) {
     if (findResult.status === "FAIL") {
       return findResult;
     }
-    element = findResult.outputs.element;
+    element = findResult.outputs.rawElement;
     if (!element) {
       result.status = "FAIL";
       result.description = `Couldn't find element to crop.`;
       return result;
     }
+    result.outputs.element = element;
 
     // Determine if element bounding box + padding is within viewport
     const rect = await driver.execute((el) => {
