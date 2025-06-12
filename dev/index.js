@@ -27,7 +27,7 @@ main();
 
 async function main() {
   const json = {
-    input: "./dev/doc-content.md",
+    input: "./dev/dev.spec.json",
     logLevel: "debug",
   };
   // console.log(json);
