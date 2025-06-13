@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-core",
-  "version": "3.0.18",
+  "version": "3.0.19-dev.0",
   "description": "The doc testing framework.",
   "main": "src/index.js",
   "scripts": {
@@ -27,14 +27,14 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective-core#readme",
   "dependencies": {
-    "@apidevtools/json-schema-ref-parser": "^12.0.2",
+    "@apidevtools/json-schema-ref-parser": "^13.0.5",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@puppeteer/browsers": "^2.10.5",
     "ajv": "^8.17.1",
     "appium": "^2.19.0",
     "appium-chromium-driver": "1.5.1",
     "appium-geckodriver": "^1.4.3",
-    "appium-safari-driver": "^3.5.24",
+    "appium-safari-driver": "^3.5.25",
     "axios": "^1.9.0",
     "doc-detective-common": "^3.0.9",
     "doc-detective-resolver": "^3.0.10",
@@ -44,7 +44,7 @@
     "json-schema-faker": "^0.5.9",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
-    "posthog-node": "^4.18.0",
+    "posthog-node": "^5.1.0",
     "sharp": "^0.34.2",
     "tree-kill": "^1.2.2",
     "uuid": "^11.1.0",
@@ -83,6 +83,6 @@
   "devDependencies": {
     "depcheck": "^1.4.7",
     "express": "^5.1.0",
-    "mocha": "^11.5.0"
+    "mocha": "^11.6.0"
   }
 }
