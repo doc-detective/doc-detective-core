@@ -180,133 +180,6 @@ function getDefaultBrowser({ runnerDetails }) {
   return browser;
 }
 
-function resolveContexts({ contexts, test, config }) {
-  const resolvedContexts = [];
-
-  // Check if current test requires a browser
-  let browserRequired = false;
-  test.steps.forEach((step) => {
-    // Check if test includes actions that require a driver.
-    driverActions.forEach((action) => {
-      if (typeof step[action] !== "undefined") browserRequired = true;
-    });
-  });
-
-  // Standardize context format
-  contexts.forEach((context) => {
-    if (context.browsers) {
-      if (
-        typeof context.browsers === "string" ||
-        (typeof context.browsers === "object" &&
-          !Array.isArray(context.browsers))
-      ) {
-        // If browsers is a string or an object, convert to array
-        context.browsers = [context.browsers];
-      }
-      context.browsers = context.browsers.map((browser) => {
-        if (typeof browser === "string") {
-          browser = { name: browser };
-        }
-        if (browser.name === "safari") browser.name = "webkit";
-        return browser;
-      });
-    }
-    if (context.platforms) {
-      if (typeof context.platforms === "string") {
-        context.platforms = [context.platforms];
-      }
-    }
-  });
-
-  // Resolve to final contexts. Each context should include a single platform and at most a single browser.
-  // If no browsers are required, filter down to platform-based contexts
-  // If browsers are required, create contexts for each specified combination of platform and browser
-
-  contexts.forEach((context) => {
-    const staticContexts = [];
-    context.platforms.forEach((platform) => {
-      if (!browserRequired) {
-        const staticContext = { platform };
-        staticContexts.push(staticContext);
-      } else {
-        context.browsers.forEach((browser) => {
-          const staticContext = { platform, browser };
-          staticContexts.push(staticContext);
-        });
-      }
-    });
-    // For each static context, check if a matching object already exists in resolvedContexts. If not, push to resolvedContexts.
-    staticContexts.forEach((staticContext) => {
-      const existingContext = resolvedContexts.find((resolvedContext) => {
-        return (
-          resolvedContext.platform === staticContext.platform &&
-          JSON.stringify(resolvedContext.browser) ===
-            JSON.stringify(staticContext.browser)
-        );
-      });
-      if (!existingContext) {
-        resolvedContexts.push(staticContext);
-      }
-    });
-  });
-
-  // If no contexts are defined, use default contexts
-  if (resolvedContexts.length === 0) {
-    const defaultContext = {
-      platform: config.environment.platform,
-    };
-    if (browserRequired && config.environment.apps.length > 0) {
-      // Select browser
-      const firefox = config.environment.apps.find(
-        (app) => app.name === "firefox"
-      );
-      const chrome = config.environment.apps.find(
-        (app) => app.name === "chrome"
-      );
-      const safari = config.environment.apps.find(
-        (app) => app.name === "safari"
-      );
-      defaultContext.browser = firefox || chrome || safari;
-    }
-    resolvedContexts.push(defaultContext);
-  }
-
-  return resolvedContexts;
-}
-
-// Define default contexts based on config.runOn, then using a fallback strategy of Chrome(ium) and Firefox.
-// TODO: Update with additional browsers as they are supported.
-function getDefaultContexts(config) {
-  const contexts = [];
-  const apps = config.environment.apps;
-  const platform = config.environment.platform;
-  // Check if contexts are defined in config
-  if (config.runOn) {
-    // Check if contexts are supported
-    config.runOn.forEach((context) => {
-      if (isSupportedContext(context, apps, platform)) {
-        contexts.push(context);
-      }
-    });
-  }
-  // If no contexts are defined in config, or if none are supported, use fallback strategy
-  // Select the first available app
-  if (contexts.length === 0) {
-    const fallback = ["firefox", "chrome", "safari"];
-    for (const browser of fallback) {
-      if (contexts.length != 0) continue;
-      const app = apps.find((app) => app.name === browser);
-      if (app) {
-        contexts.push({
-          app,
-          platforms: [platform],
-        });
-      }
-    }
-  }
-  return contexts;
-}
-
 // Set window size to match target viewport size
 async function setViewportSize(context, driver) {
   if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
@@ -349,7 +222,6 @@ async function runSpecs({ resolvedTests }) {
   };
 
   // Set initial shorthand values
-  const configContexts = config.runOn || [];
   const platform = runnerDetails.environment.platform;
   const availableApps = runnerDetails.availableApps;
   const metaValues = { specs: {} };
@@ -436,6 +308,28 @@ async function runSpecs({ resolvedTests }) {
       };
       // Set meta values
       metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
+
+      // If a test is marked as potentially unsafe and the config is set to not run unsafe tests, skip it, marking all contained contexts and steps as skipped.
+      if (test.unsafe && !config.allowUnsafeTests) {
+        log(config, "warning", `Skipping unsafe test: ${test.testId}`);
+        testReport = { result: "SKIPPED", ...testReport };
+        testReport.contexts = test.contexts.map((context) => {
+          const contextReport = { result: "SKIPPED", ...context };
+          contextReport.steps = context.steps.map((step) => {
+            const stepReport =  {
+              ...step,
+              result: "SKIPPED",
+            };
+            report.summary.steps.skipped++;
+            return stepReport;
+          });
+          report.summary.contexts.skipped++;
+          return contextReport;
+        });
+        report.summary.tests.skipped++;
+        specReport.tests.push(testReport);
+        continue;
+      }
 
       // Iterate contexts
       // TODO: Support both serial and parallel execution
