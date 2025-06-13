@@ -115,7 +115,7 @@ async function saveScreenshot({ config, step, driver }) {
       result.description = `Couldn't find element to crop.`;
       return result;
     }
-    if (element) result.outputs.element = element;
+    if (element) result.outputs.element = findResult.outputs.element;
     // Determine if element bounding box + padding is within viewport
     const rect = await driver.execute((el) => {
       return el.getBoundingClientRect();
