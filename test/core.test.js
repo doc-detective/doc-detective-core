@@ -72,11 +72,15 @@ describe("Run tests successfully", function () {
     const tempFilePath = path.resolve("./test/temp-failure-test.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(failureTest, null, 2));
     const config = { input: tempFilePath, logLevel: "debug" };
-    const result = await runTests(config);
-    // Clean up the temporary file
-    fs.unlinkSync(tempFilePath);
-    assert.equal(result.summary.steps.pass, 1);
-    assert.equal(result.summary.steps.fail, 1);
-    assert.equal(result.summary.steps.skipped, 1);
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.pass, 1);
+      assert.equal(result.summary.steps.fail, 1);
+      assert.equal(result.summary.steps.skipped, 1);
+    } finally {
+      // Ensure cleanup even on failure
+      fs.unlinkSync(tempFilePath);
+    }
   });
 });
