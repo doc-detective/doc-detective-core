@@ -27,7 +27,7 @@ main();
 
 async function main() {
   const json = {
-    input: "./dev/dev.spec.json",
+    input: "/home/hawkeyexl/Workspaces/doc-detective-core/test/artifacts/screenshot.spec.json",
     logLevel: "debug",
   };
   // console.log(json);
