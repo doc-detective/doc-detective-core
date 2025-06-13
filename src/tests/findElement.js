@@ -49,7 +49,7 @@ async function findElement({ config, step, driver }) {
       }
       result.outputs.element = element;
       result.description += ` Found element by ${foundBy}.`;
-      result.outputs.element = { ...(await setElementOutputs({ element })) };
+      result.output = await setElementOutputs({ element });
       return result;
     } else {
       // No matching elements
