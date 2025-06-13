@@ -48,8 +48,6 @@ describe("Run tests successfully", function () {
   });
 
   it("Tests skip steps after a failure", async () => {
-    // Set indefinite timeout
-    this.timeout(0);
     const failureTest = {
       tests: [
         {
