@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { runTests } = require("../src");
 const { createServer } = require("./server");
 const assert = require("assert").strict;
@@ -9,11 +10,11 @@ const inputPath = artifactPath;
 // Create a server with custom options
 const server = createServer({
   port: 8080,
-  staticDir: './test/server/public',
+  staticDir: "./test/server/public",
   modifyResponse: (req, body) => {
     // Optional modification of responses
-    return { ...body, extraField: 'added by server' };
-  }
+    return { ...body, extraField: "added by server" };
+  },
 });
 
 // Start the server before tests
@@ -36,7 +37,7 @@ after(async () => {
   }
 });
 
-describe("Run tests successfully", function() {
+describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
@@ -44,5 +45,38 @@ describe("Run tests successfully", function() {
     config_tests.runTests.input = inputPath;
     const result = await runTests(config_tests);
     assert.equal(result.summary.specs.fail, 0);
+  });
+
+  it("Tests skip steps after a failure", async () => {
+    // Set indefinite timeout
+    this.timeout(0);
+    const failureTest = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8080" }, // Depends on local server
+            {
+              find: {
+                selector: "#foobar", // This selector does not exist
+              },
+            }, // This step will fail
+            {
+              runShell:
+                "echo 'This step should be skipped if the previous fails'",
+            },
+          ],
+        },
+      ],
+    };
+    // Write the failure test to a temporary file
+    const tempFilePath = path.resolve("./test/temp-failure-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(failureTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    const result = await runTests(config);
+    // Clean up the temporary file
+    fs.unlinkSync(tempFilePath);
+    assert.equal(result.summary.steps.pass, 1);
+    assert.equal(result.summary.steps.fail, 1);
+    assert.equal(result.summary.steps.skipped, 1);
   });
 });
