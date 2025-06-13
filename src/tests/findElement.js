@@ -2,6 +2,7 @@ const { validate } = require("doc-detective-common");
 const {
   findElementBySelectorOrText,
   findElementBySelectorAndText,
+  setElementOutputs,
 } = require("./findStrategies");
 const { clickElement } = require("./click");
 const { typeKeys } = require("./typeKeys");
@@ -9,14 +10,6 @@ const { moveTo } = require("./moveTo");
 const { wait } = require("./wait");
 
 exports.findElement = findElement;
-
-async function setOutputs({ element }) {
-  // Set element in outputs
-  const outputs = {};
-  outputs.element = element;
-  outputs.element.text = await element.getText();
-  return outputs;
-}
 
 // Find a single element
 async function findElement({ config, step, driver }) {
@@ -54,9 +47,8 @@ async function findElement({ config, step, driver }) {
           return result;
         }
       }
-      result.outputs.element = element;
       result.description += ` Found element by ${foundBy}.`;
-      result.outputs = await setOutputs({ element });
+      result.outputs = await setElementOutputs({ element });
       return result;
     } else {
       // No matching elements
@@ -102,7 +94,9 @@ async function findElement({ config, step, driver }) {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}
   } else if (step.find.elementText) {
-    element = await driver.$(`//*[normalize-space(text())="${step.find.elementText}"]`);
+    element = await driver.$(
+      `//*[normalize-space(text())="${step.find.elementText}"]`
+    );
     try {
       await element.waitForExist({ timeout: step.find.timeout });
     } catch {}
@@ -121,7 +115,7 @@ async function findElement({ config, step, driver }) {
   }
 
   // Set element in outputs
-  result.outputs = await setOutputs({ element });
+  result.outputs = await setElementOutputs({ element });
 
   // Move to element
   if (step.find.moveTo) {

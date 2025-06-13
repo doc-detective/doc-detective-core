@@ -3,6 +3,49 @@ exports.findElementBySelectorAndText =
 exports.findElementBySelectorOrText =
   findElementBySelectorOrText;
 
+// Set element outputs
+exports.setElementOutputs = setElementOutputs;
+
+async function setElementOutputs({ element }) {
+  // Set element in outputs
+  const outputs = { element: {}, rawElement: element };
+
+  const [
+    text, html, tag, value, location, size,
+    clickable, enabled, selected, displayed, inViewport,
+  ] = await Promise.allSettled([
+    element.getText(),
+    element.getHTML(),
+    element.getTagName(),
+    element.getValue(),
+    element.getLocation(),
+    element.getSize(),
+    element.isClickable(),
+    element.isEnabled(),
+    element.isSelected(),
+    element.isDisplayed(),
+    element.isDisplayedInViewport(),
+  ]).then(results =>
+    results.map(r => (r.status === 'fulfilled' ? r.value : null))
+  );
+
+  Object.assign(outputs.element, {
+    text,
+    html,
+    tag,
+    value,
+    location,
+    size,
+    clickable,
+    enabled,
+    selected,
+    displayed,
+    displayedInViewport: inViewport,
+  });
+
+  return outputs;
+}
+
 async function findElementByRegex({ pattern, timeout, driver }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern

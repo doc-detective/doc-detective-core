@@ -823,12 +823,8 @@ async function runStep({
     }
   }
   // Clean up actionResult outputs
-  if (actionResult?.outputs?.element) {
-    // Remove everything but element.text
-    const element = actionResult.outputs.element;
-    actionResult.outputs.element = {
-      text: element.text,
-    };
+  if (actionResult?.outputs?.rawElement) {
+    delete actionResult.outputs.rawElement;
   }
 
   // If variables are defined, resolve and set them
