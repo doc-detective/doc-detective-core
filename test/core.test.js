@@ -95,10 +95,15 @@ describe("Run tests successfully", function () {
     // Write the unsafe test to a temporary file
     const tempFilePath = path.resolve("./test/temp-unsafe-test.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(unsafeTest, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = {
+      input: tempFilePath,
+      logLevel: "debug",
+      allowUnsafeTests: false,
+    };
     let result;
     try {
       result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
       assert.equal(result.summary.specs.skipped, 1);
     } finally {
       // Ensure cleanup even on failure
