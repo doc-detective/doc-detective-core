@@ -3,6 +3,7 @@ const { runTests } = require("../src");
 const { createServer } = require("./server");
 const assert = require("assert").strict;
 const path = require("path");
+const { runShell } = require("../src/tests/runShell");
 const artifactPath = path.resolve("./test/artifacts");
 const config_base = require(`${artifactPath}/config.json`);
 const inputPath = artifactPath;
@@ -52,12 +53,9 @@ describe("Run tests successfully", function () {
       tests: [
         {
           steps: [
-            { goTo: "http://localhost:8080" }, // Depends on local server
             {
-              find: {
-                selector: "#foobar", // This selector does not exist
-              },
-            }, // This step will fail
+              runShell: "exit 1", // This step will fail
+            },
             {
               runShell:
                 "echo 'This step should be skipped if the previous fails'",
@@ -73,9 +71,40 @@ describe("Run tests successfully", function () {
     let result;
     try {
       result = await runTests(config);
-      assert.equal(result.summary.steps.pass, 1);
       assert.equal(result.summary.steps.fail, 1);
       assert.equal(result.summary.steps.skipped, 1);
+    } finally {
+      // Ensure cleanup even on failure
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("Test skips when unsafe and unsafe is disallowed", async () => {
+    const unsafeTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "echo 'This step is unsafe'",
+              unsafe: true, // Marked as potentially unsafe
+            },
+          ],
+        },
+      ],
+    };
+    // Write the unsafe test to a temporary file
+    const tempFilePath = path.resolve("./test/temp-unsafe-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(unsafeTest, null, 2));
+    const config = {
+      input: tempFilePath,
+      logLevel: "debug",
+      allowUnsafeTests: false,
+    };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      assert.equal(result.summary.specs.skipped, 1);
     } finally {
       // Ensure cleanup even on failure
       fs.unlinkSync(tempFilePath);
